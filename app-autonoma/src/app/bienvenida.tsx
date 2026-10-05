@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
@@ -13,28 +13,52 @@ import { Aviso, Boton, Cinta, Etiqueta, Pantalla, Pequeno, SiNo, Subtitulo, Tarj
 
 type Paso = 'inicio' | 'seguridad' | 'resultado' | 'cocina' | 'ejercicio';
 
-const PREGUNTAS: { clave: keyof RespuestasSeguridad; texto: string }[] = [
+export const PREGUNTAS: { clave: keyof RespuestasSeguridad; texto: string }[] = [
   { clave: 'mayorEdad', texto: '¿Tienes 18 años o más?' },
   { clave: 'embarazoLactancia', texto: '¿Estás embarazada o amamantando?' },
-  { clave: 'sintomasEsfuerzo', texto: '¿Has tenido dolor o presión en el pecho, falta de aire desproporcionada, mareos o desmayos al hacer esfuerzo?' },
-  { clave: 'enfermedadConocida', texto: '¿Tienes diagnóstico de enfermedad del corazón, diabetes o enfermedad renal?' },
+  {
+    clave: 'sintomasEsfuerzo',
+    texto:
+      '¿Has tenido dolor o presión en el pecho, el cuello, la mandíbula o los brazos; falta de aire en reposo o con esfuerzos leves; mareos o desmayos al hacer esfuerzo; o palpitaciones fuertes o latidos irregulares que te preocupen?',
+  },
+  {
+    clave: 'enfermedadConocida',
+    texto:
+      '¿Tienes diagnóstico de enfermedad del corazón o de los vasos sanguíneos (por ejemplo infarto, angina, insuficiencia cardiaca, accidente cerebrovascular o arterias tapadas en las piernas), diabetes o enfermedad renal?',
+  },
   { clave: 'insulinaSulfonilurea', texto: '¿Usas insulina o pastillas para la diabetes del grupo de las sulfonilureas (por ejemplo glibenclamida o glimepirida)?' },
-  { clave: 'conductaAlimentaria', texto: '¿Has tenido atracones con sensación de pérdida de control, o has usado vómitos, laxantes o ayunos largos para compensar lo que comes?' },
+  {
+    clave: 'conductaAlimentaria',
+    texto:
+      '¿Has tenido atracones con sensación de pérdida de control, o has usado vómitos, laxantes, ayunos largos o ejercicio excesivo para compensar lo que comes?',
+  },
 ];
 
 export default function Bienvenida() {
-  const { guardarPerfil } = useApp();
+  const { estado, guardarPerfil, actualizarPerfil } = useApp();
   const p = usePaleta();
-  const [paso, setPaso] = useState<Paso>('inicio');
-  const [respuestas, setRespuestas] = useState<Partial<RespuestasSeguridad>>({});
-  const [resultado, setResultado] = useState<ResultadoSeguridad | null>(null);
-  const [nombre, setNombre] = useState('');
-  const [cocina, setCocina] = useState<PreferenciasCocina>(COCINA_INICIAL);
-  const [ejercicio, setEjercicio] = useState<PreferenciasEjercicio>(EJERCICIO_INICIAL);
+  const { modo } = useLocalSearchParams<{ modo?: string }>();
+  const perfilActual = estado.perfil;
+  // Desde Perfil se entra en modo "revisar": solo se repiten las preguntas y se conservan fecha de inicio, nombre y preferencias.
+  const revisar = modo === 'seguridad' && perfilActual != null;
 
-  const completas = PREGUNTAS.every((q) => respuestas[q.clave] !== undefined);
+  const [paso, setPaso] = useState<Paso>(revisar ? 'seguridad' : 'inicio');
+  const [respuestas, setRespuestas] = useState<Partial<RespuestasSeguridad>>({});
+  const [intento, setIntento] = useState(false);
+  const [resultado, setResultado] = useState<ResultadoSeguridad | null>(null);
+  const [nombre, setNombre] = useState(perfilActual?.nombre ?? '');
+  const [cocina, setCocina] = useState<PreferenciasCocina>(perfilActual?.cocina ?? COCINA_INICIAL);
+  const [ejercicio, setEjercicio] = useState<PreferenciasEjercicio>(perfilActual?.ejercicio ?? EJERCICIO_INICIAL);
+
+  const pendientes = PREGUNTAS.filter((q) => respuestas[q.clave] === undefined);
+  const volverAPerfil = () => (router.canGoBack() ? router.back() : router.replace('/perfil'));
 
   const terminar = (seg: ResultadoSeguridad) => {
+    if (revisar) {
+      actualizarPerfil({ seguridad: seg, confirmaEjercicio: false, confirmaAlimentacion: false });
+      volverAPerfil();
+      return;
+    }
     guardarPerfil({
       nombre: nombre.trim(),
       inicio: hoyISO(),
@@ -48,17 +72,35 @@ export default function Bienvenida() {
   };
 
   const siguienteTrasSeguridad = (seg: ResultadoSeguridad) => {
+    if (revisar) return terminar(seg);
     if (seg.alimentacion !== 'bloqueado') return setPaso('cocina');
     if (seg.ejercicio !== 'bloqueado') return setPaso('ejercicio');
     return terminar(seg);
   };
 
+  const totalPasos = resultado ? 1 + (resultado.alimentacion !== 'bloqueado' ? 1 : 0) + (resultado.ejercicio !== 'bloqueado' ? 1 : 0) : 3;
+
+  const campoNombre = (
+    <View style={{ gap: Spacing.s }}>
+      <Subtitulo>¿Cómo te llamamos?</Subtitulo>
+      <TextInput
+        value={nombre}
+        onChangeText={setNombre}
+        placeholder="Tu nombre (opcional)"
+        placeholderTextColor={p.ink2}
+        autoComplete="given-name"
+        accessibilityLabel="Tu nombre"
+        style={{ borderWidth: 1, borderColor: p.line, borderRadius: 6, padding: 12, fontSize: 16, color: p.ink, backgroundColor: p.surface, minHeight: 46 }}
+      />
+    </View>
+  );
+
   if (paso === 'inicio') {
     return (
-      <Pantalla>
+      <Pantalla key={paso}>
         <Etiqueta tono="acento">Ruta 90</Etiqueta>
         <Titulo>Empieza a moverte y a comer mejor, a tu ritmo</Titulo>
-        <Cinta semana={0} />
+        <Cinta semana={0} decorativa />
         <Texto>Durante 12 semanas tendrás:</Texto>
         <Tarjeta>
           <Texto>Una clase corta cada semana.</Texto>
@@ -67,7 +109,7 @@ export default function Bienvenida() {
         </Tarjeta>
         <Aviso>
           <Pequeno tono="normal">
-            Esta app entrega educación general y no reemplaza la atención de un profesional de la salud. Tus respuestas se guardan solo en este teléfono.
+            Esta app entrega educación general y no reemplaza la atención de un profesional de la salud. Tus respuestas, preferencias y avances se guardan solo en este dispositivo.
           </Pequeno>
         </Aviso>
         <Boton titulo="Empezar" onPress={() => setPaso('seguridad')} />
@@ -77,29 +119,41 @@ export default function Bienvenida() {
 
   if (paso === 'seguridad') {
     return (
-      <Pantalla>
-        <Etiqueta>Paso 1 de 3</Etiqueta>
-        <Titulo>Antes de empezar</Titulo>
-        <Texto tono="suave">Estas preguntas sirven para saber si puedes usar la app sin supervisión. Tus respuestas no salen de tu teléfono.</Texto>
-        {PREGUNTAS.map((q) => (
-          <SiNo
-            key={q.clave}
-            pregunta={q.texto}
-            valor={respuestas[q.clave]}
-            onCambio={(v) => setRespuestas((r) => ({ ...r, [q.clave]: v }))}
-          />
-        ))}
+      <Pantalla key={paso}>
+        {revisar ? <Etiqueta>Revisar mis respuestas</Etiqueta> : <Etiqueta>Paso 1</Etiqueta>}
+        <Titulo>{revisar ? 'Actualiza tus respuestas' : 'Antes de empezar'}</Titulo>
+        <Texto tono="suave">
+          {revisar
+            ? 'Solo cambian tus respuestas de seguridad. Tu semana, tu nombre y tus preferencias se conservan.'
+            : 'Estas preguntas sirven para saber si puedes usar la app sin supervisión. Tus respuestas no salen de tu dispositivo.'}
+        </Texto>
+        {!revisar ? campoNombre : null}
+        {PREGUNTAS.map((q) => {
+          const falta = intento && respuestas[q.clave] === undefined;
+          return (
+            <View key={q.clave} style={{ gap: Spacing.xs }}>
+              <SiNo pregunta={q.texto} valor={respuestas[q.clave]} onCambio={(v) => setRespuestas((r) => ({ ...r, [q.clave]: v }))} />
+              {falta ? <Pequeno tono="alerta">Falta responder esta pregunta.</Pequeno> : null}
+            </View>
+          );
+        })}
+        {intento && pendientes.length > 0 ? (
+          <Pequeno tono="alerta">{pendientes.length === 1 ? 'Te falta 1 pregunta.' : `Te faltan ${pendientes.length} preguntas.`}</Pequeno>
+        ) : null}
         <Boton
           titulo="Continuar"
-          deshabilitado={!completas}
           onPress={() => {
+            if (pendientes.length > 0) {
+              setIntento(true);
+              return;
+            }
             const seg = evaluarSeguridad(respuestas as RespuestasSeguridad);
             setResultado(seg);
             if (!seg.apta || seg.mensajes.length > 0) setPaso('resultado');
             else siguienteTrasSeguridad(seg);
           }}
         />
-        {!completas ? <Pequeno>Responde todas las preguntas para continuar.</Pequeno> : null}
+        {revisar ? <Boton titulo="Cancelar" variante="secundario" onPress={volverAPerfil} /> : null}
       </Pantalla>
     );
   }
@@ -107,23 +161,24 @@ export default function Bienvenida() {
   if (paso === 'resultado' && resultado) {
     if (!resultado.apta) {
       return (
-        <Pantalla>
+        <Pantalla key={paso}>
           <Titulo>Esta app no es para ti por ahora</Titulo>
           {resultado.mensajes.map((m) => (
             <Aviso key={m} tipo="alerta"><Texto>{m}</Texto></Aviso>
           ))}
           <Boton titulo="Volver" variante="secundario" onPress={() => setPaso('seguridad')} />
+          {revisar ? <Boton titulo="Cancelar sin cambios" variante="secundario" onPress={volverAPerfil} /> : null}
         </Pantalla>
       );
     }
     return (
-      <Pantalla>
+      <Pantalla key={paso}>
         <Titulo>Lo que debes saber</Titulo>
         {resultado.mensajes.map((m) => (
           <Aviso key={m} tipo="alerta"><Texto>{m}</Texto></Aviso>
         ))}
-        <Texto tono="suave">Puedes seguir y usar lo que está disponible para ti.</Texto>
-        <Boton titulo="Continuar" onPress={() => siguienteTrasSeguridad(resultado)} />
+        <Texto tono="suave">Puedes seguir y usar lo que está disponible para ti. Las secciones pendientes de confirmación se activan desde Perfil.</Texto>
+        <Boton titulo={revisar ? 'Guardar respuestas' : 'Continuar'} onPress={() => siguienteTrasSeguridad(resultado)} />
         <Boton titulo="Corregir respuestas" variante="secundario" onPress={() => setPaso('seguridad')} />
       </Pantalla>
     );
@@ -131,24 +186,12 @@ export default function Bienvenida() {
 
   if (paso === 'cocina') {
     return (
-      <Pantalla>
-        <Etiqueta>Paso 2 de 3</Etiqueta>
+      <Pantalla key={paso}>
+        <Etiqueta>Paso 2 de {totalPasos}</Etiqueta>
         <Titulo>Tu cocina</Titulo>
-        <View style={{ gap: Spacing.s }}>
-          <Subtitulo>¿Cómo te llamamos?</Subtitulo>
-          <TextInput
-            value={nombre}
-            onChangeText={setNombre}
-            placeholder="Tu nombre (opcional)"
-            placeholderTextColor={p.ink2}
-            autoComplete="given-name"
-            accessibilityLabel="Tu nombre"
-            style={{ borderWidth: 1, borderColor: p.line, borderRadius: 6, padding: 12, fontSize: 16, color: p.ink, backgroundColor: p.surface }}
-          />
-        </View>
         <EditorCocina valor={cocina} onCambio={setCocina} />
         <Boton
-          titulo="Continuar"
+          titulo={resultado && resultado.ejercicio !== 'bloqueado' ? 'Continuar' : 'Crear mi plan'}
           onPress={() => (resultado && resultado.ejercicio !== 'bloqueado' ? setPaso('ejercicio') : resultado && terminar(resultado))}
         />
       </Pantalla>
@@ -156,8 +199,8 @@ export default function Bienvenida() {
   }
 
   return (
-    <Pantalla>
-      <Etiqueta>Paso 3 de 3</Etiqueta>
+    <Pantalla key={paso}>
+      <Etiqueta>Paso {totalPasos} de {totalPasos}</Etiqueta>
       <Titulo>Tu ejercicio</Titulo>
       <EditorEjercicio valor={ejercicio} onCambio={setEjercicio} />
       <Boton titulo="Crear mi plan" onPress={() => resultado && terminar(resultado)} />

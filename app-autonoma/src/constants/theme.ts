@@ -14,7 +14,7 @@ export const Colors = {
     accentSoft: '#D7EBEC',
     tape: '#F2C12E',
     tapeInk: '#2B2304',
-    warn: '#A85A0C',
+    warn: '#8F4C0A',
     warnBg: '#F8E7D3',
     crit: '#B3261E',
     critBg: '#F8DEDB',

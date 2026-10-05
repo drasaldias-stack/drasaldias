@@ -1,20 +1,24 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Linking, TextInput, View } from 'react-native';
 
+import { URL_CONDICIONES, URL_PRIVACIDAD } from '@/constants/enlaces';
 import { Spacing } from '@/constants/theme';
 import { usePaleta } from '@/hooks/use-paleta';
 import { useApp } from '@/state/app-state';
-import { EditorEjercicio } from '@/ui/editores';
+import { EditorCocina, EditorEjercicio } from '@/ui/editores';
 import { Aviso, Boton, Etiqueta, FilaCheck, Pantalla, Pequeno, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
 
 export default function Perfil() {
-  const { estado, semana, actualizarPerfil, reiniciarPrograma, borrarTodo } = useApp();
+  const { estado, semana, actualizarPerfil, actualizarCocina, reiniciarPrograma, borrarTodo } = useApp();
   const p = usePaleta();
   const perfil = estado.perfil!;
   const [confirmarReinicio, setConfirmarReinicio] = useState(false);
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
   const seg = perfil.seguridad;
+  const abrir = (url: string) => () => Linking.openURL(url).catch(() => undefined);
+  const urlPrivacidad = URL_PRIVACIDAD;
+  const urlCondiciones = URL_CONDICIONES;
 
   return (
     <Pantalla>
@@ -31,7 +35,7 @@ export default function Perfil() {
           placeholder="Opcional"
           placeholderTextColor={p.ink2}
           accessibilityLabel="Tu nombre"
-          style={{ borderWidth: 1, borderColor: p.line, borderRadius: 6, padding: 12, fontSize: 16, color: p.ink, backgroundColor: p.surface }}
+          style={{ borderWidth: 1, borderColor: p.line, borderRadius: 6, padding: 12, fontSize: 16, color: p.ink, backgroundColor: p.surface, minHeight: 46 }}
         />
       </Tarjeta>
 
@@ -60,8 +64,17 @@ export default function Perfil() {
             onPress={() => actualizarPerfil({ confirmaAlimentacion: !perfil.confirmaAlimentacion })}
           />
         ) : null}
-        <Boton titulo="Volver a responder las preguntas" variante="secundario" onPress={() => router.push('/bienvenida')} />
+        <Boton titulo="Responder de nuevo" variante="secundario" onPress={() => router.push({ pathname: '/bienvenida', params: { modo: 'seguridad' } })} />
+        <Pequeno>Solo cambia tus respuestas de seguridad. No reinicia tu semana ni tus preferencias.</Pequeno>
       </Tarjeta>
+
+      {seg.alimentacion !== 'bloqueado' ? (
+        <Tarjeta>
+          <Subtitulo>Cocina</Subtitulo>
+          <Pequeno>Los cambios se aplican al instante al menú de la semana.</Pequeno>
+          <EditorCocina valor={perfil.cocina} onCambio={actualizarCocina} />
+        </Tarjeta>
+      ) : null}
 
       {seg.ejercicio !== 'bloqueado' ? (
         <Tarjeta>
@@ -72,7 +85,7 @@ export default function Perfil() {
 
       <Tarjeta>
         <Subtitulo>Tu programa</Subtitulo>
-        <Texto>Reiniciar vuelve a la semana 1 y borra las sesiones, clases y caminatas marcadas. Tus preferencias se mantienen.</Texto>
+        <Texto>Reiniciar vuelve a la semana 1 y borra las sesiones, clases y caminatas marcadas. Tus preferencias se mantienen. No se puede deshacer.</Texto>
         {confirmarReinicio ? (
           <>
             <Boton titulo="Sí, reiniciar el programa" variante="peligro" onPress={() => { reiniciarPrograma(); setConfirmarReinicio(false); }} />
@@ -85,11 +98,16 @@ export default function Perfil() {
 
       <Tarjeta>
         <Subtitulo>Privacidad</Subtitulo>
-        <Texto>Tus respuestas, preferencias y avances se guardan solo en este teléfono. La app no tiene cuentas ni envía tus datos a un servidor.</Texto>
+        <Texto>
+          Tus respuestas, preferencias y avances se guardan solo en este dispositivo. La app no tiene cuentas ni envía esos datos a ningún servidor; por eso tampoco se recuperan si cambias de teléfono.
+        </Texto>
+        {urlPrivacidad ? <Boton titulo="Política de privacidad" variante="secundario" onPress={abrir(urlPrivacidad)} /> : null}
+        {urlCondiciones ? <Boton titulo="Condiciones de uso" variante="secundario" onPress={abrir(urlCondiciones)} /> : null}
         {confirmarBorrado ? (
           <>
+            <Pequeno tono="alerta">Se borrarán tus respuestas, preferencias y avances de este dispositivo. No se puede deshacer y volverás a la pantalla de inicio.</Pequeno>
             <Boton
-              titulo="Sí, borrar todo"
+              titulo="Sí, borrar todo y salir"
               variante="peligro"
               onPress={() => {
                 borrarTodo();

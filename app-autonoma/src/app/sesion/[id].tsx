@@ -1,18 +1,25 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { View } from 'react-native';
+import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
-import { CALENTAMIENTO, EJERCICIOS, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
+import { CALENTAMIENTO, CONSEJOS_SESION, EJERCICIOS, PROGRAMAS, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
+import { usePaleta } from '@/hooks/use-paleta';
 import { claveSesion, resolverEjercicio, semanaVigente, sesionesDeSemana, vueltasPorMinutos } from '@/logic/programa';
 import { useApp } from '@/state/app-state';
 import { accesoEjercicio } from '@/state/derivados';
-import { PROGRAMAS } from '@/content/ejercicios';
-import { Aviso, Boton, Chip, Etiqueta, Fila, Pantalla, Pequeno, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { Cronometro } from '@/ui/cronometro';
+import { Aviso, Boton, Chip, Etiqueta, Fila, Opciones, Pantalla, Pequeno, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { MantenerPantalla } from '@/ui/mantener-pantalla';
 
 export default function DetalleSesion() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { estado, semana, alternarSesion } = useApp();
-  const perfil = estado.perfil!;
+  const p = usePaleta();
+  const [vuelta, setVuelta] = useState(1);
+  const [hechos, setHechos] = useState<Record<string, boolean>>({});
+  if (!estado.perfil) return <Redirect href="/bienvenida" />;
+  const perfil = estado.perfil;
   const programa = PROGRAMAS[perfil.ejercicio.programa];
   const sesion = sesionesDeSemana(programa, semana).find((s) => s.id === String(id));
   if (!sesion || !accesoEjercicio(perfil)) {
@@ -25,53 +32,84 @@ export default function DetalleSesion() {
   const vueltas = vueltasPorMinutos(perfil.ejercicio.minutos);
   const clave = claveSesion(semana, sesion.id);
   const hecha = Boolean(estado.sesionesHechas[clave]);
+  const claveItem = (i: number) => `${vuelta}-${i}`;
+  const completadosEstaVuelta = sesion.items.filter((_, i) => hechos[claveItem(i)]).length;
+
   return (
     <Pantalla conBarra={false}>
       <Stack.Screen options={{ title: `Sesión ${sesion.id}` }} />
+      {/* La pantalla se usa con las manos ocupadas durante 10 a 30 minutos: no debe apagarse sola. */}
+      <MantenerPantalla />
       <View style={{ gap: Spacing.s }}>
         <Etiqueta>{programa.nombre} · semana {semanaVigente(semana)}</Etiqueta>
         <Titulo>{sesion.nombre}</Titulo>
         <Fila>
           <Chip texto={`${perfil.ejercicio.minutos} minutos`} tono="acento" />
-          <Chip texto={`Repite ${vueltas} ${vueltas === 1 ? 'vuelta' : 'vueltas'}`} />
+          <Chip texto={`${vueltas} ${vueltas === 1 ? 'vuelta' : 'vueltas'}`} />
         </Fila>
       </View>
 
       <Tarjeta>
         <Etiqueta>Calentamiento</Etiqueta>
         <Texto>{CALENTAMIENTO}</Texto>
+        <Pequeno>{CONSEJOS_SESION}</Pequeno>
       </Tarjeta>
 
-      <Subtitulo>
-        {vueltas === 1 ? 'Haz cada ejercicio una vez, en orden' : `Haz los ejercicios en orden y repite la vuelta ${vueltas} veces`}
-      </Subtitulo>
-      <Pequeno>Descansa 30 a 60 segundos entre ejercicios y 1 a 2 minutos entre vueltas.</Pequeno>
+      {vueltas > 1 ? (
+        <Opciones<number>
+          etiqueta={`Vuelta ${vuelta} de ${vueltas}`}
+          ayuda="Haz los ejercicios en orden y repite la vuelta. Descansa 30 a 60 segundos entre ejercicios y 1 a 2 minutos entre vueltas."
+          opciones={Array.from({ length: vueltas }, (_, i) => ({ valor: i + 1, texto: `Vuelta ${i + 1}` }))}
+          valor={vuelta}
+          onCambio={(v) => setVuelta(v as number)}
+        />
+      ) : (
+        <Pequeno>Haz cada ejercicio una vez, en orden. Descansa 30 a 60 segundos entre ejercicios.</Pequeno>
+      )}
+
       {sesion.items.map((item, i) => {
         const ej = resolverEjercicio(item.ejercicio, perfil.ejercicio.materiales, EJERCICIOS);
         if (!ej) return null;
         const cambiado = ej.id !== item.ejercicio;
+        const listo = Boolean(hechos[claveItem(i)]);
         return (
-          <Tarjeta key={`${item.ejercicio}-${i}`}>
+          <Tarjeta key={`${item.ejercicio}-${i}`} style={listo ? { opacity: 0.75 } : undefined}>
             <Fila style={{ justifyContent: 'space-between' }}>
-              <Etiqueta>Ejercicio {i + 1}</Etiqueta>
-              <Chip texto={item.unidad === 'reps' ? `${item.cantidad} repeticiones` : `${item.cantidad} segundos`} tono="acento" />
+              <Etiqueta>Ejercicio {i + 1} de {sesion.items.length}</Etiqueta>
+              {listo ? <Chip texto="Hecho" tono="ok" /> : null}
             </Fila>
             <Subtitulo>{ej.nombre}</Subtitulo>
+            <Text style={[estilos.cantidad, { color: p.ink }]}>
+              {item.cantidad} {item.unidad === 'reps' ? 'repeticiones' : 'segundos'}
+            </Text>
+            {item.unidad === 'seg' ? <Cronometro segundos={item.cantidad} /> : null}
             {cambiado ? <Pequeno>Adaptado a los materiales que tienes.</Pequeno> : null}
             {ej.instrucciones.map((t) => (
               <Texto key={t}>{`•  ${t}`}</Texto>
             ))}
             <Pequeno>{ej.cuidado}</Pequeno>
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: listo }}
+              aria-checked={listo}
+              onPress={() => setHechos((h) => ({ ...h, [claveItem(i)]: !listo }))}
+              style={({ pressed }) => [estilos.marcar, { borderColor: listo ? p.ok : p.line, backgroundColor: listo ? p.okBg : 'transparent', opacity: pressed ? 0.85 : 1 }]}>
+              <Text style={[estilos.marcarTexto, { color: listo ? p.ok : p.accent }]}>{listo ? 'Hecho en esta vuelta' : 'Marcar como hecho'}</Text>
+            </Pressable>
           </Tarjeta>
         );
       })}
+
+      {vueltas > 1 && completadosEstaVuelta === sesion.items.length && vuelta < vueltas ? (
+        <Boton titulo={`Pasar a la vuelta ${vuelta + 1}`} onPress={() => setVuelta(vuelta + 1)} />
+      ) : null}
 
       <Tarjeta>
         <Etiqueta>Vuelta a la calma</Etiqueta>
         <Texto>{VUELTA_CALMA}</Texto>
       </Tarjeta>
 
-      <Aviso tipo="alerta">
+      <Aviso tipo="critico">
         <Pequeno tono="normal">{SENALES_DETENERSE}</Pequeno>
       </Aviso>
 
@@ -84,3 +122,9 @@ export default function DetalleSesion() {
     </Pantalla>
   );
 }
+
+const estilos = StyleSheet.create({
+  cantidad: { fontSize: 22, lineHeight: 28, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  marcar: { minHeight: 44, borderWidth: 1, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.l },
+  marcarTexto: { fontSize: 16, fontWeight: '700' },
+});

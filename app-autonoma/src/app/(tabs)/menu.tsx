@@ -20,7 +20,7 @@ const NOMBRE_ROL: Record<Rol, string> = {
   salsa: 'Aliño o salsa',
   desayuno: 'Desayuno',
 };
-const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+const DIAS = ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5'];
 
 export default function MenuSemana() {
   const { estado, menuActual, actualizarCocina, nuevaCombinacion, reemplazarMenu } = useApp();
@@ -75,16 +75,20 @@ export default function MenuSemana() {
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ expanded: filtrosAbiertos }}
+          aria-expanded={filtrosAbiertos}
           onPress={() => setFiltrosAbiertos((v) => !v)}
-          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 }}>
           <Subtitulo>Tus filtros</Subtitulo>
           <Fila>
             <Texto tono="acento" style={{ fontWeight: '700' }}>{filtrosAbiertos ? 'Listo' : 'Cambiar'}</Texto>
-            <Ionicons name={filtrosAbiertos ? 'chevron-up' : 'chevron-down'} size={18} color={p.accent} />
+            <Ionicons aria-hidden name={filtrosAbiertos ? 'chevron-up' : 'chevron-down'} size={18} color={p.accent} />
           </Fila>
         </Pressable>
         {filtrosAbiertos ? (
-          <EditorCocina valor={prefs} onCambio={actualizarCocina} />
+          <>
+            <Pequeno>Los cambios se aplican al instante al menú de abajo.</Pequeno>
+            <EditorCocina valor={prefs} onCambio={actualizarCocina} />
+          </>
         ) : (
           <Fila>{resumenFiltros.map((t) => <Chip key={t} texto={t} />)}</Fila>
         )}
@@ -104,6 +108,9 @@ export default function MenuSemana() {
               <Chip texto={`${menuActual.menu.minutos} min`} tono={menuActual.menu.excede > 0 ? 'alerta' : 'ok'} />
             </Fila>
             <Pequeno>Minutos de trabajo activo, incluidos {MINUTOS_ORGANIZACION} para organizarte y limpiar. Lo que está en el horno o la olla avanza mientras preparas lo demás.</Pequeno>
+            <Pequeno>
+              Los días de refrigeración se cuentan desde que cocinas: cocina el día anterior al día 1 (por ejemplo, el domingo si empiezas el lunes). Si cocinas antes, congela también lo que comerás desde el cuarto día.
+            </Pequeno>
             {menuActual.menu.excede > 0 ? (
               <Aviso tipo="alerta">
                 <Pequeno tono="normal">
@@ -122,20 +129,26 @@ export default function MenuSemana() {
                 <Etiqueta>{`${i + 1}. ${NOMBRE_ROL[c.rol]}`}</Etiqueta>
                 <Chip texto={`${c.minutosActivos + (doble ? 5 : 0)} min activos`} />
               </Fila>
-              <Pressable accessibilityRole="link" onPress={() => router.push(`/receta/${c.id}`)}>
-                <Subtitulo style={{ textDecorationLine: 'underline' }}>{c.nombre}</Subtitulo>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`Ver receta: ${c.nombre}`}
+                onPress={() => router.push(`/receta/${c.id}`)}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.s, minHeight: 44 }}>
+                <Subtitulo style={{ textDecorationLine: 'underline', flex: 1 }}>{c.nombre}</Subtitulo>
+                <Ionicons aria-hidden name="chevron-forward" size={22} color={p.ink2} />
               </Pressable>
               <Pequeno>
-                {doble ? 'Receta doble. ' : ''}Dura {c.refrigeradorDias} días refrigerado{c.congelable ? ' y se puede congelar' : ''}.
+                {doble ? 'Se prepara en cantidad doble para cubrir los 5 días. ' : ''}Dura {c.refrigeradorDias} días refrigerado{c.congelable ? ' y se puede congelar' : ''}.
               </Pequeno>
-              {sinAlternativa === c.id ? <Pequeno tono="alerta">No hay otra opción que calce con tus filtros y tu tiempo.</Pequeno> : null}
+              {sinAlternativa === c.id ? <Pequeno tono="alerta">No hay otra receta que calce con tus filtros y tu tiempo. Quita alguna exclusión, suma equipamiento o elige más tiempo.</Pequeno> : null}
               <Fila>
-                <Boton titulo="Cambiar" variante="secundario" icono="swap-horizontal" onPress={() => cambiar(c.rol, c.id)} />
+                <Boton titulo="Otra receta" variante="secundario" icono="swap-horizontal" onPress={() => cambiar(c.rol, c.id)} />
               </Fila>
             </Tarjeta>
           ))}
 
           <Subtitulo>Tu semana</Subtitulo>
+          <Pequeno>El día 1 es el primer día que comes del menú: si cocinas el domingo, el día 1 es el lunes.</Pequeno>
           {diasDelMenu(menuActual.menu).map(({ dia, comida }) => {
             const nombre = (id: string) => componentePorId(id)?.nombre ?? id;
             const principal = (['proteina', 'carbohidrato', 'verdura', 'salsa'] as Rol[]).map((r) => comida[r]);
@@ -150,9 +163,9 @@ export default function MenuSemana() {
                 <Texto>{nombre(comida.desayuno.id)}</Texto>
                 {congelados.length > 0 ? (
                   <Fila style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
-                    <Ionicons name="snow-outline" size={18} color={p.accent} />
+                    <Ionicons aria-hidden name="snow-outline" size={18} color={p.accent} />
                     <Pequeno style={{ flex: 1 }}>
-                      Congela el día de la sesión y pasa al refrigerador la noche anterior: {congelados.map((a) => nombre(a.id)).join(', ')}.
+                      Congela el mismo día que cocinas y pásalo al refrigerador la noche anterior: {congelados.map((a) => nombre(a.id)).join(', ')}.
                     </Pequeno>
                   </Fila>
                 ) : null}

@@ -6,7 +6,9 @@ import type { Ejercicio, ItemSesion, Programa, ProgramaId, Sesion } from '../log
 export const CALENTAMIENTO = '3 minutos de marcha suave y círculos de hombros.';
 export const VUELTA_CALMA = '2 minutos caminando lento y respirando profundo.';
 export const SENALES_DETENERSE =
-  'Detente y consulta si sientes dolor o presión en el pecho, falta de aire que no cede al descansar, mareo, palpitaciones fuertes o dolor agudo en una articulación.';
+  'Detente si sientes dolor o presión en el pecho, cuello, mandíbula o brazos, falta de aire que no cede al descansar, mareo o desmayo, palpitaciones fuertes o dolor agudo en una articulación. Si el dolor o la presión en el pecho no desaparece en pocos minutos de reposo, llama al número de emergencias de tu país. En los demás casos, no sigas entrenando hasta consultar.';
+export const CONSEJOS_SESION =
+  'Respira de forma continua durante cada ejercicio: suelta el aire en el esfuerzo y no aguantes la respiración. Si tienes fiebre o una infección, descansa ese día.';
 
 export const EJERCICIOS: Ejercicio[] = [
   { id: 'marcha', nombre: 'Marcha en el lugar', tipo: 'cardio', requiere: [],
@@ -82,7 +84,7 @@ export const EJERCICIOS: Ejercicio[] = [
   { id: 'talones', nombre: 'Elevación de talones', tipo: 'fuerza', requiere: [],
     instrucciones: ['De pie, apoyado en una pared o en el respaldo de una silla.', 'Sube en puntas de pie y baja lento.'],
     cuidado: 'Fortalece las pantorrillas y ayuda al equilibrio.' },
-  { id: 'extension_rodilla', nombre: 'Extensión de rodilla sentado', tipo: 'fuerza', requiere: ['silla'], alternativa: 'talones',
+  { id: 'extension_rodilla', nombre: 'Extensión de rodilla sentado', tipo: 'fuerza', requiere: ['silla'], alternativa: 'extension_cadera_pie',
     instrucciones: ['Sentado con la espalda apoyada, estira una rodilla hasta dejar la pierna recta.', 'Mantén 2 segundos y baja lento. Cambia de pierna a mitad.'],
     cuidado: 'Movimiento sin dolor de rodilla.' },
   { id: 'apertura_lateral', nombre: 'Apertura lateral de pierna de pie', tipo: 'fuerza', requiere: [],
@@ -133,7 +135,7 @@ export const PROGRAMAS: Record<ProgramaId, Programa> = {
       { semanaDesde: 1, minutosDia: 10, dias: 5, texto: 'Camina a un ritmo en que puedas hablar, pero no cantar.' },
       { semanaDesde: 4, minutosDia: 15, dias: 5, texto: 'Si te cuesta hacerlo seguido, divídelo en dos caminatas.' },
       { semanaDesde: 7, minutosDia: 20, dias: 5, texto: 'Prueba un tramo con subida suave o a paso más rápido.' },
-      { semanaDesde: 10, minutosDia: 30, dias: 5, texto: 'Con 30 minutos cinco días llegas a los 150 minutos semanales que recomienda la OMS.' },
+      { semanaDesde: 10, minutosDia: 30, dias: 5, texto: 'Con 30 minutos cinco días alcanzas el mínimo de 150 minutos semanales que recomienda la OMS; la meta es 150 a 300. Tus tres sesiones de fuerza también suman.' },
     ],
   },
   fuerza_casa: {
@@ -165,7 +167,7 @@ export const PROGRAMAS: Record<ProgramaId, Programa> = {
     caminata: [
       { semanaDesde: 1, minutosDia: 20, dias: 5, texto: 'Camina a paso rápido: puedes hablar, pero no cantar.' },
       { semanaDesde: 4, minutosDia: 25, dias: 5, texto: 'Mantén el paso rápido durante toda la caminata.' },
-      { semanaDesde: 7, minutosDia: 30, dias: 5, texto: 'Con 30 minutos cinco días llegas a los 150 minutos semanales que recomienda la OMS.' },
+      { semanaDesde: 7, minutosDia: 30, dias: 5, texto: 'Con 30 minutos cinco días alcanzas el mínimo de 150 minutos semanales que recomienda la OMS; la meta es 150 a 300. Tus tres sesiones de fuerza también suman.' },
       { semanaDesde: 10, minutosDia: 30, dias: 6, texto: 'Suma un día más o alarga una caminata del fin de semana.' },
     ],
   },

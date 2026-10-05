@@ -8,7 +8,7 @@ import { evaluarSeguridad } from '../seguridad';
 import { cambiarComponente, diasDelMenu, esCompatible, generarMenu, ORDEN_ROLES, planificarDias } from '../menu';
 import { formatearCantidad, listaCompras } from '../compras';
 import { metaCaminata, resolverEjercicio, semanaDelPrograma, sesionesDeSemana } from '../programa';
-import type { Equipo, Exclusion, Patron, PreferenciasCocina, RespuestasSeguridad } from '../tipos';
+import type { Equipo, Exclusion, Material, Patron, PreferenciasCocina, RespuestasSeguridad } from '../tipos';
 
 const base: RespuestasSeguridad = {
   mayorEdad: true, embarazoLactancia: false, conductaAlimentaria: false,
@@ -19,16 +19,17 @@ test('seguridad: deriva o bloquea según las respuestas', () => {
   assert.equal(evaluarSeguridad({ ...base, mayorEdad: false }).apta, false);
   const ok = evaluarSeguridad(base);
   assert.deepEqual([ok.alimentacion, ok.ejercicio], ['ok', 'ok']);
-  assert.equal(evaluarSeguridad({ ...base, insulinaSulfonilurea: true }).alimentacion, 'requiere_confirmacion');
+  const ins = evaluarSeguridad({ ...base, insulinaSulfonilurea: true });
+  assert.deepEqual([ins.alimentacion, ins.ejercicio], ['requiere_confirmacion', 'requiere_confirmacion']);
   assert.equal(evaluarSeguridad({ ...base, sintomasEsfuerzo: true }).ejercicio, 'requiere_confirmacion');
   assert.equal(evaluarSeguridad({ ...base, enfermedadConocida: true }).ejercicio, 'requiere_confirmacion');
-  const emb = evaluarSeguridad({ ...base, embarazoLactancia: true });
+  const emb = evaluarSeguridad({ ...base, embarazoLactancia: true, insulinaSulfonilurea: true });
   assert.deepEqual([emb.alimentacion, emb.ejercicio], ['bloqueado', 'bloqueado']);
   const ca = evaluarSeguridad({ ...base, conductaAlimentaria: true, insulinaSulfonilurea: true });
-  assert.equal(ca.alimentacion, 'bloqueado');
+  assert.deepEqual([ca.alimentacion, ca.ejercicio], ['bloqueado', 'requiere_confirmacion']);
 });
 
-test('contenido: ids únicos y referencias válidas', () => {
+test('contenido: ids únicos, referencias válidas y una sola unidad por ingrediente', () => {
   const ids = COMPONENTES.map((c) => c.id);
   assert.equal(new Set(ids).size, ids.length);
   const ej = new Set(EJERCICIOS.map((e) => e.id));
@@ -37,6 +38,16 @@ test('contenido: ids únicos y referencias válidas', () => {
     for (const b of p.bloques) for (const s of b.sesiones) for (const it of s.items) assert.ok(ej.has(it.ejercicio), `${p.id} ${it.ejercicio}`);
   }
   assert.equal(CLASES.length, 12);
+  const unidades = new Map<string, string>();
+  for (const c of COMPONENTES) {
+    for (const ing of c.ingredientes) {
+      if (ing.basico) continue;
+      const previa = unidades.get(ing.nombre);
+      assert.ok(!previa || previa === ing.unidad, `${ing.nombre} usa ${previa} y ${ing.unidad}`);
+      unidades.set(ing.nombre, ing.unidad);
+    }
+    assert.ok(c.refrigeradorDias <= 5 || c.rol === 'salsa', `${c.id}: ${c.refrigeradorDias} días refrigerado`);
+  }
 });
 
 test('planificarDias: lo que vence antes va primero y se congela lo que no alcanza', () => {
@@ -49,11 +60,52 @@ test('planificarDias: lo que vence antes va primero y se congela lo que no alcan
   const espinaca = componentePorId('v_espinaca')!;
   const champ = componentePorId('v_champinones')!;
   assert.equal(planificarDias([{ c: espinaca, doble: false }, { c: champ, doble: false }]), null);
+  // Caso en que el voraz fallaba: arroz (congelable, 3 días) con papas asadas (no congelable, 4 días).
+  const arroz = componentePorId('c_arroz')!;
+  const papas = componentePorId('c_papas')!;
+  const plan = planificarDias([{ c: arroz, doble: false }, { c: papas, doble: false }])!;
+  assert.ok(plan, 'arroz + papas debe tener reparto');
+  assert.equal(plan.length, 5);
+  // El reparto elegido congela lo mínimo (una porción) y nunca congela algo que no se puede congelar.
+  assert.equal(plan.filter((d) => d.congelar).length, 1);
+  for (const d of plan) {
+    const c = componentePorId(d.id)!;
+    assert.ok(!d.congelar || c.congelable);
+  }
+  assert.deepEqual([...new Set(plan.map((d) => d.id))].sort(), ['c_arroz', 'c_papas']);
+  // Todo par factible de un mismo rol debe aceptarse: se compara contra una comprobación independiente.
+  let rechazadosFactibles = 0;
+  for (const rol of ['proteina', 'carbohidrato', 'verdura'] as const) {
+    const lista = COMPONENTES.filter((c) => c.rol === rol);
+    for (let i = 0; i < lista.length; i++)
+      for (let j = i + 1; j < lista.length; j++) {
+        const a = lista[i], b = lista[j];
+        const factible = existeReparto(a, b);
+        const plan = planificarDias([{ c: a, doble: false }, { c: b, doble: false }]);
+        if (factible && !plan) rechazadosFactibles++;
+        if (!factible) assert.equal(plan, null, `${a.id}+${b.id} no debería tener reparto`);
+      }
+  }
+  assert.equal(rechazadosFactibles, 0);
 });
+
+function existeReparto(a: typeof COMPONENTES[number], b: typeof COMPONENTES[number]): boolean {
+  for (let codigo = 0; codigo < 32; codigo++) {
+    let ua = 0, ub = 0, ok = true;
+    for (let d = 1; d <= 5; d++) {
+      const usaA = ((codigo >> (d - 1)) & 1) === 0;
+      const c = usaA ? a : b;
+      if (usaA) ua++; else ub++;
+      if ((usaA ? ua : ub) > c.porciones || (c.refrigeradorDias < d && !c.congelable)) { ok = false; break; }
+    }
+    if (ok) return true;
+  }
+  return false;
+}
 
 test('menú: siempre arma una semana compatible con las preferencias', () => {
   const equipos: Equipo[][] = [[], ['horno'], ['microondas'], ['horno', 'olla', 'airfryer', 'microondas', 'licuadora']];
-  const exclusiones: Exclusion[][] = [[], ['gluten', 'lacteos'], ['huevo', 'cebolla'], ['pollo', 'vacuno', 'cerdo']];
+  const exclusiones: Exclusion[][] = [[], ['gluten', 'lacteos'], ['huevo', 'cebolla'], ['pollo', 'vacuno', 'cerdo'], ['mostaza', 'sesamo', 'frutos_secos']];
   const patrones: Patron[] = ['omnivoro', 'vegetariano'];
   let combinaciones = 0;
   let exceden60 = 0;
@@ -71,6 +123,10 @@ test('menú: siempre arma una semana compatible con las preferencias', () => {
               const op = r.menu.porRol[rol];
               assert.equal(op.dias.length, 5);
               for (const e of op.elecciones) assert.ok(esCompatible(componentePorId(e.id)!, prefs), `${e.id} no compatible`);
+              for (const d of op.dias) {
+                const c = componentePorId(d.id)!;
+                if (d.congelar) assert.ok(c.congelable, `${c.id} se congela sin ser congelable`);
+              }
             }
             if (minutos >= 90 && eq.length === 5) assert.equal(r.menu.excede, 0, JSON.stringify(prefs));
             if (minutos === 60 && r.menu.excede > 0) exceden60++;
@@ -126,4 +182,17 @@ test('programa: semanas, bloques y alternativas por material', () => {
   assert.equal(resolverEjercicio('puente', ['silla'], EJERCICIOS)?.id, 'extension_cadera_pie');
   assert.equal(resolverEjercicio('marcha_sentada', [], EJERCICIOS)?.id, 'marcha');
   assert.equal(metaCaminata(PROGRAMAS.desde_cero, 5).minutosDia, 15);
+});
+
+test('programa: ninguna sesión repite un ejercicio con cualquier combinación de materiales', () => {
+  const materiales: Material[] = ['silla', 'banda', 'pesas', 'colchoneta'];
+  for (let mascara = 0; mascara < 16; mascara++) {
+    const tengo = materiales.filter((_, i) => (mascara >> i) & 1);
+    for (const p of Object.values(PROGRAMAS))
+      for (const b of p.bloques)
+        for (const s of b.sesiones) {
+          const resueltos = s.items.map((it) => resolverEjercicio(it.ejercicio, tengo, EJERCICIOS)!.id);
+          assert.equal(new Set(resueltos).size, resueltos.length, `${p.id} semanas ${b.semanas.join('-')} sesión ${s.id} con [${tengo.join(',')}]: ${resueltos.join(', ')}`);
+        }
+  }
 });

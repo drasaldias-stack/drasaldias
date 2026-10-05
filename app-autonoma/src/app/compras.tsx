@@ -1,3 +1,5 @@
+import { Redirect } from 'expo-router';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -9,8 +11,10 @@ import { Boton, Etiqueta, FilaCheck, Pantalla, Pequeno, Subtitulo, Tarjeta, Text
 
 export default function Compras() {
   const { estado, semana, menuActual, alternarCompra, limpiarCompras } = useApp();
+  const [confirmar, setConfirmar] = useState(false);
+  if (!estado.perfil) return <Redirect href="/bienvenida" />;
   const perfil = estado.perfil;
-  if (!perfil || !accesoMenu(perfil) || !menuActual?.ok) {
+  if (!accesoMenu(perfil) || !menuActual?.ok) {
     return (
       <Pantalla conBarra={false}>
         <Texto>No hay un menú activo para armar la lista de compras.</Texto>
@@ -51,7 +55,17 @@ export default function Compras() {
           <Pequeno tono="normal">{lista.basicos.join(', ')}.</Pequeno>
         </Tarjeta>
       ) : null}
-      <Boton titulo="Desmarcar todo" variante="secundario" onPress={limpiarCompras} />
+      {marcados > 0 ? (
+        confirmar ? (
+          <>
+            <Pequeno>¿Desmarcar los {marcados} productos de esta semana?</Pequeno>
+            <Boton titulo="Sí, desmarcar" variante="peligro" onPress={() => { limpiarCompras(semana); setConfirmar(false); }} />
+            <Boton titulo="Cancelar" variante="secundario" onPress={() => setConfirmar(false)} />
+          </>
+        ) : (
+          <Boton titulo="Desmarcar todo" variante="secundario" onPress={() => setConfirmar(true)} />
+        )
+      ) : null}
     </Pantalla>
   );
 }

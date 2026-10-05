@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -11,6 +11,7 @@ export default function DetalleClase() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { estado, semana, alternarClase } = useApp();
   const clase = clasePorId(String(id));
+  if (!estado.perfil) return <Redirect href="/bienvenida" />;
   if (!clase) {
     return (
       <Pantalla conBarra={false}>
@@ -27,7 +28,7 @@ export default function DetalleClase() {
         <>
           <VideoClase url={clase.videoUrl} />
           <View style={{ gap: Spacing.s }}>
-            <Etiqueta>Semana {clase.semana} · {clase.minutos} min</Etiqueta>
+            <Etiqueta>Semana {clase.semana} · {clase.minutos} min{clase.videoUrl ? '' : ' de lectura'}</Etiqueta>
             <Titulo>{clase.titulo}</Titulo>
             <Texto tono="suave">{clase.resumen}</Texto>
           </View>

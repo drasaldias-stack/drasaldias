@@ -17,6 +17,8 @@ export type Exclusion =
   | 'pollo'
   | 'soya'
   | 'frutos_secos'
+  | 'mostaza'
+  | 'sesamo'
   | 'cebolla'
   | 'champinones'
   | 'picante'
@@ -116,6 +118,7 @@ export type ResultadoSeguridad = {
   apta: boolean;
   alimentacion: EstadoAcceso;
   ejercicio: EstadoAcceso;
+  /** Se guarda en el teléfono y nombra la condición que motivó cada restricción: es un dato de salud. */
   mensajes: string[];
 };
 

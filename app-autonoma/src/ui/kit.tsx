@@ -67,13 +67,14 @@ export function Boton({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: deshabilitado }}
+      aria-disabled={deshabilitado}
       disabled={deshabilitado}
       onPress={onPress}
       style={({ pressed }) => [
         estilos.boton,
         { backgroundColor: fondo, borderColor: variante === 'secundario' ? p.line : fondo, opacity: deshabilitado ? 0.45 : pressed ? 0.85 : 1 },
       ]}>
-      {icono ? <Ionicons name={icono} size={18} color={color} /> : null}
+      {icono ? <Ionicons aria-hidden name={icono} size={18} color={color} /> : null}
       <Text style={[estilos.botonTexto, { color }]}>{titulo}</Text>
     </Pressable>
   );
@@ -89,7 +90,7 @@ export function Aviso({ children, tipo = 'info', icono }: { children: ReactNode;
   const color = tipo === 'alerta' ? p.warn : tipo === 'critico' ? p.crit : tipo === 'ok' ? p.ok : p.accent;
   return (
     <View style={[estilos.aviso, { backgroundColor: fondo }]}>
-      <Ionicons name={icono ?? (tipo === 'info' ? 'information-circle-outline' : 'alert-circle-outline')} size={20} color={color} />
+      <Ionicons aria-hidden name={icono ?? (tipo === 'info' ? 'information-circle-outline' : 'alert-circle-outline')} size={20} color={color} />
       <View style={{ flex: 1, gap: Spacing.xs }}>{children}</View>
     </View>
   );
@@ -135,7 +136,8 @@ export function Opciones<T extends string | number>({
             <Pressable
               key={String(o.valor)}
               accessibilityRole={multiple ? 'checkbox' : 'radio'}
-              accessibilityState={multiple ? { checked: sel } : { selected: sel }}
+              accessibilityState={{ checked: sel }}
+              aria-checked={sel}
               onPress={() => tocar(o.valor)}
               style={({ pressed }) => [
                 estilos.pildora,
@@ -167,9 +169,10 @@ export function FilaCheck({ texto, detalle, marcado, onPress }: { texto: string;
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: marcado }}
+      aria-checked={marcado}
       onPress={onPress}
       style={({ pressed }) => [estilos.filaCheck, { borderBottomColor: p.line, opacity: pressed ? 0.8 : 1 }]}>
-      <Ionicons name={marcado ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={marcado ? p.ok : p.ink2} />
+      <Ionicons aria-hidden name={marcado ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={marcado ? p.ok : p.ink2} />
       <View style={{ flex: 1 }}>
         <Text style={[estilos.texto, { color: marcado ? p.ink2 : p.ink, textDecorationLine: marcado ? 'line-through' : 'none' }]}>{texto}</Text>
         {detalle ? <Pequeno>{detalle}</Pequeno> : null}
@@ -179,11 +182,16 @@ export function FilaCheck({ texto, detalle, marcado, onPress }: { texto: string;
 }
 
 /** Avance del programa dibujado como una cinta métrica de 12 semanas. */
-export function Cinta({ semana, total = 12 }: { semana: number; total?: number }) {
+export function Cinta({ semana, total = 12, decorativa }: { semana: number; total?: number; decorativa?: boolean }) {
   const p = usePaleta();
   const hecho = Math.min(total, Math.max(0, semana));
+  const anunciada = Math.min(total, Math.max(1, Math.ceil(semana)));
   return (
-    <View accessible accessibilityLabel={`Semana ${Math.min(semana, total)} de ${total}`} style={{ gap: Spacing.xs }}>
+    <View
+      accessible={!decorativa}
+      aria-hidden={decorativa}
+      accessibilityLabel={decorativa ? undefined : `Semana ${anunciada} de ${total} del programa`}
+      style={{ gap: Spacing.xs }}>
       <View style={[estilos.cinta, { backgroundColor: p.surface2 }]}>
         <View style={[estilos.cintaRelleno, { backgroundColor: p.tape, width: `${(hecho / total) * 100}%` }]} />
         {Array.from({ length: total - 1 }, (_, i) => {
@@ -220,20 +228,20 @@ const estilos = StyleSheet.create({
   subtitulo: { fontSize: 18, lineHeight: 24, fontWeight: '700' },
   texto: { fontSize: 16, lineHeight: 23 },
   pequeno: { fontSize: 14, lineHeight: 20 },
-  etiqueta: { fontSize: 12, lineHeight: 16, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase' },
+  etiqueta: { fontSize: 13, lineHeight: 18, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase' },
   tarjeta: { borderWidth: 1, borderRadius: Radius.m, padding: Spacing.l, gap: Spacing.m },
   boton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.s,
     borderWidth: 1, borderRadius: Radius.s, paddingVertical: 12, paddingHorizontal: Spacing.l, minHeight: 46,
   },
-  botonTexto: { fontSize: 16, fontWeight: '700' },
+  botonTexto: { fontSize: 16, fontWeight: '700', flexShrink: 1, textAlign: 'center' },
   fila: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.s, alignItems: 'center' },
   aviso: { flexDirection: 'row', gap: Spacing.m, padding: Spacing.m, borderRadius: Radius.s, alignItems: 'flex-start' },
   chip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: Radius.pill, alignSelf: 'flex-start' },
-  chipTexto: { fontSize: 13, fontWeight: '700' },
+  chipTexto: { fontSize: 14, fontWeight: '700' },
   opcionesEtiqueta: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
   opciones: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.s },
-  pildora: { borderWidth: 1, borderRadius: Radius.pill, paddingVertical: 9, paddingHorizontal: 14, minHeight: 40, justifyContent: 'center' },
+  pildora: { borderWidth: 1, borderRadius: Radius.pill, paddingVertical: 10, paddingHorizontal: 16, minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' },
   pildoraTexto: { fontSize: 15, fontWeight: '600' },
   filaCheck: { flexDirection: 'row', gap: Spacing.m, alignItems: 'center', paddingVertical: Spacing.m, borderBottomWidth: 1 },
   cinta: { height: 30, borderRadius: 4, overflow: 'hidden', position: 'relative' },

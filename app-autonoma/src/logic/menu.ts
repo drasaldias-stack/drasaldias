@@ -47,11 +47,48 @@ export function planificarDias(items: { c: Componente; doble: boolean }[], dias 
       elegido = pendientes.find((p) => p.quedan > 0 && p.c.congelable);
       congelar = Boolean(elegido);
     }
-    if (!elegido) return null;
+    if (!elegido) return planificarExhaustivo(items, dias);
     elegido.quedan -= 1;
     out.push({ id: elegido.c.id, congelar });
   }
   return out;
+}
+
+/**
+ * Respaldo del reparto voraz: con dos componentes y cinco días hay a lo más 32 asignaciones.
+ * Elige la que menos porciones congela y, a igualdad, la que menos alterna de componente entre días.
+ * El voraz falla, por ejemplo, cuando consume primero el componente congelable y al final no queda nada que congelar.
+ */
+function planificarExhaustivo(items: { c: Componente; doble: boolean }[], dias: number): Asignacion[] | null {
+  if (items.length === 0 || items.length > 3) return null;
+  const n = items.length;
+  const total = Math.pow(n, dias);
+  let mejor: Asignacion[] | null = null;
+  let mejorClave = Infinity;
+  for (let codigo = 0; codigo < total; codigo++) {
+    const usados = new Array<number>(n).fill(0);
+    const plan: Asignacion[] = [];
+    let congelados = 0;
+    let cambios = 0;
+    let valido = true;
+    let resto = codigo;
+    for (let d = 1; d <= dias; d++) {
+      const i = resto % n;
+      resto = Math.floor(resto / n);
+      const { c, doble } = items[i];
+      usados[i] += 1;
+      if (usados[i] > porciones(c, doble)) { valido = false; break; }
+      const congelar = c.refrigeradorDias < d;
+      if (congelar && !c.congelable) { valido = false; break; }
+      if (congelar) congelados += 1;
+      if (d > 1 && plan[d - 2].id !== c.id) cambios += 1;
+      plan.push({ id: c.id, congelar });
+    }
+    if (!valido) continue;
+    const clave = congelados * 10 + cambios;
+    if (clave < mejorClave) { mejorClave = clave; mejor = plan; }
+  }
+  return mejor;
 }
 
 export function opcionesRol(rol: Rol, candidatos: Componente[]): OpcionRol[] {

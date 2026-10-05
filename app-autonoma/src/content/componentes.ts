@@ -2,7 +2,7 @@ import type { Componente } from '../logic/tipos';
 
 // CONTENIDO DE EJEMPLO. Cada receta debe revisarla y aprobarla el equipo antes de publicar la app.
 // Las cantidades son por persona para todas las porciones que rinde cada componente en la semana.
-// Tiempos de refrigeración conservadores: comidas cocidas 3 a 5 días.
+// Tiempos de refrigeración conservadores: comidas cocidas 3 a 4 días, contados desde el día en que se cocina.
 
 const ACEITE = { nombre: 'Aceite de oliva', cantidad: 1, unidad: 'cda', categoria: 'Despensa', basico: true } as const;
 const SAL = { nombre: 'Sal y pimienta', cantidad: 1, unidad: 'cdta', categoria: 'Despensa', basico: true } as const;
@@ -40,8 +40,8 @@ export const COMPONENTES: Componente[] = [
     ],
     pasos: [
       'Pon el pollo, la cebolla y la zanahoria en trozos y el ajo en la olla con una taza de agua.',
-      'Cocina 15 minutos con presión, o 25 a 30 minutos en olla eléctrica.',
-      'Desmenuza con dos tenedores y guarda con un poco del caldo para que no se seque.',
+      'Cocina 15 minutos con presión (en olla a presión eléctrica, 15 minutos más lo que tarda en tomar presión). Este tiempo no sirve para una olla de cocción lenta.',
+      'Debe desmenuzarse sin partes rosadas; con termómetro, 74 °C. Desmenuza con dos tenedores y guarda con un poco del caldo para que no se seque.',
     ],
   },
   {
@@ -56,7 +56,7 @@ export const COMPONENTES: Componente[] = [
     ],
     pasos: [
       'Corta el pollo en tiras y condimenta con ajo picado, páprika, sal y pimienta.',
-      'Cocina en sartén caliente con poco aceite 6 a 8 minutos, dando vuelta, hasta que no quede rosado.',
+      'Cocina en sartén caliente con poco aceite 6 a 8 minutos, dando vuelta, hasta que no quede rosado. Con termómetro, 74 °C.',
       'Enfría y guarda en recipientes cerrados.',
     ],
   },
@@ -75,7 +75,7 @@ export const COMPONENTES: Componente[] = [
     ],
     pasos: [
       'Sofríe la cebolla, el ajo y el pimentón picados durante 5 minutos.',
-      'Agrega la carne, desármala con una cuchara y cocina hasta que no quede rosada.',
+      'Agrega la carne, desármala con una cuchara y cocina revolviendo hasta que no quede nada rosado. Con termómetro, 71 °C.',
       'Suma la zanahoria rallada 3 minutos más y condimenta.',
     ],
   },
@@ -93,16 +93,16 @@ export const COMPONENTES: Componente[] = [
     pasos: [
       'Precalienta el horno a 200 °C o la freidora de aire a 190 °C.',
       'Mezcla la carne con el huevo, la cebolla picada fina y la zanahoria rallada.',
-      'Forma albóndigas del tamaño de una nuez y cocina 18 a 20 minutos hasta que el centro no esté rosado.',
+      'Forma albóndigas del tamaño de una nuez y cocina 18 a 20 minutos. Parte una del centro de la bandeja: no debe quedar rosada. Con termómetro, 71 °C en el centro.',
     ],
   },
   {
     id: 'p_cerdo', nombre: 'Lomo de cerdo al horno con mostaza', rol: 'proteina',
-    patrones: ['omnivoro'], equipos: ['horno'], contiene: ['cerdo'],
+    patrones: ['omnivoro'], equipos: ['horno'], contiene: ['cerdo', 'mostaza'],
     minutosActivos: 10, minutosTotales: 55, refrigeradorDias: 4, congelable: true, porciones: 3,
     ingredientes: [
       { nombre: 'Lomo de cerdo', cantidad: 360, unidad: 'g', categoria: 'Carnes, pescados y huevos' },
-      { nombre: 'Mostaza', cantidad: 1, unidad: 'cda', categoria: 'Despensa' },
+      { nombre: 'Mostaza', cantidad: 3, unidad: 'cdta', categoria: 'Despensa' },
       { nombre: 'Ajo', cantidad: 1, unidad: 'diente', categoria: 'Verduras y frutas' },
       { nombre: 'Romero seco', cantidad: 1, unidad: 'cdta', categoria: 'Despensa', basico: true },
       SAL,
@@ -110,7 +110,7 @@ export const COMPONENTES: Componente[] = [
     pasos: [
       'Precalienta el horno a 200 °C.',
       'Unta el lomo con mostaza, ajo picado, romero, sal y pimienta.',
-      'Hornea 35 a 40 minutos, hasta 63 °C en el centro si tienes termómetro, y deja reposar 5 minutos antes de cortar.',
+      'Hornea hasta 63 °C en el centro: unos 35 a 40 minutos para una pieza de 360 g; una pieza grande tarda bastante más. Si cocinas para varias personas, usa piezas de 350 a 400 g en vez de una sola. Deja reposar 5 minutos antes de cortar.',
     ],
   },
   {
@@ -126,7 +126,7 @@ export const COMPONENTES: Componente[] = [
     pasos: [
       'Precalienta el horno a 200 °C.',
       'Pon cada filete sobre papel de horno con rodajas de tomate y limón, un chorrito de aceite y sal.',
-      'Cierra el paquete y hornea 15 a 18 minutos, hasta que el pescado se separe en láminas.',
+      'Cierra el paquete y hornea 15 a 18 minutos (en freidora de aire, 180 °C por 12 a 14 minutos, con el paquete bien cerrado y sujeto por el pescado), hasta que se separe en láminas y esté opaco en el centro.',
     ],
     nota: 'Dura menos que las carnes: el plan lo deja para los primeros días de la semana.',
   },
@@ -155,8 +155,9 @@ export const COMPONENTES: Componente[] = [
     pasos: [
       'Cubre los huevos con agua fría y lleva a hervor.',
       'Cuenta 10 minutos de hervor suave y pásalos a agua fría.',
-      'Guárdalos con cáscara en el refrigerador.',
+      'Guárdalos con cáscara en el refrigerador; así duran hasta 5 días.',
     ],
+    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
   },
   {
     id: 'p_lentejas', nombre: 'Lentejas guisadas con verduras', rol: 'proteina',
@@ -176,6 +177,7 @@ export const COMPONENTES: Componente[] = [
       'Agrega las lentejas lavadas y tres veces su volumen de agua.',
       'Cocina 25 a 30 minutos, o 10 minutos en olla a presión, hasta que estén blandas.',
     ],
+    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
   },
   {
     id: 'p_porotos', nombre: 'Porotos negros en olla', rol: 'proteina',
@@ -193,12 +195,12 @@ export const COMPONENTES: Componente[] = [
       'Cocínalos en olla a presión 25 minutos con agua nueva que los cubra el doble.',
       'Sofríe la cebolla y el ajo, mézclalos con los porotos y condimenta.',
     ],
-    nota: 'Requiere remojo de 8 horas antes de la sesión de cocina.',
+    nota: 'Requiere remojo de 8 horas antes de la sesión de cocina. Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
   },
   {
     id: 'p_garbanzos', nombre: 'Garbanzos asados especiados', rol: 'proteina',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['horno', 'airfryer'], contiene: [],
-    minutosActivos: 10, minutosTotales: 40, refrigeradorDias: 5, congelable: false, porciones: 3,
+    minutosActivos: 10, minutosTotales: 40, refrigeradorDias: 4, congelable: false, porciones: 3,
     ingredientes: [
       { nombre: 'Garbanzos cocidos, de frasco o lata', cantidad: 360, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
       { nombre: 'Comino y páprika', cantidad: 1, unidad: 'cdta', categoria: 'Despensa', basico: true },
@@ -209,6 +211,7 @@ export const COMPONENTES: Componente[] = [
       'Mézclalos con aceite y especias.',
       'Hornea 30 minutos a 200 °C, o 15 a 18 en freidora de aire, moviendo a la mitad.',
     ],
+    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
   },
   {
     id: 'p_lentejas_ensalada', nombre: 'Ensalada tibia de lentejas', rol: 'proteina',
@@ -226,6 +229,7 @@ export const COMPONENTES: Componente[] = [
       'Cocina las lentejas lavadas en abundante agua 20 a 25 minutos, hasta que estén blandas pero enteras.',
       'Escurre y mezcla con la zanahoria rallada, el pimentón picado, el jugo de limón, el aceite y el perejil.',
     ],
+    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
   },
   {
     id: 'p_garbanzos_sarten', nombre: 'Garbanzos salteados con espinaca', rol: 'proteina',
@@ -243,6 +247,7 @@ export const COMPONENTES: Componente[] = [
       'Saltea el ajo y el comino 1 minuto, agrega los garbanzos y dóralos 5 minutos.',
       'Suma la espinaca y cocina hasta que se reduzca.',
     ],
+    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
   },
   {
     id: 'p_tofu', nombre: 'Tofu dorado con salsa de soya', rol: 'proteina',
@@ -259,6 +264,7 @@ export const COMPONENTES: Componente[] = [
       'Dóralo en sartén con poco aceite 10 minutos, o 15 en freidora de aire.',
       'Agrega el ajo picado y la salsa de soya al final y mezcla.',
     ],
+    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
   },
   {
     id: 'p_frittata', nombre: 'Tortilla de verduras al horno', rol: 'proteina',
@@ -273,21 +279,23 @@ export const COMPONENTES: Componente[] = [
     pasos: [
       'Precalienta el horno a 180 °C.',
       'Saltea el zapallo italiano en cubos y la espinaca 3 minutos.',
-      'Bate los huevos con sal, mezcla con las verduras y hornea en molde aceitado 20 a 25 minutos hasta que cuaje.',
+      'Bate los huevos con sal, mezcla con las verduras y hornea en molde aceitado hasta que cuaje también en el centro: 20 a 25 minutos con 5 huevos; con más cantidad usa dos moldes en vez de uno más alto.',
     ],
+    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
   },
 
   // ---------- Carbohidratos ----------
   {
     id: 'c_arroz', nombre: 'Arroz integral', rol: 'carbohidrato',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['cocinilla', 'olla'], contiene: [],
-    minutosActivos: 5, minutosTotales: 45, refrigeradorDias: 4, congelable: true, porciones: 3,
+    minutosActivos: 5, minutosTotales: 45, refrigeradorDias: 3, congelable: true, porciones: 3,
     ingredientes: [{ nombre: 'Arroz integral', cantidad: 150, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' }, SAL],
     pasos: [
       'Lava el arroz y ponlo con dos partes y media de agua por cada parte de arroz.',
       'Cuando hierva, tapa y cocina a fuego bajo 35 a 40 minutos.',
       'Extiéndelo en una bandeja para que se enfríe rápido y refrigéralo dentro de la primera hora.',
     ],
+    nota: 'El arroz cocido es delicado: enfríalo en menos de una hora, consúmelo en 2 a 3 días o congélalo en porciones el mismo día, y recaliéntalo humeante una sola vez.',
   },
   {
     id: 'c_quinoa', nombre: 'Quinoa', rol: 'carbohidrato',
@@ -379,6 +387,7 @@ export const COMPONENTES: Componente[] = [
       { nombre: 'Zanahoria', cantidad: 1, unidad: 'unidad', categoria: 'Verduras y frutas' },
     ],
     pasos: ['Corta el repollo en tiras finas y ralla la zanahoria.', 'Guarda sin aliñar; aliña cada porción al servir.'],
+    nota: 'En porciones de ensalada, el repollo crudo es seguro también en hipotiroidismo cuando el consumo de yodo es adecuado; solo cantidades enormes y diarias podrían interferir.',
   },
   {
     id: 'v_espinaca', nombre: 'Espinacas salteadas con ajo', rol: 'verdura',
@@ -394,7 +403,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 'v_zapallo', nombre: 'Zapallo (calabaza) asado', rol: 'verdura',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['horno', 'airfryer'], contiene: [],
-    minutosActivos: 10, minutosTotales: 40, refrigeradorDias: 5, congelable: true, porciones: 3,
+    minutosActivos: 10, minutosTotales: 40, refrigeradorDias: 4, congelable: true, porciones: 3,
     ingredientes: [{ nombre: 'Zapallo (calabaza)', cantidad: 450, unidad: 'g', categoria: 'Verduras y frutas' }, ACEITE, SAL],
     pasos: ['Pela y corta en cubos.', 'Asa 30 minutos a 200 °C, o 18 en freidora de aire.'],
   },
@@ -419,7 +428,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 'v_betarraga', nombre: 'Betarraga (remolacha) cocida', rol: 'verdura',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['olla', 'cocinilla'], contiene: [],
-    minutosActivos: 5, minutosTotales: 45, refrigeradorDias: 5, congelable: false, porciones: 3,
+    minutosActivos: 5, minutosTotales: 45, refrigeradorDias: 4, congelable: false, porciones: 3,
     ingredientes: [{ nombre: 'Betarraga (remolacha)', cantidad: 450, unidad: 'g', categoria: 'Verduras y frutas' }],
     pasos: ['Cocina con cáscara en agua 40 minutos, o 15 en olla a presión.', 'Pela bajo el agua fría y corta en cubos.'],
   },
@@ -452,7 +461,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 's_pesto', nombre: 'Pesto de espinaca y albahaca, sin queso', rol: 'salsa',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['licuadora'], contiene: ['frutos_secos'],
-    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 5, congelable: true, porciones: 5,
+    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 4, congelable: true, porciones: 5,
     ingredientes: [
       { nombre: 'Espinaca', cantidad: 60, unidad: 'g', categoria: 'Verduras y frutas' },
       { nombre: 'Albahaca fresca', cantidad: 20, unidad: 'g', categoria: 'Verduras y frutas' },
@@ -461,12 +470,13 @@ export const COMPONENTES: Componente[] = [
       { nombre: 'Ajo', cantidad: 1, unidad: 'diente', categoria: 'Verduras y frutas' },
       SAL,
     ],
-    pasos: ['Procesa todo en la licuadora hasta formar una pasta.', 'Guarda en frasco cubierto con una capa fina de aceite.'],
+    pasos: ['Procesa todo en la licuadora hasta formar una pasta.', 'Guarda en frasco cerrado, siempre refrigerado, y úsalo en 3 a 4 días; lo que no vayas a usar, congélalo en porciones pequeñas, por ejemplo en una cubetera.'],
+    nota: 'Por el ajo en aceite, nunca lo dejes a temperatura ambiente.',
   },
   {
     id: 's_tomate', nombre: 'Salsa de tomate casera', rol: 'salsa',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['cocinilla'], contiene: ['cebolla'],
-    minutosActivos: 10, minutosTotales: 35, refrigeradorDias: 5, congelable: true, porciones: 5,
+    minutosActivos: 10, minutosTotales: 35, refrigeradorDias: 4, congelable: true, porciones: 5,
     ingredientes: [
       { nombre: 'Tomate en cubos, en conserva o fresco', cantidad: 300, unidad: 'g', categoria: 'Verduras y frutas' },
       { nombre: 'Cebolla', cantidad: 0.25, unidad: 'unidad', categoria: 'Verduras y frutas' },
@@ -478,7 +488,7 @@ export const COMPONENTES: Componente[] = [
   },
   {
     id: 's_hummus', nombre: 'Hummus', rol: 'salsa',
-    patrones: ['omnivoro', 'vegetariano'], equipos: ['licuadora'], contiene: [],
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['licuadora'], contiene: ['sesamo'],
     minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 4, congelable: true, porciones: 5,
     ingredientes: [
       { nombre: 'Garbanzos cocidos, de frasco o lata', cantidad: 200, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
@@ -501,8 +511,8 @@ export const COMPONENTES: Componente[] = [
       { nombre: 'Fruta de estación', cantidad: 500, unidad: 'g', categoria: 'Verduras y frutas' },
       { nombre: 'Semillas de chía', cantidad: 25, unidad: 'g', categoria: 'Despensa' },
     ],
-    pasos: ['Reparte en 5 frascos la avena, la chía y la leche o bebida vegetal.', 'Agrega la fruta picada y refrigera. Se come frío al día siguiente.'],
-    nota: 'La avena suele contaminarse con gluten. Si eres celíaca o celíaco, usa avena certificada sin gluten.',
+    pasos: ['Reparte en 5 frascos la avena, la chía y la leche o bebida vegetal y refrigera.', 'Agrega la fruta picada al servir. Se come frío desde el día siguiente.'],
+    nota: 'La avena no contiene gluten de trigo, pero suele contaminarse en el proceso. Si tienes enfermedad celíaca, usa solo avena certificada sin gluten y según te indique tu equipo de salud.',
   },
   {
     id: 'd_chia', nombre: 'Pudín de chía con fruta', rol: 'desayuno',
@@ -510,17 +520,17 @@ export const COMPONENTES: Componente[] = [
     minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, porciones: 5,
     ingredientes: [
       { nombre: 'Semillas de chía', cantidad: 100, unidad: 'g', categoria: 'Despensa' },
-      { nombre: 'Leche o bebida vegetal sin azúcar', cantidad: 500, unidad: 'ml', categoria: 'Lácteos y alternativas' },
+      { nombre: 'Leche o bebida vegetal sin azúcar', cantidad: 800, unidad: 'ml', categoria: 'Lácteos y alternativas' },
       { nombre: 'Fruta de estación', cantidad: 500, unidad: 'g', categoria: 'Verduras y frutas' },
     ],
-    pasos: ['Mezcla la chía con la leche o bebida vegetal y reparte en 5 frascos.', 'Revuelve a los 10 minutos para que no se apelmace y agrega la fruta al servir.'],
+    pasos: ['Mezcla la chía con la leche o bebida vegetal y reparte en 5 frascos.', 'Revuelve a los 10 minutos para que no se apelmace y deja hidratar al menos 2 horas o toda la noche.', 'Agrega la fruta al servir.'],
   },
   {
     id: 'd_muffins', nombre: 'Muffins de huevo y verduras', rol: 'desayuno',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['horno', 'airfryer'], contiene: ['huevo'],
     minutosActivos: 15, minutosTotales: 40, refrigeradorDias: 4, congelable: true, porciones: 5,
     ingredientes: [
-      { nombre: 'Huevo', cantidad: 5, unidad: 'unidad', categoria: 'Carnes, pescados y huevos' },
+      { nombre: 'Huevo', cantidad: 10, unidad: 'unidad', categoria: 'Carnes, pescados y huevos' },
       { nombre: 'Espinaca', cantidad: 60, unidad: 'g', categoria: 'Verduras y frutas' },
       { nombre: 'Pimentón', cantidad: 0.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
       { nombre: 'Tomate', cantidad: 0.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
@@ -529,17 +539,19 @@ export const COMPONENTES: Componente[] = [
     pasos: [
       'Precalienta el horno a 180 °C.',
       'Bate los huevos con sal y mezcla con las verduras picadas.',
-      'Reparte en moldes de muffin aceitados y hornea 20 a 25 minutos.',
+      'Reparte en moldes de muffin aceitados y hornea 20 a 25 minutos, hasta que cuajen en el centro.',
+      'Cada desayuno son 2 muffins; acompáñalos con una fruta o una rebanada de pan integral.',
     ],
   },
   {
     id: 'd_granola', nombre: 'Granola casera sin azúcar con yogur', rol: 'desayuno',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['horno'], contiene: ['gluten', 'frutos_secos', 'lacteos'],
-    minutosActivos: 10, minutosTotales: 35, refrigeradorDias: 14, congelable: false, porciones: 5,
+    minutosActivos: 10, minutosTotales: 35, refrigeradorDias: 5, congelable: false, porciones: 5,
     ingredientes: [
       { nombre: 'Avena', cantidad: 150, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
       { nombre: 'Nueces o almendras', cantidad: 50, unidad: 'g', categoria: 'Despensa' },
       { nombre: 'Canela', cantidad: 1, unidad: 'cdta', categoria: 'Despensa', basico: true },
+      ACEITE,
       { nombre: 'Yogur natural sin azúcar', cantidad: 625, unidad: 'g', categoria: 'Lácteos y alternativas' },
       { nombre: 'Fruta de estación', cantidad: 500, unidad: 'g', categoria: 'Verduras y frutas' },
     ],
@@ -548,21 +560,23 @@ export const COMPONENTES: Componente[] = [
       'Hornea 15 a 20 minutos a 170 °C, moviendo a la mitad, y deja enfriar.',
       'Guarda en frasco seco. Sirve con yogur y fruta.',
     ],
+    nota: 'La granola se guarda en frasco seco y cerrado a temperatura ambiente hasta 2 semanas; el yogur y la fruta van refrigerados y se agregan al servir. La avena no contiene gluten de trigo, pero suele contaminarse en el proceso. Si tienes enfermedad celíaca, usa solo avena certificada sin gluten y según te indique tu equipo de salud.',
   },
   {
     id: 'd_panqueques', nombre: 'Panqueques de avena y plátano', rol: 'desayuno',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['cocinilla'], contiene: ['huevo', 'gluten'],
     minutosActivos: 20, minutosTotales: 25, refrigeradorDias: 3, congelable: true, porciones: 5,
     ingredientes: [
-      { nombre: 'Avena', cantidad: 150, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
-      { nombre: 'Plátano', cantidad: 2, unidad: 'unidad', categoria: 'Verduras y frutas' },
-      { nombre: 'Huevo', cantidad: 2, unidad: 'unidad', categoria: 'Carnes, pescados y huevos' },
+      { nombre: 'Avena', cantidad: 250, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Plátano', cantidad: 3, unidad: 'unidad', categoria: 'Verduras y frutas' },
+      { nombre: 'Huevo', cantidad: 4, unidad: 'unidad', categoria: 'Carnes, pescados y huevos' },
     ],
     pasos: [
       'Licúa o muele la avena, el plátano y los huevos.',
       'Cocina porciones pequeñas en sartén antiadherente 2 minutos por lado.',
       'Congela los que comerás desde el cuarto día.',
     ],
+    nota: 'La avena no contiene gluten de trigo, pero suele contaminarse en el proceso. Si tienes enfermedad celíaca, usa solo avena certificada sin gluten y según te indique tu equipo de salud.',
   },
 ];
 

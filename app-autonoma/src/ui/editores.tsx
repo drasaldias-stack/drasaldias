@@ -7,7 +7,7 @@ import { Opciones, Pequeno } from '@/ui/kit';
 
 export const TEXTO_EQUIPO: Record<Equipo, string> = {
   horno: 'Horno',
-  olla: 'Olla a presión o eléctrica',
+  olla: 'Olla a presión (manual o eléctrica)',
   airfryer: 'Freidora de aire',
   microondas: 'Microondas',
   licuadora: 'Licuadora o procesadora',
@@ -23,6 +23,8 @@ export const TEXTO_EXCLUSION: Record<Exclusion, string> = {
   pollo: 'Pollo',
   soya: 'Soya',
   frutos_secos: 'Frutos secos',
+  mostaza: 'Mostaza',
+  sesamo: 'Sésamo (tahini)',
   cebolla: 'Cebolla',
   champinones: 'Champiñones',
   picante: 'Picante',
@@ -47,7 +49,7 @@ export function EditorCocina({ valor, onCambio }: { valor: PreferenciasCocina; o
       />
       <Opciones<Equipo>
         etiqueta="¿Qué tienes en tu cocina?"
-        ayuda="Damos por hecho que tienes cocinilla o encimera. Marca lo demás."
+        ayuda="Damos por hecho que tienes cocinilla o encimera. Marca lo demás. Una olla de cocción lenta no cuenta como olla a presión."
         multiple
         opciones={(Object.keys(TEXTO_EQUIPO) as Equipo[]).map((k) => ({ valor: k, texto: TEXTO_EQUIPO[k] }))}
         valor={valor.equipos}
@@ -67,7 +69,7 @@ export function EditorCocina({ valor, onCambio }: { valor: PreferenciasCocina; o
       />
       <Opciones<Exclusion>
         etiqueta="¿Qué no comes?"
-        ayuda="Por alergia, intolerancia o porque no te gusta. Si tienes alergia grave, revisa igual cada etiqueta."
+        ayuda="Por alergia, intolerancia o porque no te gusta. Si tienes una alergia grave, revisa igual la lista de ingredientes de cada receta y las etiquetas de lo que compres."
         multiple
         opciones={(Object.keys(TEXTO_EXCLUSION) as Exclusion[]).map((k) => ({ valor: k, texto: TEXTO_EXCLUSION[k] }))}
         valor={valor.exclusiones}

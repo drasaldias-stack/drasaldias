@@ -1,4 +1,5 @@
 import type { Clase } from '../logic/tipos';
+import { SENALES_DETENERSE } from './ejercicios';
 
 // CONTENIDO DE EJEMPLO. Guiones base para grabar las clases; el equipo debe revisarlos antes de publicar.
 // Se libera una clase por semana desde el inicio del programa.
@@ -10,7 +11,7 @@ export const CLASES: Clase[] = [
     resumen: 'Qué hace la app, cómo se arma tu semana y qué no reemplaza.',
     puntos: [
       'Cada semana tienes tres sesiones de ejercicio, una meta de caminata y un menú para cocinar en una sola sesión.',
-      'Puedes cambiar tus tiempos, tu equipamiento y lo que no comes cuando quieras, desde Perfil.',
+      'Puedes cambiar tus tiempos, tu equipamiento y lo que no comes cuando quieras, desde Perfil o desde la pestaña Menú.',
       'La app entrega educación general. No reemplaza la evaluación de un profesional de la salud.',
     ],
   },
@@ -31,8 +32,8 @@ export const CLASES: Clase[] = [
     puntos: [
       'Empieza por lo que más tarda en el horno o la olla y prepara lo rápido mientras tanto.',
       'Enfría rápido y refrigera dentro de las 2 horas; el arroz cocido, dentro de la primera hora.',
-      'Las comidas cocidas duran entre 3 y 5 días en el refrigerador. Lo que comerás después, congélalo el mismo día.',
-      'Recalienta hasta que esté bien caliente en el centro.',
+      'Las comidas cocidas duran 3 a 4 días en el refrigerador, contados desde el día que cocinas; los huevos duros con cáscara, hasta 5. Lo que comerás después, congélalo el mismo día.',
+      'Recalienta solo la porción que vas a comer, hasta que esté humeante en todo el centro, y no recalientes dos veces. Lo congelado, pásalo al refrigerador la noche anterior.',
     ],
   },
   {
@@ -52,7 +53,7 @@ export const CLASES: Clase[] = [
     puntos: [
       'La OMS recomienda entre 150 y 300 minutos semanales de actividad moderada y ejercicios de fuerza dos o más días por semana.',
       'Algo de actividad es mejor que nada. Sube de a poco: primero el tiempo, después la intensidad.',
-      'Detente y consulta si sientes dolor en el pecho, falta de aire que no cede, mareo o palpitaciones fuertes.',
+      SENALES_DETENERSE,
     ],
   },
   {
@@ -91,9 +92,9 @@ export const CLASES: Clase[] = [
     resumen: 'Qué dice la evidencia sobre gluten, crucíferas y café.',
     puntos: [
       'La levotiroxina se toma en ayunas y solo con agua. Espera el tiempo que indique tu médico, habitualmente 30 a 60 minutos, antes del café o el desayuno.',
-      'El brócoli, la coliflor y el repollo cocidos, en cantidades habituales, son seguros cuando el consumo de yodo es adecuado.',
+      'El brócoli, la coliflor y el repollo, en porciones habituales, cocidos o en ensalada, son seguros cuando el consumo de yodo es adecuado. Solo cantidades enormes y diarias, sobre todo crudas, podrían interferir.',
       'Eliminar el gluten solo está indicado con enfermedad celíaca u otra indicación médica.',
-      'El calcio y el hierro interfieren con la levotiroxina: sepáralos varias horas, según te indiquen.',
+      'Los suplementos de calcio y de hierro, y los antiácidos, interfieren con la levotiroxina: tómalos al menos 4 horas después, salvo que tu médico te indique otra cosa.',
     ],
   },
   {
@@ -122,7 +123,7 @@ export const CLASES: Clase[] = [
     resumen: 'Señales para pedir ayuda y no seguir solo con la app.',
     puntos: [
       'Síntomas al hacer esfuerzo, bajas de peso que no buscabas o cansancio que no mejora.',
-      'Si tomas medicamentos para la diabetes o la presión, porque las dosis pueden necesitar ajustes al cambiar tus hábitos.',
+      'Si tomas medicamentos para la diabetes, la presión o levotiroxina: al cambiar tus hábitos o tu peso, las dosis pueden necesitar ajustes. No las cambies por tu cuenta; pide un control.',
       'Atracones, conductas para compensar lo que comes o una relación con la comida que te hace sufrir.',
     ],
   },

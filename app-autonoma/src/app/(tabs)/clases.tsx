@@ -27,10 +27,10 @@ export default function Clases() {
           accesible={liberada ? `Abrir clase ${clase.titulo}` : undefined}
           style={!liberada ? { opacity: 0.6 } : undefined}>
           <Fila style={{ justifyContent: 'space-between' }}>
-            <Etiqueta>Semana {clase.semana} · {clase.minutos} min</Etiqueta>
+            <Etiqueta>Semana {clase.semana} · {clase.minutos} min{clase.videoUrl ? '' : ' de lectura'}</Etiqueta>
             {vista ? <Chip texto="Vista" tono="ok" /> : liberada ? <Chip texto="Disponible" tono="acento" /> : (
               <Fila>
-                <Ionicons name="lock-closed-outline" size={14} color={p.ink2} />
+                <Ionicons aria-hidden name="lock-closed-outline" size={14} color={p.ink2} />
                 <Pequeno>Semana {clase.semana}</Pequeno>
               </Fila>
             )}

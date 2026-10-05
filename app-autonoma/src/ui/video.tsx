@@ -1,14 +1,11 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { StyleSheet, View } from 'react-native';
 
-import { Radius, Spacing } from '@/constants/theme';
-import { usePaleta } from '@/hooks/use-paleta';
-import { Pequeno } from '@/ui/kit';
+import { Radius } from '@/constants/theme';
 
-/** Reproductor de clase. Mientras no exista el video, muestra un espacio que lo indica. */
+/** Reproductor de clase. Sin dirección de video no muestra nada: la clase se lee. */
 export function VideoClase({ url }: { url: string | null }) {
-  if (!url) return <SinVideo />;
+  if (!url) return null;
   return <Reproductor url={url} />;
 }
 
@@ -17,16 +14,6 @@ function Reproductor({ url }: { url: string }) {
   return (
     <View style={estilos.marco}>
       <VideoView player={reproductor} style={StyleSheet.absoluteFill} nativeControls contentFit="contain" />
-    </View>
-  );
-}
-
-function SinVideo() {
-  const p = usePaleta();
-  return (
-    <View style={[estilos.marco, { backgroundColor: p.surface2, alignItems: 'center', justifyContent: 'center', gap: Spacing.s }]}>
-      <Ionicons name="play-circle-outline" size={44} color={p.ink2} />
-      <Pequeno>Video en producción. Mientras tanto, lee el resumen.</Pequeno>
     </View>
   );
 }

@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { usePaleta } from '@/hooks/use-paleta';
@@ -17,6 +18,10 @@ export default function RootLayout() {
     ...base,
     colors: { ...base.colors, primary: p.accent, background: p.bg, card: p.surface, text: p.ink, border: p.line },
   };
+  useEffect(() => {
+    // La interfaz es solo en español; en web el documento debe declararlo para los lectores de pantalla.
+    if (Platform.OS === 'web' && typeof document !== 'undefined') document.documentElement.lang = 'es';
+  }, []);
   return (
     <AppStateProvider>
       <ThemeProvider value={tema}>

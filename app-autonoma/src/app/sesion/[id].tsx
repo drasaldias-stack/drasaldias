@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
-import { CALENTAMIENTO, CONSEJOS_SESION, EJERCICIOS, PROGRAMAS, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
+import { AVISO_HIPOGLUCEMIA, CALENTAMIENTO, CONSEJOS_SESION, EJERCICIOS, PROGRAMAS, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
 import { usePaleta } from '@/hooks/use-paleta';
 import { claveSesion, resolverEjercicio, semanaVigente, sesionesDeSemana, vueltasPorMinutos } from '@/logic/programa';
 import { useApp } from '@/state/app-state';
@@ -54,6 +54,12 @@ export default function DetalleSesion() {
         <Texto>{CALENTAMIENTO}</Texto>
         <Pequeno>{CONSEJOS_SESION}</Pequeno>
       </Tarjeta>
+
+      {perfil.seguridad.motivos.ejercicio.includes('insulina') ? (
+        <Aviso tipo="alerta">
+          <Pequeno tono="normal">{AVISO_HIPOGLUCEMIA}</Pequeno>
+        </Aviso>
+      ) : null}
 
       {vueltas > 1 ? (
         <Opciones<number>

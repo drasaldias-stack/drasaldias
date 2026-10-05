@@ -21,7 +21,7 @@ export const PREGUNTAS: { clave: keyof RespuestasSeguridad; texto: string }[] = 
   {
     clave: 'sintomasEsfuerzo',
     texto:
-      '¿Has tenido dolor o presión en el pecho, cuello, mandíbula o brazos; falta de aire fuera de lo normal; mareos o desmayos con el esfuerzo; o palpitaciones que te preocupen?',
+      '¿Has tenido dolor o presión en el pecho, cuello, mandíbula o brazos; falta de aire en reposo o con esfuerzos pequeños; mareos o desmayos con el esfuerzo; o palpitaciones o latidos irregulares que te preocupen?',
   },
   {
     clave: 'enfermedadConocida',
@@ -64,8 +64,9 @@ export default function Bienvenida() {
     if (revisar && perfilActual) {
       // Una confirmación ya marcada se conserva si lo que debe confirmarse no cambió.
       const previo = perfilActual.seguridad;
+      // Un estado guardado sin motivos (versión anterior) solo puede comparar el estado de acceso.
       const igual = (sec: 'ejercicio' | 'alimentacion') =>
-        previo[sec] === seg[sec] && mismoConjunto(previo.motivos[sec], seg.motivos[sec]);
+        previo[sec] === seg[sec] && (previo.motivos[sec].length === 0 || mismoConjunto(previo.motivos[sec], seg.motivos[sec]));
       actualizarPerfil({
         seguridad: seg,
         confirmaEjercicio: igual('ejercicio') && perfilActual.confirmaEjercicio,

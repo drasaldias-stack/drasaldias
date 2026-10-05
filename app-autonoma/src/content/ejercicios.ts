@@ -6,7 +6,10 @@ import type { Ejercicio, ItemSesion, Programa, ProgramaId, Sesion } from '../log
 export const CALENTAMIENTO = '3 minutos de marcha suave y círculos de hombros.';
 export const VUELTA_CALMA = '2 minutos caminando lento y respirando profundo.';
 export const SENALES_DETENERSE =
-  'Detente de inmediato si sientes dolor o presión en el pecho, cuello, mandíbula o brazos; falta de aire intensa o que no cede al descansar; mareo o desmayo; palpitaciones fuertes; o dolor agudo en una articulación. Llama al número de emergencias de tu país si te desmayas, si el dolor o la presión en el pecho no desaparece en pocos minutos de reposo o si la falta de aire no mejora al descansar. En los demás casos, no sigas entrenando hasta consultar con un médico.';
+  'Detente de inmediato si sientes dolor o presión en el pecho, cuello, mandíbula o brazos; falta de aire intensa o que no cede al descansar; mareo o desmayo; palpitaciones fuertes; o dolor agudo en una articulación. Llama al número de emergencias de tu país si te desmayas o sientes que vas a desmayarte, si el dolor o la presión en el pecho no desaparece en pocos minutos de reposo, si la falta de aire no mejora al descansar o si las palpitaciones no ceden en reposo. En los demás casos, no sigas entrenando hasta consultar con un médico.';
+// Se muestra solo a quien declaró insulina o sulfonilureas. Redacción pendiente de validación por el equipo médico.
+export const AVISO_HIPOGLUCEMIA =
+  'Si usas insulina o sulfonilureas: mide tu glucosa antes de empezar según lo que acordaste con tu médico, ten a mano algo con azúcar y detente si sientes temblor, sudor frío, hambre intensa, confusión o visión borrosa. Si no mejora después de comer algo con azúcar, pide ayuda.';
 export const CONSEJOS_SESION =
   'Respira de forma continua durante cada ejercicio: suelta el aire en el esfuerzo y no aguantes la respiración. Si tienes fiebre, malestar general o una infección, no entrenes hasta que hayan pasado y retoma con una sesión más corta.';
 

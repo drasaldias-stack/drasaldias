@@ -61,7 +61,7 @@ const registro = <T,>(x: unknown, valor: (v: unknown) => v is T): Record<string,
 const uno = <T,>(v: unknown, permitidos: readonly T[], inicial: T): T => (permitidos.includes(v as T) ? (v as T) : inicial);
 /** Una lista de valores de una lista cerrada; se descartan los desconocidos. Si no es una lista, la inicial. */
 const varios = <T,>(v: unknown, permitidos: readonly T[], inicial: readonly T[]): T[] =>
-  Array.isArray(v) ? (v.filter((x) => permitidos.includes(x)) as T[]) : [...inicial];
+  Array.isArray(v) ? (Array.from(new Set(v.filter((x) => permitidos.includes(x)))) as T[]) : [...inicial];
 
 const PERSONAS = [1, 2, 3, 4] as const;
 const ACCESOS: readonly EstadoAcceso[] = ['ok', 'requiere_confirmacion', 'bloqueado'];

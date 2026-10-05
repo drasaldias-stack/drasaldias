@@ -55,7 +55,9 @@
     "description": "Clases, ejercicio en casa y menús para cocinar una vez a la semana, para personas que están empezando.",
     "locales": {
       "es": {
-        "CFBundleDisplayName": "Ruta 90"
+        "ios": {
+          "CFBundleDisplayName": "Ruta 90"
+        }
       }
     }
   }

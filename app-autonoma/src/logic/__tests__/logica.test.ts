@@ -5,7 +5,7 @@ import { COMPONENTES, componentePorId } from '../../content/componentes';
 import { EJERCICIOS, PROGRAMAS } from '../../content/ejercicios';
 import { CLASES } from '../../content/clases';
 import { evaluarSeguridad } from '../seguridad';
-import { cambiarComponente, diasDelMenu, esCompatible, generarMenu, ORDEN_ROLES, planificarDias } from '../menu';
+import { cambiarComponente, diasDelMenu, esCompatible, generarMenu, opcionesRol, ORDEN_ROLES, planificarDias } from '../menu';
 import { formatearCantidad, listaCompras } from '../compras';
 import { metaCaminata, resolverEjercicio, semanaDelPrograma, sesionesDeSemana } from '../programa';
 import type { Equipo, Exclusion, Material, Patron, PreferenciasCocina, RespuestasSeguridad } from '../tipos';
@@ -194,5 +194,14 @@ test('programa: ninguna sesión repite un ejercicio con cualquier combinación d
           const resueltos = s.items.map((it) => resolverEjercicio(it.ejercicio, tengo, EJERCICIOS)!.id);
           assert.equal(new Set(resueltos).size, resueltos.length, `${p.id} semanas ${b.semanas.join('-')} sesión ${s.id} con [${tengo.join(',')}]: ${resueltos.join(', ')}`);
         }
+  }
+});
+
+test('contenido: cada componente puede usarse en al menos una opción de su rol', () => {
+  const todo: PreferenciasCocina = { personas: 1, minutos: 120, equipos: ['horno', 'olla', 'airfryer', 'microondas', 'licuadora'], patron: 'omnivoro', exclusiones: [] };
+  for (const rol of ORDEN_ROLES) {
+    const candidatos = COMPONENTES.filter((c) => c.rol === rol && esCompatible(c, todo));
+    const usados = new Set(opcionesRol(rol, candidatos).flatMap((o) => o.elecciones.map((e) => e.id)));
+    for (const c of candidatos) assert.ok(usados.has(c.id), `${c.id} no entra en ninguna opción de ${rol}`);
   }
 });

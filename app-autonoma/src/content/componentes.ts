@@ -12,6 +12,8 @@ const NOTA_PROTEINA_VEGETAL =
   'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado. Complétala con un huevo, yogur natural o queso fresco si los comes, o con tofu, o pide a tu equipo de salud que ajuste la cantidad.';
 const NOTA_PROTEINA_HUEVO =
   'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado. Complétala con yogur natural o queso fresco si los comes, o con tofu, o pide a tu equipo de salud que ajuste la cantidad.';
+const NOTA_PROTEINA_TOFU =
+  'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado. Complétalo con un huevo, yogur natural o queso fresco si los comes, o pide a tu equipo de salud que ajuste la cantidad.';
 const NOTA_AVENA =
   'La avena no contiene gluten de trigo, pero suele contaminarse en el proceso. Si tienes enfermedad celíaca, usa solo avena certificada sin gluten y según te indique tu equipo de salud.';
 
@@ -141,7 +143,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 'p_atun', nombre: 'Ensalada de atún o jurel', rol: 'proteina',
     patrones: ['omnivoro'], equipos: ['sin_coccion'], contiene: ['pescado', 'cebolla'],
-    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 3, congelable: false, porciones: 2,
+    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 3, congelable: false, frio: true, porciones: 2,
     ingredientes: [
       { nombre: 'Atún o jurel en agua, en conserva', cantidad: 240, unidad: 'g', categoria: 'Despensa' },
       { nombre: 'Cebolla morada', cantidad: 0.25, unidad: 'unidad', categoria: 'Verduras y frutas' },
@@ -156,7 +158,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 'p_huevos', nombre: 'Huevos duros', rol: 'proteina',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['cocinilla'], contiene: ['huevo'],
-    minutosActivos: 5, minutosTotales: 20, refrigeradorDias: 5, congelable: false, porciones: 3,
+    minutosActivos: 5, minutosTotales: 20, refrigeradorDias: 5, congelable: false, frio: true, porciones: 3,
     ingredientes: [
       { nombre: 'Huevo', cantidad: 6, unidad: 'unidad', categoria: 'Carnes, pescados y huevos' },
     ],
@@ -272,7 +274,7 @@ export const COMPONENTES: Componente[] = [
       'Dóralo en sartén con poco aceite 10 minutos, o 15 en freidora de aire.',
       'Agrega el ajo picado y la salsa de soya al final y mezcla.',
     ],
-    nota: NOTA_PROTEINA_VEGETAL,
+    nota: NOTA_PROTEINA_TOFU,
   },
   {
     id: 'p_frittata', nombre: 'Tortilla de verduras al horno', rol: 'proteina',
@@ -389,7 +391,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 'v_repollo', nombre: 'Ensalada base de repollo y zanahoria', rol: 'verdura',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: [],
-    minutosActivos: 15, minutosTotales: 15, refrigeradorDias: 5, congelable: false, porciones: 3,
+    minutosActivos: 15, minutosTotales: 15, refrigeradorDias: 5, congelable: false, frio: true, porciones: 3,
     ingredientes: [
       { nombre: 'Repollo', cantidad: 250, unidad: 'g', categoria: 'Verduras y frutas' },
       { nombre: 'Zanahoria', cantidad: 1, unidad: 'unidad', categoria: 'Verduras y frutas' },
@@ -445,7 +447,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 's_vinagreta', nombre: 'Vinagreta de mostaza y limón', rol: 'salsa',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: [],
-    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 7, congelable: false, porciones: 5,
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 7, congelable: false, frio: true, porciones: 5,
     ingredientes: [
       { nombre: 'Aceite de oliva', cantidad: 40, unidad: 'ml', categoria: 'Despensa' },
       { nombre: 'Limón', cantidad: 1, unidad: 'unidad', categoria: 'Verduras y frutas' },
@@ -457,7 +459,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 's_yogur', nombre: 'Aliño de yogur con limón y eneldo', rol: 'salsa',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: ['lacteos'],
-    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, porciones: 5,
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
     ingredientes: [
       { nombre: 'Yogur natural sin azúcar', cantidad: 150, unidad: 'g', categoria: 'Lácteos y alternativas' },
       { nombre: 'Limón', cantidad: 0.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
@@ -469,7 +471,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 's_pesto', nombre: 'Pesto de espinaca y albahaca, sin queso', rol: 'salsa',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['licuadora'], contiene: ['frutos_secos'],
-    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 4, congelable: true, porciones: 5,
+    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 4, congelable: true, frio: true, porciones: 5,
     ingredientes: [
       { nombre: 'Espinaca', cantidad: 60, unidad: 'g', categoria: 'Verduras y frutas' },
       { nombre: 'Albahaca fresca', cantidad: 20, unidad: 'g', categoria: 'Verduras y frutas' },
@@ -497,7 +499,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 's_hummus', nombre: 'Hummus', rol: 'salsa',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['licuadora'], contiene: ['sesamo'],
-    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 4, congelable: true, porciones: 5,
+    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 4, congelable: true, frio: true, porciones: 5,
     ingredientes: [
       { nombre: 'Garbanzos cocidos, de frasco o lata', cantidad: 200, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
       { nombre: 'Limón', cantidad: 0.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
@@ -512,20 +514,20 @@ export const COMPONENTES: Componente[] = [
   {
     id: 'd_avena', nombre: 'Avena remojada en frasco con fruta', rol: 'desayuno',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: ['gluten'],
-    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 4, congelable: false, porciones: 5,
+    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
     ingredientes: [
       { nombre: 'Avena', cantidad: 200, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
       { nombre: 'Leche o bebida vegetal sin azúcar', cantidad: 600, unidad: 'ml', categoria: 'Lácteos y alternativas' },
       { nombre: 'Fruta de estación', cantidad: 500, unidad: 'g', categoria: 'Verduras y frutas' },
       { nombre: 'Semillas de chía', cantidad: 25, unidad: 'g', categoria: 'Despensa' },
     ],
-    pasos: ['Reparte en 5 frascos la avena, la chía y la leche o bebida vegetal y refrigera.', 'Agrega la fruta picada al servir. Se come frío desde el día siguiente. El quinto frasco conviene armarlo a mitad de semana.'],
+    pasos: ['Reparte en 5 frascos la avena, la chía y la leche o bebida vegetal y refrigera.', 'Agrega la fruta picada al servir. Se come frío desde el día siguiente.'],
     nota: NOTA_AVENA,
   },
   {
     id: 'd_chia', nombre: 'Pudín de chía con fruta', rol: 'desayuno',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: [],
-    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, porciones: 5,
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
     ingredientes: [
       { nombre: 'Semillas de chía', cantidad: 125, unidad: 'g', categoria: 'Despensa' },
       { nombre: 'Leche o bebida vegetal sin azúcar', cantidad: 750, unidad: 'ml', categoria: 'Lácteos y alternativas' },
@@ -554,7 +556,7 @@ export const COMPONENTES: Componente[] = [
   {
     id: 'd_granola', nombre: 'Granola casera sin azúcar con yogur', rol: 'desayuno',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['horno'], contiene: ['gluten', 'frutos_secos', 'lacteos'],
-    minutosActivos: 10, minutosTotales: 35, refrigeradorDias: 5, congelable: false, porciones: 5,
+    minutosActivos: 10, minutosTotales: 35, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
     ingredientes: [
       { nombre: 'Avena', cantidad: 150, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
       { nombre: 'Nueces o almendras', cantidad: 50, unidad: 'g', categoria: 'Despensa' },

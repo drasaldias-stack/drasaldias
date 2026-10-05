@@ -62,6 +62,8 @@ export type Componente = {
   ingredientes: Ingrediente[];
   pasos: string[];
   nota?: string;
+  /** Se come frío o a temperatura ambiente: la ficha no indica recalentar. */
+  frio?: boolean;
   /** Reemplaza la frase automática de conservación cuando el componente se guarda de otra forma (por ejemplo, a temperatura ambiente). */
   conservacion?: string;
 };

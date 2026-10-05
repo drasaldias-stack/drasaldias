@@ -75,9 +75,13 @@ export default function DetalleReceta() {
             {c.congelable ? ' Se puede congelar en porciones el mismo día.' : ' No conviene congelarlo.'}
           </Texto>
         )}
-        <Pequeno>
-          Enfría rápido y refrigera dentro de las 2 horas. Recalienta solo la porción que vas a comer, hasta que esté humeante en todo el centro, y no recalientes dos veces.
-        </Pequeno>
+        {c.frio ? (
+          <Pequeno>Saca del refrigerador solo la porción que vas a comer y vuelve a tapar el resto enseguida.</Pequeno>
+        ) : (
+          <Pequeno>
+            Enfría rápido y refrigera dentro de las 2 horas. Recalienta solo la porción que vas a comer, hasta que esté humeante en todo el centro, y no recalientes dos veces.
+          </Pequeno>
+        )}
       </Tarjeta>
       {c.nota ? (
         <Aviso>

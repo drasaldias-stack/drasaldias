@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
-import { SENALES_DETENERSE } from '@/content/ejercicios';
+import { AVISO_HIPOGLUCEMIA, SENALES_DETENERSE } from '@/content/ejercicios';
 import { usePaleta } from '@/hooks/use-paleta';
 import { SEMANAS_PROGRAMA, semanaVigente, vueltasPorMinutos } from '@/logic/programa';
 import { useApp } from '@/state/app-state';
@@ -71,6 +71,11 @@ export default function Ejercicio() {
         <Pequeno>Llevas {diasCaminata} {diasCaminata === 1 ? 'día' : 'días'}. Regístralos en Hoy.</Pequeno>
       </Tarjeta>
 
+      {perfil.seguridad.motivos.ejercicio.includes('insulina') ? (
+        <Aviso tipo="alerta">
+          <Pequeno tono="normal">{AVISO_HIPOGLUCEMIA}</Pequeno>
+        </Aviso>
+      ) : null}
       <Aviso tipo="critico">
         <Pequeno tono="normal">{SENALES_DETENERSE}</Pequeno>
       </Aviso>

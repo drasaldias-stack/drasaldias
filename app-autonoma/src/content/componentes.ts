@@ -7,6 +7,14 @@ import type { Componente } from '../logic/tipos';
 const ACEITE = { nombre: 'Aceite de oliva', cantidad: 1, unidad: 'cda', categoria: 'Despensa', basico: true } as const;
 const SAL = { nombre: 'Sal y pimienta', cantidad: 1, unidad: 'cdta', categoria: 'Despensa', basico: true } as const;
 
+// Notas repetidas. La cantidad y el complemento proteico los debe fijar el equipo de nutrición.
+const NOTA_PROTEINA_VEGETAL =
+  'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado. Complétala con un huevo, yogur natural o queso fresco si los comes, o con tofu, o pide a tu equipo de salud que ajuste la cantidad.';
+const NOTA_PROTEINA_HUEVO =
+  'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado. Complétala con yogur natural o queso fresco si los comes, o con tofu, o pide a tu equipo de salud que ajuste la cantidad.';
+const NOTA_AVENA =
+  'La avena no contiene gluten de trigo, pero suele contaminarse en el proceso. Si tienes enfermedad celíaca, usa solo avena certificada sin gluten y según te indique tu equipo de salud.';
+
 export const COMPONENTES: Componente[] = [
   // ---------- Proteínas ----------
   {
@@ -157,7 +165,7 @@ export const COMPONENTES: Componente[] = [
       'Cuenta 10 minutos de hervor suave y pásalos a agua fría.',
       'Guárdalos con cáscara en el refrigerador; así duran hasta 5 días.',
     ],
-    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
+    nota: NOTA_PROTEINA_HUEVO,
   },
   {
     id: 'p_lentejas', nombre: 'Lentejas guisadas con verduras', rol: 'proteina',
@@ -177,7 +185,7 @@ export const COMPONENTES: Componente[] = [
       'Agrega las lentejas lavadas y tres veces su volumen de agua.',
       'Cocina 25 a 30 minutos, o 10 minutos en olla a presión, hasta que estén blandas.',
     ],
-    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
+    nota: NOTA_PROTEINA_VEGETAL,
   },
   {
     id: 'p_porotos', nombre: 'Porotos negros en olla', rol: 'proteina',
@@ -195,7 +203,7 @@ export const COMPONENTES: Componente[] = [
       'Cocínalos en olla a presión 25 minutos con agua nueva que los cubra el doble.',
       'Sofríe la cebolla y el ajo, mézclalos con los porotos y condimenta.',
     ],
-    nota: 'Requiere remojo de 8 horas antes de la sesión de cocina. Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
+    nota: `Requiere remojo de 8 horas antes de la sesión de cocina. ${NOTA_PROTEINA_VEGETAL}`,
   },
   {
     id: 'p_garbanzos', nombre: 'Garbanzos asados especiados', rol: 'proteina',
@@ -211,7 +219,7 @@ export const COMPONENTES: Componente[] = [
       'Mézclalos con aceite y especias.',
       'Hornea 30 minutos a 200 °C, o 15 a 18 en freidora de aire, moviendo a la mitad.',
     ],
-    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
+    nota: NOTA_PROTEINA_VEGETAL,
   },
   {
     id: 'p_lentejas_ensalada', nombre: 'Ensalada tibia de lentejas', rol: 'proteina',
@@ -229,7 +237,7 @@ export const COMPONENTES: Componente[] = [
       'Cocina las lentejas lavadas en abundante agua 20 a 25 minutos, hasta que estén blandas pero enteras.',
       'Escurre y mezcla con la zanahoria rallada, el pimentón picado, el jugo de limón, el aceite y el perejil.',
     ],
-    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
+    nota: NOTA_PROTEINA_VEGETAL,
   },
   {
     id: 'p_garbanzos_sarten', nombre: 'Garbanzos salteados con espinaca', rol: 'proteina',
@@ -247,7 +255,7 @@ export const COMPONENTES: Componente[] = [
       'Saltea el ajo y el comino 1 minuto, agrega los garbanzos y dóralos 5 minutos.',
       'Suma la espinaca y cocina hasta que se reduzca.',
     ],
-    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
+    nota: NOTA_PROTEINA_VEGETAL,
   },
   {
     id: 'p_tofu', nombre: 'Tofu dorado con salsa de soya', rol: 'proteina',
@@ -264,7 +272,7 @@ export const COMPONENTES: Componente[] = [
       'Dóralo en sartén con poco aceite 10 minutos, o 15 en freidora de aire.',
       'Agrega el ajo picado y la salsa de soya al final y mezcla.',
     ],
-    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
+    nota: NOTA_PROTEINA_VEGETAL,
   },
   {
     id: 'p_frittata', nombre: 'Tortilla de verduras al horno', rol: 'proteina',
@@ -281,7 +289,7 @@ export const COMPONENTES: Componente[] = [
       'Saltea el zapallo italiano en cubos y la espinaca 3 minutos.',
       'Bate los huevos con sal, mezcla con las verduras y hornea en molde aceitado hasta que cuaje también en el centro: 20 a 25 minutos con 5 huevos; con más cantidad usa dos moldes en vez de uno más alto.',
     ],
-    nota: 'Como proteína principal de una comida aporta menos proteína que una porción de carne o pescado: acompáñala con yogur natural, queso fresco o una porción extra de legumbre, o pide a tu equipo de salud que ajuste la cantidad.',
+    nota: NOTA_PROTEINA_HUEVO,
   },
 
   // ---------- Carbohidratos ----------
@@ -504,23 +512,23 @@ export const COMPONENTES: Componente[] = [
   {
     id: 'd_avena', nombre: 'Avena remojada en frasco con fruta', rol: 'desayuno',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: ['gluten'],
-    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 5, congelable: false, porciones: 5,
+    minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 4, congelable: false, porciones: 5,
     ingredientes: [
       { nombre: 'Avena', cantidad: 200, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
       { nombre: 'Leche o bebida vegetal sin azúcar', cantidad: 600, unidad: 'ml', categoria: 'Lácteos y alternativas' },
       { nombre: 'Fruta de estación', cantidad: 500, unidad: 'g', categoria: 'Verduras y frutas' },
       { nombre: 'Semillas de chía', cantidad: 25, unidad: 'g', categoria: 'Despensa' },
     ],
-    pasos: ['Reparte en 5 frascos la avena, la chía y la leche o bebida vegetal y refrigera.', 'Agrega la fruta picada al servir. Se come frío desde el día siguiente.'],
-    nota: 'La avena no contiene gluten de trigo, pero suele contaminarse en el proceso. Si tienes enfermedad celíaca, usa solo avena certificada sin gluten y según te indique tu equipo de salud.',
+    pasos: ['Reparte en 5 frascos la avena, la chía y la leche o bebida vegetal y refrigera.', 'Agrega la fruta picada al servir. Se come frío desde el día siguiente. El quinto frasco conviene armarlo a mitad de semana.'],
+    nota: NOTA_AVENA,
   },
   {
     id: 'd_chia', nombre: 'Pudín de chía con fruta', rol: 'desayuno',
     patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: [],
     minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, porciones: 5,
     ingredientes: [
-      { nombre: 'Semillas de chía', cantidad: 100, unidad: 'g', categoria: 'Despensa' },
-      { nombre: 'Leche o bebida vegetal sin azúcar', cantidad: 800, unidad: 'ml', categoria: 'Lácteos y alternativas' },
+      { nombre: 'Semillas de chía', cantidad: 125, unidad: 'g', categoria: 'Despensa' },
+      { nombre: 'Leche o bebida vegetal sin azúcar', cantidad: 750, unidad: 'ml', categoria: 'Lácteos y alternativas' },
       { nombre: 'Fruta de estación', cantidad: 500, unidad: 'g', categoria: 'Verduras y frutas' },
     ],
     pasos: ['Mezcla la chía con la leche o bebida vegetal y reparte en 5 frascos.', 'Revuelve a los 10 minutos para que no se apelmace y deja hidratar al menos 2 horas o toda la noche.', 'Agrega la fruta al servir.'],
@@ -560,7 +568,8 @@ export const COMPONENTES: Componente[] = [
       'Hornea 15 a 20 minutos a 170 °C, moviendo a la mitad, y deja enfriar.',
       'Guarda en frasco seco. Sirve con yogur y fruta.',
     ],
-    nota: 'La granola se guarda en frasco seco y cerrado a temperatura ambiente hasta 2 semanas; el yogur y la fruta van refrigerados y se agregan al servir. La avena no contiene gluten de trigo, pero suele contaminarse en el proceso. Si tienes enfermedad celíaca, usa solo avena certificada sin gluten y según te indique tu equipo de salud.',
+    conservacion: 'La granola se guarda en frasco seco y cerrado a temperatura ambiente hasta 2 semanas. El yogur y la fruta van refrigerados y se agregan al servir.',
+    nota: NOTA_AVENA,
   },
   {
     id: 'd_panqueques', nombre: 'Panqueques de avena y plátano', rol: 'desayuno',
@@ -570,13 +579,14 @@ export const COMPONENTES: Componente[] = [
       { nombre: 'Avena', cantidad: 250, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
       { nombre: 'Plátano', cantidad: 3, unidad: 'unidad', categoria: 'Verduras y frutas' },
       { nombre: 'Huevo', cantidad: 4, unidad: 'unidad', categoria: 'Carnes, pescados y huevos' },
+      { nombre: 'Leche o bebida vegetal sin azúcar', cantidad: 250, unidad: 'ml', categoria: 'Lácteos y alternativas' },
     ],
     pasos: [
-      'Licúa o muele la avena, el plátano y los huevos.',
+      'Licúa o muele la avena con el plátano, los huevos y la leche o bebida vegetal hasta tener una masa espesa que caiga de la cuchara; si queda muy densa, agrega un poco más de líquido.',
       'Cocina porciones pequeñas en sartén antiadherente 2 minutos por lado.',
       'Congela los que comerás desde el cuarto día.',
     ],
-    nota: 'La avena no contiene gluten de trigo, pero suele contaminarse en el proceso. Si tienes enfermedad celíaca, usa solo avena certificada sin gluten y según te indique tu equipo de salud.',
+    nota: NOTA_AVENA,
   },
 ];
 

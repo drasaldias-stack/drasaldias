@@ -1,8 +1,9 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Pressable } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { usePaleta } from '@/hooks/use-paleta';
@@ -47,6 +48,8 @@ function Navegacion() {
         headerTitleStyle: { color: p.ink },
         contentStyle: { backgroundColor: p.bg },
         headerBackTitle: 'Volver',
+        // El botón de volver del encabezado web mide 30 px; aquí se reemplaza por uno de 44 px con etiqueta en español.
+        headerLeft: Platform.OS === 'web' ? () => <BotonVolver color={p.accent} /> : undefined,
       }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="bienvenida" options={{ headerShown: false }} />
@@ -55,5 +58,17 @@ function Navegacion() {
       <Stack.Screen name="receta/[id]" options={{ title: 'Receta' }} />
       <Stack.Screen name="compras" options={{ title: 'Lista de compras' }} />
     </Stack>
+  );
+}
+
+function BotonVolver({ color }: { color: string }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Volver"
+      onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
+      <Ionicons aria-hidden name="chevron-back" size={28} color={color} />
+    </Pressable>
   );
 }

@@ -67,10 +67,14 @@ export default function DetalleReceta() {
       </Tarjeta>
       <Tarjeta>
         <Subtitulo>Cómo guardarlo</Subtitulo>
-        <Texto>
-          Refrigerado en recipiente cerrado, hasta {c.refrigeradorDias} días contados desde el día que lo cocinas.
-          {c.congelable ? ' Se puede congelar en porciones el mismo día.' : ' No conviene congelarlo.'}
-        </Texto>
+        {c.conservacion ? (
+          <Texto>{c.conservacion}</Texto>
+        ) : (
+          <Texto>
+            Refrigerado en recipiente cerrado, hasta {c.refrigeradorDias} días contados desde el día que lo cocinas.
+            {c.congelable ? ' Se puede congelar en porciones el mismo día.' : ' No conviene congelarlo.'}
+          </Texto>
+        )}
         <Pequeno>
           Enfría rápido y refrigera dentro de las 2 horas. Recalienta solo la porción que vas a comer, hasta que esté humeante en todo el centro, y no recalientes dos veces.
         </Pequeno>

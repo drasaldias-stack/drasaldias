@@ -9,6 +9,7 @@ import { usePaleta } from '@/hooks/use-paleta';
 import { listaCompras } from '@/logic/compras';
 import { MINUTOS_ORGANIZACION } from '@/logic/menu';
 import { SEMANAS_PROGRAMA } from '@/logic/programa';
+import { textosConfirmacion } from '@/logic/seguridad';
 import { useApp } from '@/state/app-state';
 import { accesoEjercicio, accesoMenu, claseSugerida, programaTerminado, resumenSemana } from '@/state/derivados';
 import { Aviso, Boton, Chip, Cinta, Etiqueta, Fila, Pantalla, Pequeno, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
@@ -58,7 +59,7 @@ export default function Hoy() {
         <>
           <Aviso tipo="info">
             <Texto>
-              Falta un paso: cuando {seccion === 'ejercicio' ? 'un médico te autorice a hacer ejercicio' : 'hayas hablado con tu médico'}, márcalo en Perfil y esta sección se activa.
+              Falta un paso: cuando {textosConfirmacion(perfil.seguridad, seccion).pendiente}, márcalo en Perfil y esta sección se activa.
             </Texto>
           </Aviso>
           <Boton titulo="Ir a Perfil" variante="secundario" onPress={() => router.push('/perfil')} />

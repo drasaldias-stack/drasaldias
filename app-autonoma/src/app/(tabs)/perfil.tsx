@@ -5,6 +5,7 @@ import { Linking, TextInput, View } from 'react-native';
 import { URL_CONDICIONES, URL_PRIVACIDAD } from '@/constants/enlaces';
 import { Spacing } from '@/constants/theme';
 import { usePaleta } from '@/hooks/use-paleta';
+import { textosConfirmacion } from '@/logic/seguridad';
 import { useApp } from '@/state/app-state';
 import { EditorCocina, EditorEjercicio } from '@/ui/editores';
 import { Aviso, Boton, Etiqueta, FilaCheck, Pantalla, Pequeno, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
@@ -52,14 +53,14 @@ export default function Perfil() {
         )}
         {seg.ejercicio === 'requiere_confirmacion' ? (
           <FilaCheck
-            texto="Un médico me autorizó a hacer ejercicio"
+            texto={textosConfirmacion(seg, 'ejercicio').casilla}
             marcado={perfil.confirmaEjercicio}
             onPress={() => actualizarPerfil({ confirmaEjercicio: !perfil.confirmaEjercicio })}
           />
         ) : null}
         {seg.alimentacion === 'requiere_confirmacion' ? (
           <FilaCheck
-            texto="Hablé con mi médico sobre cambiar mi alimentación y mis medicamentos"
+            texto={textosConfirmacion(seg, 'alimentacion').casilla}
             marcado={perfil.confirmaAlimentacion}
             onPress={() => actualizarPerfil({ confirmaAlimentacion: !perfil.confirmaAlimentacion })}
           />

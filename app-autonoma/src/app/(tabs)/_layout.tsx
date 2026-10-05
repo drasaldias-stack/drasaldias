@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/tabs';
-import { Platform, type ColorValue } from 'react-native';
+import { Platform, useWindowDimensions, type ColorValue } from 'react-native';
 
 import { usePaleta } from '@/hooks/use-paleta';
 import { useApp } from '@/state/app-state';
@@ -15,6 +15,7 @@ const icono = (nombre: NombreIcono) =>
 export default function TabsLayout() {
   const { estado } = useApp();
   const p = usePaleta();
+  const { width } = useWindowDimensions();
   if (!estado.perfil) return <Redirect href="/bienvenida" />;
   return (
     <Tabs
@@ -23,7 +24,8 @@ export default function TabsLayout() {
         tabBarActiveTintColor: p.accent,
         tabBarInactiveTintColor: p.ink2,
         tabBarStyle: { backgroundColor: p.surface, borderTopColor: p.line, ...(Platform.OS === 'web' ? { height: 60, paddingBottom: 6 } : null) },
-        tabBarLabelStyle: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
+        // A 320 px de ancho la etiqueta «Ejercicio» no cabe con 12 px.
+        tabBarLabelStyle: { fontSize: width < 360 ? 11 : 12, lineHeight: 16, fontWeight: '600' },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Hoy', tabBarIcon: icono('today-outline') }} />
       <Tabs.Screen name="clases" options={{ title: 'Clases', tabBarIcon: icono('play-circle-outline') }} />

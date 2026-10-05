@@ -62,6 +62,8 @@ export type Componente = {
   ingredientes: Ingrediente[];
   pasos: string[];
   nota?: string;
+  /** Reemplaza la frase automática de conservación cuando el componente se guarda de otra forma (por ejemplo, a temperatura ambiente). */
+  conservacion?: string;
 };
 
 export type Material = 'silla' | 'banda' | 'pesas' | 'colchoneta';
@@ -114,17 +116,37 @@ export type RespuestasSeguridad = {
 
 export type EstadoAcceso = 'ok' | 'requiere_confirmacion' | 'bloqueado';
 
+/** Respuestas que dejan el ejercicio pendiente de confirmación. */
+export type MotivoEjercicio = 'sintomas' | 'enfermedad' | 'insulina' | 'conducta';
+/** Respuestas que dejan los menús pendientes de confirmación. */
+export type MotivoAlimentacion = 'insulina';
+
 export type ResultadoSeguridad = {
   apta: boolean;
   alimentacion: EstadoAcceso;
   ejercicio: EstadoAcceso;
+  /** Qué dejó cada sección pendiente; vacío si está disponible o bloqueada. Decide el texto de la casilla de Perfil. */
+  motivos: { ejercicio: MotivoEjercicio[]; alimentacion: MotivoAlimentacion[] };
   /** Se guarda en el teléfono y nombra la condición que motivó cada restricción: es un dato de salud. */
   mensajes: string[];
 };
 
+export const MINUTOS_COCINA = [60, 90, 120] as const;
+export const MINUTOS_EJERCICIO = [10, 20, 30] as const;
+
+// Listas cerradas para validar lo que se guarda en el dispositivo. El tipo Record obliga a mantenerlas completas.
+const claves = <T extends string>(r: Record<T, true>) => Object.keys(r) as T[];
+export const EQUIPOS = claves<Equipo>({ horno: true, olla: true, airfryer: true, microondas: true, licuadora: true });
+export const PATRONES = claves<Patron>({ omnivoro: true, vegetariano: true });
+export const EXCLUSIONES = claves<Exclusion>({
+  lacteos: true, gluten: true, huevo: true, pescado: true, cerdo: true, vacuno: true, pollo: true, soya: true,
+  frutos_secos: true, mostaza: true, sesamo: true, cebolla: true, champinones: true, picante: true, cilantro: true,
+});
+export const MATERIALES = claves<Material>({ silla: true, banda: true, pesas: true, colchoneta: true });
+
 export type PreferenciasCocina = {
   personas: number;
-  minutos: 60 | 90 | 120;
+  minutos: (typeof MINUTOS_COCINA)[number];
   equipos: Equipo[];
   patron: Patron;
   exclusiones: Exclusion[];
@@ -132,6 +154,6 @@ export type PreferenciasCocina = {
 
 export type PreferenciasEjercicio = {
   programa: ProgramaId;
-  minutos: 10 | 20 | 30;
+  minutos: (typeof MINUTOS_EJERCICIO)[number];
   materiales: Material[];
 };

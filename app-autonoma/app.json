@@ -25,11 +25,17 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.tumarca.ruta90",
-      "allowBackup": false
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "lang": "es"
     },
     "plugins": [
       "expo-router",
@@ -46,6 +52,11 @@
       "typedRoutes": false,
       "reactCompiler": true
     },
-    "description": "Clases, ejercicio en casa y menús para cocinar una vez a la semana, para personas que están empezando."
+    "description": "Clases, ejercicio en casa y menús para cocinar una vez a la semana, para personas que están empezando.",
+    "locales": {
+      "es": {
+        "CFBundleDisplayName": "Ruta 90"
+      }
+    }
   }
 }

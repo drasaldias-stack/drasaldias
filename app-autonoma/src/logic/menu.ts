@@ -218,10 +218,23 @@ export function cambiarComponente(
 }
 
 /** Menú válido para el catálogo actual (los ids siguen existiendo). */
-export function menuVigente(menu: Menu | null | undefined, catalogo: Componente[]): boolean {
-  if (!menu) return false;
+const esObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
+
+/** Si un menú guardado tiene la forma esperada y solo usa componentes que siguen en el catálogo. */
+export function menuVigente(menu: unknown, catalogo: Componente[]): menu is Menu {
+  if (!esObj(menu) || typeof menu.semilla !== 'number' || typeof menu.minutos !== 'number' || typeof menu.excede !== 'number' || !esObj(menu.porRol)) {
+    return false;
+  }
   const ids = new Set(catalogo.map((c) => c.id));
-  return ORDEN_ROLES.every((r) => menu.porRol[r]?.elecciones.every((e) => ids.has(e.id)));
+  const porRol = menu.porRol;
+  return ORDEN_ROLES.every((r) => {
+    const o = porRol[r];
+    if (!esObj(o) || typeof o.minutos !== 'number' || !Array.isArray(o.elecciones) || !Array.isArray(o.dias)) return false;
+    if (o.elecciones.length === 0 || o.dias.length !== DIAS) return false;
+    const eleccionOk = (e: unknown) => esObj(e) && typeof e.id === 'string' && ids.has(e.id) && typeof e.doble === 'boolean';
+    const diaOk = (d: unknown) => esObj(d) && typeof d.id === 'string' && ids.has(d.id) && typeof d.congelar === 'boolean';
+    return o.elecciones.every(eleccionOk) && o.dias.every(diaOk);
+  });
 }
 
 export type DiaMenu = { dia: number; comida: Record<Rol, Asignacion> };

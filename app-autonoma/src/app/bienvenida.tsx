@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { useRef, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -13,13 +13,15 @@ import { Aviso, Boton, Cinta, Etiqueta, Pantalla, Pequeno, SiNo, Subtitulo, Tarj
 
 type Paso = 'inicio' | 'seguridad' | 'resultado' | 'cocina' | 'ejercicio';
 
+const mismoConjunto = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
+
 export const PREGUNTAS: { clave: keyof RespuestasSeguridad; texto: string }[] = [
   { clave: 'mayorEdad', texto: '¿Tienes 18 años o más?' },
   { clave: 'embarazoLactancia', texto: '¿Estás embarazada o amamantando?' },
   {
     clave: 'sintomasEsfuerzo',
     texto:
-      '¿Has tenido dolor o presión en el pecho, el cuello, la mandíbula o los brazos; falta de aire en reposo o con esfuerzos leves; mareos o desmayos al hacer esfuerzo; o palpitaciones fuertes o latidos irregulares que te preocupen?',
+      '¿Has tenido dolor o presión en el pecho, cuello, mandíbula o brazos; falta de aire fuera de lo normal; mareos o desmayos con el esfuerzo; o palpitaciones que te preocupen?',
   },
   {
     clave: 'enfermedadConocida',
@@ -35,7 +37,7 @@ export const PREGUNTAS: { clave: keyof RespuestasSeguridad; texto: string }[] = 
 ];
 
 export default function Bienvenida() {
-  const { estado, guardarPerfil, actualizarPerfil } = useApp();
+  const { estado, guardarPerfil, actualizarPerfil, borrarTodo } = useApp();
   const p = usePaleta();
   const { modo } = useLocalSearchParams<{ modo?: string }>();
   const perfilActual = estado.perfil;
@@ -50,15 +52,29 @@ export default function Bienvenida() {
   const [cocina, setCocina] = useState<PreferenciasCocina>(perfilActual?.cocina ?? COCINA_INICIAL);
   const [ejercicio, setEjercicio] = useState<PreferenciasEjercicio>(perfilActual?.ejercicio ?? EJERCICIO_INICIAL);
 
+  const recienGuardado = useRef(false);
+
+  // Con un perfil ya creado, esta pantalla solo se usa para revisar respuestas; por URL o enlace profundo vuelve a Hoy.
+  if (perfilActual && !revisar && !recienGuardado.current) return <Redirect href="/" />;
+
   const pendientes = PREGUNTAS.filter((q) => respuestas[q.clave] === undefined);
   const volverAPerfil = () => (router.canGoBack() ? router.back() : router.replace('/perfil'));
 
   const terminar = (seg: ResultadoSeguridad) => {
-    if (revisar) {
-      actualizarPerfil({ seguridad: seg, confirmaEjercicio: false, confirmaAlimentacion: false });
+    if (revisar && perfilActual) {
+      // Una confirmación ya marcada se conserva si lo que debe confirmarse no cambió.
+      const previo = perfilActual.seguridad;
+      const igual = (sec: 'ejercicio' | 'alimentacion') =>
+        previo[sec] === seg[sec] && mismoConjunto(previo.motivos[sec], seg.motivos[sec]);
+      actualizarPerfil({
+        seguridad: seg,
+        confirmaEjercicio: igual('ejercicio') && perfilActual.confirmaEjercicio,
+        confirmaAlimentacion: igual('alimentacion') && perfilActual.confirmaAlimentacion,
+      });
       volverAPerfil();
       return;
     }
+    recienGuardado.current = true;
     guardarPerfil({
       nombre: nombre.trim(),
       inicio: hoyISO(),
@@ -166,8 +182,23 @@ export default function Bienvenida() {
           {resultado.mensajes.map((m) => (
             <Aviso key={m} tipo="alerta"><Texto>{m}</Texto></Aviso>
           ))}
-          <Boton titulo="Volver" variante="secundario" onPress={() => setPaso('seguridad')} />
+          {revisar ? (
+            <Texto tono="suave">Estas respuestas no se guardaron. Puedes corregirlas, volver a Perfil sin cambios o borrar tus datos de este dispositivo.</Texto>
+          ) : null}
+          <Boton titulo={revisar ? 'Corregir respuestas' : 'Volver'} variante="secundario" onPress={() => setPaso('seguridad')} />
           {revisar ? <Boton titulo="Cancelar sin cambios" variante="secundario" onPress={volverAPerfil} /> : null}
+          {revisar ? (
+            <Boton
+              titulo="Borrar mis datos y salir"
+              variante="peligro"
+              onPress={() => {
+                borrarTodo();
+                setRespuestas({});
+                setResultado(null);
+                setPaso('inicio');
+              }}
+            />
+          ) : null}
         </Pantalla>
       );
     }
@@ -177,7 +208,11 @@ export default function Bienvenida() {
         {resultado.mensajes.map((m) => (
           <Aviso key={m} tipo="alerta"><Texto>{m}</Texto></Aviso>
         ))}
-        <Texto tono="suave">Puedes seguir y usar lo que está disponible para ti. Las secciones pendientes de confirmación se activan desde Perfil.</Texto>
+        <Texto tono="suave">
+          {revisar
+            ? 'Las secciones pendientes de confirmación se activan desde Perfil. Si cambió lo que debes confirmar, tendrás que marcarlo de nuevo.'
+            : 'Puedes seguir y usar lo que está disponible para ti. Las secciones pendientes de confirmación se activan desde Perfil.'}
+        </Texto>
         <Boton titulo={revisar ? 'Guardar respuestas' : 'Continuar'} onPress={() => siguienteTrasSeguridad(resultado)} />
         <Boton titulo="Corregir respuestas" variante="secundario" onPress={() => setPaso('seguridad')} />
       </Pantalla>

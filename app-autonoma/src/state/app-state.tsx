@@ -2,91 +2,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { COMPONENTES } from '@/content/componentes';
+import { normalizar, VACIO, type EstadoApp, type Perfil } from '@/logic/estado';
 import { generarMenu, menuVigente, type Menu, type ResultadoMenu } from '@/logic/menu';
 import { hoyISO, semanaDelPrograma, semanaVigente } from '@/logic/programa';
-import type { PreferenciasCocina, PreferenciasEjercicio, ResultadoSeguridad } from '@/logic/tipos';
+import type { PreferenciasCocina } from '@/logic/tipos';
 
 // Todo se guarda solo en el dispositivo (AsyncStorage; en web, localStorage). No hay cuenta ni servidor.
 // El resultado del filtro de seguridad incluye mensajes que nombran la condición: es un dato de salud.
+// La forma del estado y su validación están en src/logic/estado.ts.
 const CLAVE = 'ruta90-autonoma-v1';
 
-export type Perfil = {
-  nombre: string;
-  inicio: string;
-  seguridad: ResultadoSeguridad;
-  confirmaEjercicio: boolean;
-  confirmaAlimentacion: boolean;
-  cocina: PreferenciasCocina;
-  ejercicio: PreferenciasEjercicio;
-};
-
-export type EstadoApp = {
-  version: 1;
-  perfil: Perfil | null;
-  clasesVistas: Record<string, string>;
-  sesionesHechas: Record<string, string>;
-  /** Días de caminata cumplidos por semana del programa (clave: semana 1 a 12). */
-  caminatas: Record<string, number>;
-  menu: { semana: number; regeneracion: number; menu: Menu } | null;
-  /** Ítems marcados en la lista de compras, con clave `${semana}|${item}`. */
-  compras: Record<string, boolean>;
-};
-
-const VACIO: EstadoApp = { version: 1, perfil: null, clasesVistas: {}, sesionesHechas: {}, caminatas: {}, menu: null, compras: {} };
-
-export const COCINA_INICIAL: PreferenciasCocina = { personas: 1, minutos: 90, equipos: ['horno', 'microondas'], patron: 'omnivoro', exclusiones: [] };
-export const EJERCICIO_INICIAL: PreferenciasEjercicio = { programa: 'desde_cero', minutos: 20, materiales: ['silla'] };
-
-const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
-const registro = <T,>(x: unknown, valor: (v: unknown) => v is T): Record<string, T> => {
-  if (!esObjeto(x)) return {};
-  const out: Record<string, T> = {};
-  for (const [k, v] of Object.entries(x)) if (valor(v)) out[k] = v;
-  return out;
-};
-const esString = (v: unknown): v is string => typeof v === 'string';
-const esNumero = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
-const esTrue = (v: unknown): v is boolean => v === true;
-
-/** Valida lo guardado antes de usarlo: si el perfil está incompleto, vuelve al estado inicial. */
-export function normalizar(crudo: unknown): EstadoApp {
-  if (!esObjeto(crudo) || crudo.version !== 1) return VACIO;
-  let perfil: Perfil | null = null;
-  if (crudo.perfil != null) {
-    const p = crudo.perfil;
-    if (!esObjeto(p) || !esString(p.inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(p.inicio) || !esObjeto(p.seguridad)) return VACIO;
-    const s = p.seguridad;
-    const acceso = (v: unknown): ResultadoSeguridad['alimentacion'] => (v === 'bloqueado' || v === 'requiere_confirmacion' ? v : 'ok');
-    perfil = {
-      nombre: esString(p.nombre) ? p.nombre : '',
-      inicio: p.inicio,
-      seguridad: {
-        apta: s.apta !== false,
-        alimentacion: acceso(s.alimentacion),
-        ejercicio: acceso(s.ejercicio),
-        mensajes: Array.isArray(s.mensajes) ? s.mensajes.filter(esString) : [],
-      },
-      confirmaEjercicio: p.confirmaEjercicio === true,
-      confirmaAlimentacion: p.confirmaAlimentacion === true,
-      cocina: { ...COCINA_INICIAL, ...(esObjeto(p.cocina) ? (p.cocina as Partial<PreferenciasCocina>) : {}) },
-      ejercicio: { ...EJERCICIO_INICIAL, ...(esObjeto(p.ejercicio) ? (p.ejercicio as Partial<PreferenciasEjercicio>) : {}) },
-    };
-  }
-  const m = crudo.menu;
-  const menu =
-    esObjeto(m) && esNumero(m.semana) && esNumero(m.regeneracion) && menuVigente(m.menu as Menu, COMPONENTES)
-      ? { semana: m.semana, regeneracion: m.regeneracion, menu: m.menu as Menu }
-      : null;
-  return {
-    version: 1,
-    perfil,
-    clasesVistas: registro(crudo.clasesVistas, esString),
-    sesionesHechas: registro(crudo.sesionesHechas, esString),
-    caminatas: registro(crudo.caminatas, esNumero),
-    menu,
-    compras: registro(crudo.compras, esTrue),
-  };
-}
+export { COCINA_INICIAL, EJERCICIO_INICIAL, normalizar } from '@/logic/estado';
+export type { EstadoApp, Perfil } from '@/logic/estado';
 
 const mismoConjunto = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
 /** Solo estos campos cambian qué menú se arma; personas solo escala la lista de compras. */
@@ -122,11 +49,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     AsyncStorage.getItem(CLAVE)
       .then((txt) => {
         if (!vivo || !txt) return;
+        let cargado: EstadoApp = VACIO;
         try {
-          setEstado(normalizar(JSON.parse(txt)));
+          cargado = normalizar(JSON.parse(txt));
         } catch {
-          setEstado(VACIO);
+          cargado = VACIO;
         }
+        // Lo guardado no sirve: se elimina en vez de dejarlo hasta el próximo registro.
+        if (cargado === VACIO) AsyncStorage.removeItem(CLAVE).catch(() => undefined);
+        setEstado(cargado);
       })
       .catch(() => undefined)
       .finally(() => {

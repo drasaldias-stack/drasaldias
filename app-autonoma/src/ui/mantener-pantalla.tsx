@@ -15,16 +15,27 @@ function Web() {
   useEffect(() => {
     if (typeof navigator === 'undefined' || typeof document === 'undefined' || !('wakeLock' in navigator)) return;
     let sentinela: WakeLockSentinel | null = null;
+    let pidiendo = false;
     let activo = true;
     const pedir = () => {
-      if (!activo || document.visibilityState !== 'visible') return;
+      if (!activo || document.visibilityState !== 'visible' || pidiendo || (sentinela && !sentinela.released)) return;
+      pidiendo = true;
       navigator.wakeLock
         .request('screen')
         .then((s) => {
-          if (activo) sentinela = s;
-          else s.release().catch(() => undefined);
+          pidiendo = false;
+          if (!activo) {
+            s.release().catch(() => undefined);
+            return;
+          }
+          sentinela = s;
+          s.addEventListener?.('release', () => {
+            if (sentinela === s) sentinela = null;
+          });
         })
-        .catch(() => undefined);
+        .catch(() => {
+          pidiendo = false;
+        });
     };
     pedir();
     document.addEventListener('visibilitychange', pedir);

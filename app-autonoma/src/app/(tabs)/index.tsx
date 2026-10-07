@@ -8,7 +8,8 @@ import { COMPONENTES } from '@/content/componentes';
 import { usePaleta } from '@/hooks/use-paleta';
 import { listaCompras } from '@/logic/compras';
 import { MINUTOS_ORGANIZACION } from '@/logic/menu';
-import { SEMANAS_PROGRAMA } from '@/logic/programa';
+import { hoyISO, SEMANAS_PROGRAMA } from '@/logic/programa';
+import { textoAvisoRespaldo } from '@/logic/respaldo';
 import { textosConfirmacion } from '@/logic/seguridad';
 import { useApp } from '@/state/app-state';
 import { accesoEjercicio, accesoMenu, claseSugerida, programaTerminado, resumenSemana } from '@/state/derivados';
@@ -27,6 +28,7 @@ export default function Hoy() {
   const ejercicioOk = accesoEjercicio(perfil);
   const menuOk = accesoMenu(perfil);
   const claseAntes = semana === 1 && clase && !clase.vista;
+  const avisoRespaldo = textoAvisoRespaldo(estado.respaldo.ultimo, hoyISO());
 
   let comprasTexto = '';
   if (menuOk && menuActual?.ok) {
@@ -173,7 +175,7 @@ export default function Hoy() {
         )}
       </Tarjeta>
 
-      <Pequeno>Tu avance se guarda solo en este navegador o teléfono. En Perfil puedes crear un código de respaldo para no perderlo.</Pequeno>
+      {avisoRespaldo ? <Pequeno>{avisoRespaldo}</Pequeno> : null}
       <Pequeno>Educación general sobre alimentación y actividad física. No reemplaza la atención de un profesional de la salud.</Pequeno>
     </Pantalla>
   );

@@ -3,7 +3,7 @@ import { normalizar, type EstadoApp } from './estado';
 // Código de respaldo: el estado completo, en JSON, codificado en texto (UTF-8 y base64 con alfabeto
 // apto para URL, sin relleno) con un prefijo de versión. Sirve para llevar el avance a otro navegador
 // o teléfono sin cuentas ni servidor. Contiene el resultado del filtro de seguridad, que es un dato
-// de salud: la app lo advierte antes de mostrarlo.
+// de salud: la app lo advierte junto al botón que lo crea.
 const PREFIJO = 'R90-1-';
 const ALFABETO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
@@ -78,16 +78,60 @@ export function codificarRespaldo(estado: EstadoApp): string {
   return PREFIJO + base64Codificar(utf8Codificar(JSON.stringify(estado)));
 }
 
-/** Devuelve el estado contenido en el código, ya validado, o null si el código no sirve. Tolera espacios y saltos de línea. */
-export function decodificarRespaldo(texto: string): EstadoApp | null {
-  const limpio = texto.replace(/\s+/g, '');
-  if (!limpio.startsWith(PREFIJO)) return null;
-  const bytes = base64Decodificar(limpio.slice(PREFIJO.length));
-  if (!bytes) return null;
+/** Intenta leer un estado válido con perfil desde bytes UTF-8 de JSON; null si no sirve. */
+function leerEstado(bytes: number[]): EstadoApp | null {
   try {
     const estado = normalizar(JSON.parse(utf8Decodificar(bytes)));
     return estado.perfil ? estado : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * Devuelve el estado contenido en el código, ya validado, o null si el código no sirve.
+ * Tolera espacios y saltos de línea dentro del código y texto alrededor (comillas, «Código:», un punto final,
+ * una despedida pegada después o el mismo código pegado dos veces).
+ */
+export function decodificarRespaldo(texto: string): EstadoApp | null {
+  const limpio = texto.replace(/\s+/g, '');
+  const tramo = /R90-1-([A-Za-z0-9_-]+)/i.exec(limpio);
+  if (!tramo) return null;
+  const bytes = base64Decodificar(tramo[1]);
+  if (!bytes) return null;
+  // Si después del código hay texto con letras, el JSON termina antes: se prueba desde cada llave de cierre hacia atrás.
+  let fin = bytes.length;
+  while (fin > 0) {
+    const estado = leerEstado(bytes.slice(0, fin));
+    if (estado) return estado;
+    fin = bytes.lastIndexOf(0x7d, fin - 2) + 1;
+  }
+  return null;
+}
+
+export type ResumenAvance = { sesiones: number; clases: number; caminatas: number; ultima: string | null };
+
+/** Cuánto avance contiene un estado: sesiones y clases marcadas, días de caminata y la fecha más reciente de sesiones o clases. */
+export function resumenAvance(estado: EstadoApp): ResumenAvance {
+  const fechas = [...Object.values(estado.sesionesHechas), ...Object.values(estado.clasesVistas)].filter((f) => /^\d{4}-\d{2}-\d{2}$/.test(f));
+  return {
+    sesiones: Object.keys(estado.sesionesHechas).length,
+    clases: Object.keys(estado.clasesVistas).length,
+    caminatas: Object.values(estado.caminatas).reduce((a, b) => a + b, 0),
+    ultima: fechas.length ? fechas.reduce((a, b) => (a > b ? a : b)) : null,
+  };
+}
+
+const DIAS_RECORDATORIO_RESPALDO = 14;
+const diasEntre = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
+
+/** Recuerda crear un código de respaldo: siempre hasta el primero, y después solo cuando el último tiene más de dos semanas. */
+export function textoAvisoRespaldo(ultimo: string | null, hoy: string): string | null {
+  if (!ultimo) {
+    return 'Tu avance se guarda solo en este navegador o teléfono. Crea un código de respaldo en Perfil; guarda tu avance hasta el día en que lo creas, así que conviene repetirlo cada cierto tiempo.';
+  }
+  if (diasEntre(ultimo, hoy) >= DIAS_RECORDATORIO_RESPALDO) {
+    return `Tu último código de respaldo es del ${ultimo.split('-').reverse().join('-')}. Crea uno nuevo en Perfil para guardar lo que avanzaste desde entonces.`;
+  }
+  return null;
 }

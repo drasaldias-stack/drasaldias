@@ -34,6 +34,7 @@ const estadoValido = (): EstadoApp => ({
   caminatas: { '1': 3 },
   menu: { semana: 1, regeneracion: 0, menu: menuValido() },
   compras: { '1|Verduras y frutas|Limón|unidad': true },
+  respaldo: { ultimo: '2026-09-20' },
 });
 
 const clon = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -86,6 +87,15 @@ test('estado: perfil incompleto o versión desconocida vuelven al inicio', () =>
   assert.equal(normalizar({ version: 1, perfil: { nombre: 'x' } }), VACIO);
   assert.equal(normalizar('basura'), VACIO);
   assert.equal(normalizar({ version: 1, perfil: { inicio: '2026-9-1', seguridad: {} } }), VACIO);
+});
+
+test('estado: el campo respaldo tolera estados antiguos y fechas inválidas', () => {
+  const e = clon(estadoValido()) as Record<string, unknown>;
+  delete e.respaldo;
+  assert.deepEqual(normalizar(e).respaldo, { ultimo: null });
+  assert.deepEqual(normalizar({ ...e, respaldo: { ultimo: 'ayer' } }).respaldo, { ultimo: null });
+  assert.deepEqual(normalizar({ ...e, respaldo: 'x' }).respaldo, { ultimo: null });
+  assert.deepEqual(normalizar({ ...e, respaldo: { ultimo: '2026-10-01' } }).respaldo, { ultimo: '2026-10-01' });
 });
 
 test('estado: un menú con forma inválida se descarta sin perder el perfil', () => {

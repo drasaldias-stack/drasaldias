@@ -39,9 +39,11 @@ export type EstadoApp = {
   menu: { semana: number; regeneracion: number; menu: Menu } | null;
   /** Ítems marcados en la lista de compras, con clave `${semana}|${item}`. */
   compras: Record<string, boolean>;
+  /** Fecha (AAAA-MM-DD) del último código de respaldo creado, o null. Viaja dentro del código. */
+  respaldo: { ultimo: string | null };
 };
 
-export const VACIO: EstadoApp = { version: 1, perfil: null, clasesVistas: {}, sesionesHechas: {}, caminatas: {}, menu: null, compras: {} };
+export const VACIO: EstadoApp = { version: 1, perfil: null, clasesVistas: {}, sesionesHechas: {}, caminatas: {}, menu: null, compras: {}, respaldo: { ultimo: null } };
 
 export const COCINA_INICIAL: PreferenciasCocina = { personas: 1, minutos: 90, equipos: ['horno', 'microondas'], patron: 'omnivoro', exclusiones: [] };
 export const EJERCICIO_INICIAL: PreferenciasEjercicio = { programa: 'desde_cero', minutos: 20, materiales: ['silla'] };
@@ -50,6 +52,7 @@ const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === 'obj
 const esString = (v: unknown): v is string => typeof v === 'string';
 const esNumero = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const esTrue = (v: unknown): v is boolean => v === true;
+const esFechaISO = (v: unknown): v is string => esString(v) && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 const registro = <T,>(x: unknown, valor: (v: unknown) => v is T): Record<string, T> => {
   if (!esObjeto(x)) return {};
@@ -133,5 +136,6 @@ export function normalizar(crudo: unknown): EstadoApp {
     caminatas: registro(crudo.caminatas, esNumero),
     menu,
     compras: registro(crudo.compras, esTrue),
+    respaldo: { ultimo: esObjeto(crudo.respaldo) && esFechaISO(crudo.respaldo.ultimo) ? crudo.respaldo.ultimo : null },
   };
 }

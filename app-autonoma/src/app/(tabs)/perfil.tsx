@@ -12,7 +12,7 @@ import { Aviso, Boton, Etiqueta, FilaCheck, Pantalla, Pequeno, Separador, Subtit
 import { CrearRespaldo, RestaurarRespaldo } from '@/ui/respaldo';
 
 export default function Perfil() {
-  const { estado, semana, actualizarPerfil, actualizarCocina, reiniciarPrograma, borrarTodo, restaurarEstado } = useApp();
+  const { estado, semana, actualizarPerfil, actualizarCocina, reiniciarPrograma, borrarTodo, restaurarEstado, marcarRespaldo } = useApp();
   const p = usePaleta();
   const perfil = estado.perfil!;
   const [confirmarReinicio, setConfirmarReinicio] = useState(false);
@@ -88,13 +88,20 @@ export default function Perfil() {
       <Tarjeta>
         <Subtitulo>Copia de respaldo</Subtitulo>
         <Texto>
-          Tu avance se guarda solo en este navegador o teléfono. Con un código de respaldo puedes recuperarlo en otro dispositivo, o si se borran los datos del navegador.
+          Tu avance se guarda solo en este navegador o teléfono. Un código de respaldo guarda tus respuestas, tus preferencias y tu avance hasta el día en que lo creas; no se actualiza solo. Crea uno nuevo cada cierto tiempo, por ejemplo al terminar cada semana, y antes de cambiar de teléfono o de navegador.
         </Texto>
-        <CrearRespaldo estado={estado} />
+        <Aviso tipo="info">
+          <Pequeno tono="normal">
+            El código contiene información de salud (por ejemplo, si marcaste embarazo, diabetes con insulina o problemas con la comida) y tu avance. Guárdalo en un lugar privado, como las notas de tu teléfono o un correo que solo tú uses, y no lo compartas.
+          </Pequeno>
+        </Aviso>
+        <Pequeno>{estado.respaldo.ultimo ? `Último código creado el ${estado.respaldo.ultimo.split('-').reverse().join('-')}.` : 'Todavía no has creado ningún código.'}</Pequeno>
+        <CrearRespaldo estado={estado} alCrear={marcarRespaldo} />
         <Separador />
         <Subtitulo>Restaurar desde un código</Subtitulo>
+        <Pequeno>Reemplaza lo que hay en este dispositivo por lo que tenía el código el día en que se creó.</Pequeno>
         <RestaurarRespaldo
-          confirmar
+          actual={estado}
           alRestaurar={(e) => {
             restaurarEstado(e);
             router.replace('/');

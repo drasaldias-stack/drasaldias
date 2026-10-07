@@ -35,6 +35,8 @@ type Acciones = {
   borrarTodo: () => void;
   /** Reemplaza todo el estado por uno restaurado desde un código de respaldo (ya validado). */
   restaurarEstado: (e: EstadoApp) => void;
+  /** Registra que hoy se creó un código de respaldo. */
+  marcarRespaldo: () => void;
 };
 
 type Contexto = { estado: EstadoApp; listo: boolean; semana: number; menuActual: ResultadoMenu | null } & Acciones;
@@ -192,15 +194,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
   const borrarTodo = useCallback(() => setEstado(VACIO), []);
   const restaurarEstado = useCallback((e: EstadoApp) => setEstado(e), []);
+  const marcarRespaldo = useCallback(() => setEstado((e) => (e.respaldo.ultimo === hoyISO() ? e : { ...e, respaldo: { ultimo: hoyISO() } })), []);
 
   const valor = useMemo<Contexto>(
     () => ({
       estado, listo, semana, menuActual,
       guardarPerfil, actualizarPerfil, actualizarCocina, alternarClase, alternarSesion, cambiarCaminata,
-      nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo, restaurarEstado,
+      nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo, restaurarEstado, marcarRespaldo,
     }),
     [estado, listo, semana, menuActual, guardarPerfil, actualizarPerfil, actualizarCocina, alternarClase, alternarSesion,
-      cambiarCaminata, nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo, restaurarEstado],
+      cambiarCaminata, nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo, restaurarEstado, marcarRespaldo],
   );
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;

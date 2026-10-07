@@ -131,7 +131,7 @@ export default function Bienvenida() {
           </Pequeno>
         </Aviso>
         <Boton titulo="Empezar" onPress={() => setPaso('seguridad')} />
-        <Boton titulo="Tengo un código de respaldo" variante="secundario" icono="cloud-download-outline" onPress={() => setPaso('restaurar')} />
+        <Boton titulo="Tengo un código de respaldo" variante="secundario" icono="key-outline" onPress={() => setPaso('restaurar')} />
       </Pantalla>
     );
   }
@@ -141,7 +141,7 @@ export default function Bienvenida() {
       <Pantalla key={paso}>
         <Etiqueta>Código de respaldo</Etiqueta>
         <Titulo>Recupera tu avance</Titulo>
-        <Texto tono="suave">Pega el código de respaldo que creaste en Perfil en tu otro navegador o teléfono. Se restauran tus respuestas, tus preferencias y tu avance.</Texto>
+        <Texto tono="suave">Pega el código de respaldo que creaste en Perfil en tu otro navegador o teléfono. Se restauran tus respuestas, tus preferencias y el avance que tenías el día en que creaste el código.</Texto>
         <RestaurarRespaldo
           alRestaurar={(e) => {
             recienGuardado.current = true;

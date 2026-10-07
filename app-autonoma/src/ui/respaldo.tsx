@@ -1,14 +1,14 @@
 import * as Clipboard from 'expo-clipboard';
-import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Platform, TextInput, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { usePaleta } from '@/hooks/use-paleta';
 import type { EstadoApp } from '@/logic/estado';
-import { codificarRespaldo, decodificarRespaldo } from '@/logic/respaldo';
+import { codificarRespaldo, decodificarRespaldo, resumenAvance } from '@/logic/respaldo';
 import { Boton, Pequeno } from '@/ui/kit';
 
-const fechaCorta = (iso: string) => iso.split('-').reverse().join('-');
+const fechaCorta = (iso: string | null) => (iso ? iso.split('-').reverse().join('-') : null);
 
 function useEstiloCampo() {
   const p = usePaleta();
@@ -26,11 +26,34 @@ function useEstiloCampo() {
   };
 }
 
-/** Muestra el código de respaldo del estado actual y permite copiarlo. */
-export function CrearRespaldo({ estado }: { estado: EstadoApp }) {
+/** Copia al portapapeles y devuelve si de verdad se copió. En web no se confía en el módulo: su respaldo informa éxito aunque falle. */
+async function copiar(texto: string): Promise<boolean> {
+  if (Platform.OS === 'web') {
+    if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return false;
+    try {
+      await navigator.clipboard.writeText(texto);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  try {
+    return await Clipboard.setStringAsync(texto);
+  } catch {
+    return false;
+  }
+}
+
+/** Muestra el código de respaldo del estado actual (siempre al día) y permite copiarlo. */
+export function CrearRespaldo({ estado, alCrear }: { estado: EstadoApp; alCrear: () => void }) {
   const campo = useEstiloCampo();
-  const [codigo, setCodigo] = useState<string | null>(null);
+  const [mostrar, setMostrar] = useState(false);
   const [copiado, setCopiado] = useState<'no' | 'si' | 'error'>('no');
+  // Se deriva del estado para que nunca quede un código viejo en pantalla.
+  const codigo = useMemo(() => (mostrar ? codificarRespaldo(estado) : null), [mostrar, estado]);
+  useEffect(() => {
+    setCopiado('no');
+  }, [codigo]);
   if (!codigo) {
     return (
       <Boton
@@ -38,8 +61,8 @@ export function CrearRespaldo({ estado }: { estado: EstadoApp }) {
         variante="secundario"
         icono="key-outline"
         onPress={() => {
-          setCodigo(codificarRespaldo(estado));
-          setCopiado('no');
+          alCrear();
+          setMostrar(true);
         }}
       />
     );
@@ -50,30 +73,34 @@ export function CrearRespaldo({ estado }: { estado: EstadoApp }) {
       <Boton
         titulo={copiado === 'si' ? 'Copiado' : 'Copiar código'}
         icono={copiado === 'si' ? 'checkmark' : 'copy-outline'}
-        onPress={() =>
-          Clipboard.setStringAsync(codigo)
-            .then((ok) => setCopiado(ok ? 'si' : 'error'))
-            .catch(() => setCopiado('error'))
-        }
+        onPress={() => {
+          copiar(codigo).then((ok) => setCopiado(ok ? 'si' : 'error'));
+        }}
       />
       {copiado === 'error' ? (
-        <Pequeno tono="alerta">No se pudo copiar automáticamente. Mantén presionado el código para seleccionarlo y copiarlo.</Pequeno>
-      ) : null}
-      <Pequeno>
-        Guárdalo donde puedas encontrarlo (por ejemplo, envíatelo por correo o por mensaje). El código contiene tus respuestas de seguridad y tu
-        avance: cualquiera que lo tenga puede verlos.
-      </Pequeno>
+        <Pequeno tono="alerta">No se pudo copiar automáticamente. Selecciona el código (manteniéndolo presionado en el teléfono) y cópialo.</Pequeno>
+      ) : (
+        <Pequeno>Si el botón no funciona, selecciona el código (manteniéndolo presionado en el teléfono) y cópialo.</Pequeno>
+      )}
     </View>
   );
 }
 
-/** Campo para pegar un código de respaldo y restaurarlo, con confirmación opcional. */
-export function RestaurarRespaldo({ alRestaurar, confirmar }: { alRestaurar: (e: EstadoApp) => void; confirmar?: boolean }) {
+/**
+ * Campo para pegar un código de respaldo y restaurarlo. Con `actual` compara el avance del código con el
+ * de este dispositivo y pide confirmación; sin `actual` (pantalla de inicio, sin perfil) restaura directo.
+ */
+export function RestaurarRespaldo({ alRestaurar, actual }: { alRestaurar: (e: EstadoApp) => void; actual?: EstadoApp }) {
   const p = usePaleta();
   const campo = useEstiloCampo();
   const [texto, setTexto] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pendiente, setPendiente] = useState<EstadoApp | null>(null);
+  const limpiar = () => {
+    setTexto('');
+    setError(null);
+    setPendiente(null);
+  };
   const revisar = () => {
     const e = decodificarRespaldo(texto);
     if (!e) {
@@ -81,9 +108,13 @@ export function RestaurarRespaldo({ alRestaurar, confirmar }: { alRestaurar: (e:
       return;
     }
     setError(null);
-    if (confirmar) setPendiente(e);
-    else alRestaurar(e);
+    if (actual) setPendiente(e);
+    else {
+      limpiar();
+      alRestaurar(e);
+    }
   };
+  const comparacion = pendiente && actual ? compararAvance(pendiente, actual) : null;
   return (
     <View style={{ gap: Spacing.s }}>
       <TextInput
@@ -102,19 +133,42 @@ export function RestaurarRespaldo({ alRestaurar, confirmar }: { alRestaurar: (e:
         style={campo}
       />
       {error ? <Pequeno tono="alerta">{error}</Pequeno> : null}
-      {pendiente ? (
+      {pendiente && comparacion ? (
         <>
-          <Pequeno tono="alerta">
-            Se reemplazarán tus respuestas, preferencias y avances actuales por los del código
-            {pendiente.perfil ? ` (${pendiente.perfil.nombre || 'sin nombre'}, programa iniciado el ${fechaCorta(pendiente.perfil.inicio)})` : ''}. No se puede
-            deshacer.
-          </Pequeno>
-          <Boton titulo="Sí, restaurar" variante="peligro" onPress={() => alRestaurar(pendiente)} />
+          <Pequeno tono={comparacion.pierde ? 'alerta' : 'normal'}>{comparacion.texto}</Pequeno>
+          <Boton
+            titulo={comparacion.pierde ? 'Sí, reemplazar mi avance' : 'Sí, restaurar'}
+            variante="peligro"
+            onPress={() => {
+              limpiar();
+              alRestaurar(pendiente);
+            }}
+          />
           <Boton titulo="Cancelar" variante="secundario" onPress={() => setPendiente(null)} />
         </>
       ) : (
-        <Boton titulo="Restaurar" variante="secundario" icono="cloud-download-outline" deshabilitado={texto.trim().length === 0} onPress={revisar} />
+        <Boton titulo="Restaurar" variante="secundario" icono="key-outline" deshabilitado={texto.trim().length === 0} onPress={revisar} />
       )}
     </View>
   );
+}
+
+const describir = (r: ReturnType<typeof resumenAvance>) =>
+  `${r.sesiones} ${r.sesiones === 1 ? 'sesión' : 'sesiones'}, ${r.clases} ${r.clases === 1 ? 'clase' : 'clases'} y ${r.caminatas} ${r.caminatas === 1 ? 'día' : 'días'} de caminata${r.ultima ? ` (última sesión o clase el ${fechaCorta(r.ultima)})` : ''}`;
+
+/** Texto de confirmación que deja ver si el código es más antiguo que lo que hay en el dispositivo. */
+export function compararAvance(codigo: EstadoApp, actual: EstadoApp): { texto: string; pierde: boolean } {
+  const c = resumenAvance(codigo);
+  const a = resumenAvance(actual);
+  const creado = fechaCorta(codigo.respaldo.ultimo);
+  const pierde = c.sesiones < a.sesiones || c.clases < a.clases || c.caminatas < a.caminatas || (a.ultima !== null && (c.ultima === null || c.ultima < a.ultima));
+  const nombre = codigo.perfil?.nombre || 'sin nombre';
+  const inicio = codigo.perfil ? fechaCorta(codigo.perfil.inicio) : null;
+  const texto =
+    `El código${creado ? `, creado el ${creado},` : ''} es de ${nombre}${inicio ? `, programa iniciado el ${inicio}` : ''}, y tiene ${describir(c)}. ` +
+    `En este dispositivo llevas ${describir(a)}. ` +
+    (pierde
+      ? 'El código tiene menos avance que este dispositivo: si restauras, se pierde lo que hiciste después de crearlo. No se puede deshacer.'
+      : 'Si restauras, se reemplaza todo lo que hay en este dispositivo. No se puede deshacer.');
+  return { texto, pierde };
 }

@@ -20,6 +20,8 @@ const estado = (): EstadoApp => {
       confirmaAlimentacion: false,
       cocina: { ...COCINA_INICIAL, exclusiones: ['lacteos', 'cilantro'], personas: 3 },
       ejercicio: { ...EJERCICIO_INICIAL, programa: 'fuerza_casa', materiales: ['banda', 'pesas'] },
+      pauta: { origen: 'profesional', titulo: 'Pauta de mi nutricionista', comidas: [{ nombre: 'Desayuno', detalle: 'Avena con fruta' }], notas: '', enlace: '' },
+      rutina: null,
     },
     clasesVistas: { c01: '2026-09-16', c02: '2026-09-23' },
     sesionesHechas: { '1-A': '2026-09-16', '2-B': '2026-09-25' },

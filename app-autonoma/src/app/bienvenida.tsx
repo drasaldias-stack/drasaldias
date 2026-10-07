@@ -85,6 +85,8 @@ export default function Bienvenida() {
       confirmaAlimentacion: false,
       cocina,
       ejercicio,
+      pauta: null,
+      rutina: null,
     });
     router.replace('/');
   };

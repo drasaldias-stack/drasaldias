@@ -14,7 +14,7 @@ export default function Compras() {
   const [confirmar, setConfirmar] = useState(false);
   if (!estado.perfil) return <Redirect href="/bienvenida" />;
   const perfil = estado.perfil;
-  if (!accesoMenu(perfil) || !menuActual?.ok) {
+  if (!accesoMenu(perfil) || perfil.cocina.fuente === 'propia' || !menuActual?.ok) {
     return (
       <Pantalla conBarra={false}>
         <Texto>No hay un menú activo para armar la lista de compras.</Texto>

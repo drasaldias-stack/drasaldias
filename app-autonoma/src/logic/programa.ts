@@ -32,9 +32,12 @@ export function sesionesDeSemana(programa: Programa, semana: number): Sesion[] {
   return bloque.sesiones;
 }
 
-export function metaCaminata(programa: Programa, semana: number) {
+export type MetaCaminata = Programa['caminata'][number];
+
+/** Meta de caminata vigente; null si el programa (una rutina propia) no define ninguna. */
+export function metaCaminata(programa: Programa, semana: number): MetaCaminata | null {
   const s = semanaVigente(semana);
-  return [...programa.caminata].reverse().find((c) => s >= c.semanaDesde) ?? programa.caminata[0];
+  return [...programa.caminata].reverse().find((c) => s >= c.semanaDesde) ?? programa.caminata[0] ?? null;
 }
 
 /** Usa la alternativa si falta algún material. Evita ciclos. */
@@ -50,5 +53,8 @@ export function resolverEjercicio(id: string, materiales: Material[], catalogo: 
 }
 
 export const vueltasPorMinutos = (minutos: 10 | 20 | 30) => (minutos === 10 ? 1 : minutos === 20 ? 2 : 3);
+
+/** Vueltas de una sesión: las fijas de una rutina propia o las que salen de los minutos elegidos. */
+export const vueltasDeSesion = (sesion: Sesion, minutos: 10 | 20 | 30) => sesion.vueltas ?? vueltasPorMinutos(minutos);
 
 export const claveSesion = (semana: number, sesionId: string) => `${semanaVigente(semana)}-${sesionId}`;

@@ -27,11 +27,12 @@ export default function Hoy() {
   const clase = claseSugerida(estado, semana);
   const ejercicioOk = accesoEjercicio(perfil);
   const menuOk = accesoMenu(perfil);
+  const pautaPropia = perfil.cocina.fuente === 'propia';
   const claseAntes = semana === 1 && clase && !clase.vista;
   const avisoRespaldo = textoAvisoRespaldo(estado.respaldo.ultimo, hoyISO());
 
   let comprasTexto = '';
-  if (menuOk && menuActual?.ok) {
+  if (menuOk && !pautaPropia && menuActual?.ok) {
     const lista = listaCompras(menuActual.menu, COMPONENTES, perfil.cocina.personas);
     const items = lista.categorias.flatMap((c) => c.items);
     const marcados = items.filter((i) => estado.compras[`${semana}|${i.clave}`]).length;
@@ -118,6 +119,7 @@ export default function Hoy() {
             ) : (
               <Texto>Hiciste las tres sesiones de esta semana. La próxima semana sigue la progresión.</Texto>
             )}
+            {caminata ? (
             <View style={{ gap: Spacing.s, marginTop: Spacing.s }}>
               <Fila style={{ justifyContent: 'space-between' }}>
                 <Fila>
@@ -141,6 +143,7 @@ export default function Hoy() {
                 {caminata.texto}
               </Pequeno>
             </View>
+            ) : null}
           </>
         ) : (
           bloqueo('ejercicio', 'Las clases y los menús sí.')
@@ -150,9 +153,24 @@ export default function Hoy() {
       {!claseAntes ? tarjetaClase : null}
 
       <Tarjeta>
-        <Etiqueta>Menú de la semana</Etiqueta>
+        <Etiqueta>{pautaPropia ? 'Tu pauta' : 'Menú de la semana'}</Etiqueta>
         {!menuOk ? (
           bloqueo('alimentacion', 'Te recomendamos la orientación de un profesional.')
+        ) : pautaPropia ? (
+          perfil.pauta ? (
+            <>
+              <Subtitulo>{perfil.pauta.titulo}</Subtitulo>
+              <Pequeno>
+                {perfil.pauta.comidas.length} {perfil.pauta.comidas.length === 1 ? 'comida' : 'comidas'} · {perfil.pauta.origen === 'profesional' ? 'entregada por un profesional' : 'armada por ti'}
+              </Pequeno>
+              <Boton titulo="Ver mi pauta" onPress={() => router.push('/menu')} />
+            </>
+          ) : (
+            <>
+              <Texto>Elegiste usar tu propia pauta, pero todavía no la has cargado.</Texto>
+              <Boton titulo="Cargar mi pauta" onPress={() => router.push('/menu')} />
+            </>
+          )
         ) : menuActual?.ok ? (
           <>
             <Subtitulo>Una sesión de cocina de unos {menuActual.menu.minutos} minutos</Subtitulo>

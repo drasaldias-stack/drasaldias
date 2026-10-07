@@ -9,9 +9,11 @@ Aplicación web (Expo SDK 57, React Native para web, Expo Router) para personas 
 - **Ejercicio.** Tres programas de 12 semanas (Desde cero, Fuerza en casa, Bajo impacto), en cuatro bloques de 3 semanas con tres sesiones cada uno. Las sesiones de 10, 20 o 30 minutos cambian el número de vueltas. Si falta un material, el ejercicio se reemplaza por su alternativa. La pantalla de sesión mantiene el teléfono encendido (en web con la API Screen Wake Lock cuando el navegador la ofrece; en iOS y Android con `expo-keep-awake`), tiene cronómetro para los ejercicios por segundos, marca por ejercicio y por vuelta, y una meta de caminata semanal que progresa.
 - **Menú por componentes (cocina por tandas).** Arma una sesión de cocina semanal que rinde 5 almuerzos o cenas y 5 desayunos, filtrando por tiempo (60, 90 o 120 min), equipamiento, patrón (omnívoro o vegetariano), exclusiones y número de personas. Reparte los días según cuánto dura cada preparación en el refrigerador, contados desde el día en que se cocina, e indica qué congelar. Permite cambiar una receta o pedir otra combinación.
 - **Lista de compras** agregada, redondeada hacia arriba, por categoría y con casillas.
+- **Pauta propia.** En Menú la persona puede cambiar del menú de Ruta 90 a su propia pauta: la que le entregó su nutricionista o una armada por ella. Se escribe por comidas (nombre y detalle), con indicaciones generales y un enlace opcional al documento original. La app la muestra tal como se escribe, no la revisa ni la corrige, y lo dice en pantalla; mientras está activa, Hoy resume la pauta y la lista de compras no aplica.
+- **Rutina propia.** En Perfil (o en la pestaña Ejercicio) se puede elegir «Mi propia rutina» en vez de un programa: hasta tres sesiones por semana con ejercicios escritos por la persona (nombre, repeticiones o segundos, vueltas) y una meta de caminata opcional. La sesión usa la misma pantalla que los programas (cronómetro para los segundos, marcas por ejercicio y por vuelta, señales para detenerse), sin instrucciones ni alternativas por material porque la app no conoce esos ejercicios.
 - **Código de respaldo.** Desde Perfil se genera un texto que contiene todo el estado (respuestas, preferencias y avance hasta ese día) y se puede pegar en otro navegador o teléfono, desde la pantalla de inicio o desde Perfil. El código no se actualiza solo: la app pide crear uno nuevo cada cierto tiempo (Hoy lo recuerda hasta el primer código y cuando el último tiene más de dos semanas) y, al restaurar encima de un avance existente, muestra cuánto avance tiene cada uno antes de confirmar. Sin cuentas, es la única forma de mover el avance.
 
-La app no genera recetas con inteligencia artificial: solo combina contenido revisado.
+La app no genera recetas con inteligencia artificial: solo combina contenido revisado. La pauta y la rutina propias están sujetas al mismo filtro de seguridad que los menús y los programas: si los menús o el ejercicio están desactivados o pendientes de confirmación, tampoco se puede cargar una pauta o una rutina. Es una decisión conservadora que la médica puede revisar (por ejemplo, permitir la pauta de un profesional durante el embarazo); cambiarla exige distinguir el motivo del bloqueo, que hoy no se guarda por separado.
 
 ## Estructura
 
@@ -27,9 +29,9 @@ src/
     +not-found.tsx     Ruta desconocida
   constants/           Paleta y direcciones legales (URL_PRIVACIDAD, URL_CONDICIONES)
   content/             CONTENIDO EDITABLE: recetas, ejercicios y programas, clases
-  logic/               Lógica pura y probada: seguridad, menú, compras, programa, estado guardado, código de respaldo
+  logic/               Lógica pura y probada: seguridad, menú, compras, programa, pauta y rutina propias, estado guardado, código de respaldo
   state/               Estado guardado en el dispositivo (AsyncStorage) y acciones
-  ui/                  Componentes visuales
+  ui/                  Componentes visuales (kit, editores de preferencias, campos de texto, pauta y rutina propias, respaldo)
 public/                Se copia tal cual a la exportación web: cáscara HTML, manifiesto, íconos y reglas de redirección
 ```
 
@@ -38,7 +40,7 @@ public/                Se copia tal cual a la exportación web: cáscara HTML, m
 Todo el contenido está en `src/content/` y está marcado como **contenido de ejemplo**: el equipo clínico debe revisarlo antes de publicar. Las cantidades, los días de refrigeración, las temperaturas de cocción y las afirmaciones de las clases fueron revisadas una vez en esta base, pero la aprobación final es de la médica.
 
 - `componentes.ts`: cada receta tiene su función en el plato (`rol`), patrones, equipos, exclusiones (`contiene`, que es lo único que mira el filtro), minutos de trabajo y totales, días que dura refrigerada, si se puede congelar, porciones e ingredientes por persona.
-- `ejercicios.ts`: ejercicios (con su alternativa si falta material), los tres programas, la progresión de caminata y los textos de seguridad de la sesión.
+- `ejercicios.ts`: ejercicios (con su alternativa si falta material), los tres programas, la progresión de caminata y los textos de seguridad de la sesión. Los avisos de la pauta y la rutina propias (`AVISO_PAUTA`, `AVISO_RUTINA`) están en `src/ui/propio.tsx` y también deben validarse clínicamente.
 - `clases.ts`: guiones de las 12 clases. Para agregar un video, completa `videoUrl` con la dirección del archivo alojado (por ejemplo en Cloudflare Stream, Mux, Bunny o Vimeo). Al reproducir un video alojado, el dispositivo se conecta a ese proveedor, que recibe la dirección IP y qué video se pidió: hay que incluirlo en la política de privacidad y desactivar la analítica de espectadores si el proveedor la ofrece.
 
 Después de editar, corre las pruebas: comprueban que todas las combinaciones de filtros sigan armando un menú válido, que ningún ingrediente use dos unidades distintas y que ninguna sesión repita un ejercicio con cualquier combinación de materiales.

@@ -1,6 +1,7 @@
 import { COMPONENTES } from '../content/componentes';
 import { PROGRAMAS } from '../content/ejercicios';
 import { menuVigente, type Menu } from './menu';
+import { normalizarPauta, normalizarRutina } from './propio';
 import {
   EQUIPOS,
   EXCLUSIONES,
@@ -11,9 +12,11 @@ import {
   type EstadoAcceso,
   type MotivoAlimentacion,
   type MotivoEjercicio,
+  type PautaPropia,
   type PreferenciasCocina,
   type PreferenciasEjercicio,
   type ResultadoSeguridad,
+  type RutinaPropia,
 } from './tipos';
 
 // Forma del estado que se guarda en el dispositivo y su validación al cargarlo.
@@ -27,6 +30,10 @@ export type Perfil = {
   confirmaAlimentacion: boolean;
   cocina: PreferenciasCocina;
   ejercicio: PreferenciasEjercicio;
+  /** Pauta de alimentación cargada por la persona (propia o de su profesional); se usa cuando cocina.fuente es 'propia'. */
+  pauta: PautaPropia | null;
+  /** Rutina de ejercicio cargada por la persona; se usa cuando ejercicio.programa es 'propio'. */
+  rutina: RutinaPropia | null;
 };
 
 export type EstadoApp = {
@@ -45,7 +52,7 @@ export type EstadoApp = {
 
 export const VACIO: EstadoApp = { version: 1, perfil: null, clasesVistas: {}, sesionesHechas: {}, caminatas: {}, menu: null, compras: {}, respaldo: { ultimo: null } };
 
-export const COCINA_INICIAL: PreferenciasCocina = { personas: 1, minutos: 90, equipos: ['horno', 'microondas'], patron: 'omnivoro', exclusiones: [] };
+export const COCINA_INICIAL: PreferenciasCocina = { fuente: 'app', personas: 1, minutos: 90, equipos: ['horno', 'microondas'], patron: 'omnivoro', exclusiones: [] };
 export const EJERCICIO_INICIAL: PreferenciasEjercicio = { programa: 'desde_cero', minutos: 20, materiales: ['silla'] };
 
 const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -74,6 +81,7 @@ const MOTIVOS_ALIMENTACION: readonly MotivoAlimentacion[] = ['insulina'];
 export function normalizarCocina(c: unknown): PreferenciasCocina {
   const o = esObjeto(c) ? c : {};
   return {
+    fuente: uno(o.fuente, ['app', 'propia'] as const, COCINA_INICIAL.fuente),
     personas: uno(o.personas, PERSONAS, COCINA_INICIAL.personas),
     minutos: uno(o.minutos, MINUTOS_COCINA, COCINA_INICIAL.minutos),
     equipos: varios(o.equipos, EQUIPOS, COCINA_INICIAL.equipos),
@@ -85,7 +93,7 @@ export function normalizarCocina(c: unknown): PreferenciasCocina {
 export function normalizarEjercicio(e: unknown): PreferenciasEjercicio {
   const o = esObjeto(e) ? e : {};
   return {
-    programa: uno(o.programa, Object.keys(PROGRAMAS) as PreferenciasEjercicio['programa'][], EJERCICIO_INICIAL.programa),
+    programa: uno(o.programa, [...Object.keys(PROGRAMAS), 'propio'] as PreferenciasEjercicio['programa'][], EJERCICIO_INICIAL.programa),
     minutos: uno(o.minutos, MINUTOS_EJERCICIO, EJERCICIO_INICIAL.minutos),
     materiales: varios(o.materiales, MATERIALES, EJERCICIO_INICIAL.materiales),
   };
@@ -121,6 +129,8 @@ export function normalizar(crudo: unknown): EstadoApp {
       confirmaAlimentacion: p.confirmaAlimentacion === true,
       cocina: normalizarCocina(p.cocina),
       ejercicio: normalizarEjercicio(p.ejercicio),
+      pauta: normalizarPauta(p.pauta),
+      rutina: normalizarRutina(p.rutina),
     };
   }
   const m = crudo.menu;

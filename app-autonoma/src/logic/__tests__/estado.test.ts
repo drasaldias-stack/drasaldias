@@ -28,6 +28,9 @@ const estadoValido = (): EstadoApp => ({
     confirmaAlimentacion: false,
     cocina: { ...COCINA_INICIAL, exclusiones: ['gluten'], personas: 2 },
     ejercicio: { ...EJERCICIO_INICIAL, programa: 'bajo_impacto', materiales: ['banda', 'silla'] },
+
+    pauta: null,
+    rutina: null,
   },
   clasesVistas: { c01: '2026-09-02' },
   sesionesHechas: { '1-A': '2026-09-03' },

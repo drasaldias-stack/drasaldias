@@ -1,6 +1,6 @@
 import { CLASES } from '@/content/clases';
-import { PROGRAMAS } from '@/content/ejercicios';
 import { claveSesion, metaCaminata, semanaVigente, sesionesDeSemana, SEMANAS_PROGRAMA } from '@/logic/programa';
+import { programaActivo } from '@/logic/propio';
 import { seccionDisponible } from '@/logic/seguridad';
 import type { EstadoApp, Perfil } from '@/state/app-state';
 
@@ -11,7 +11,7 @@ export const programaTerminado = (semana: number) => semana > SEMANAS_PROGRAMA;
 
 export function resumenSemana(estado: EstadoApp, semana: number) {
   const perfil = estado.perfil!;
-  const programa = PROGRAMAS[perfil.ejercicio.programa];
+  const programa = programaActivo(perfil);
   const sesiones = sesionesDeSemana(programa, semana).map((s) => ({ sesion: s, hecha: Boolean(estado.sesionesHechas[claveSesion(semana, s.id)]) }));
   const caminata = metaCaminata(programa, semana);
   const diasCaminata = estado.caminatas[String(semanaVigente(semana))] ?? 0;

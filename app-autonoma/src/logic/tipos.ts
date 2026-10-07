@@ -83,14 +83,20 @@ export type Ejercicio = {
 
 export type ItemSesion = { ejercicio: string; cantidad: number; unidad: 'reps' | 'seg' };
 
-export type Sesion = { id: string; nombre: string; items: ItemSesion[] };
+export type Sesion = {
+  id: string;
+  nombre: string;
+  items: ItemSesion[];
+  /** Solo en rutinas propias: vueltas fijas. En los programas de la app las vueltas salen de los minutos elegidos. */
+  vueltas?: number;
+};
 
 export type Bloque = { semanas: [number, number]; sesiones: Sesion[] };
 
 export type ProgramaId = 'desde_cero' | 'fuerza_casa' | 'bajo_impacto';
 
 export type Programa = {
-  id: ProgramaId;
+  id: ProgramaId | 'propio';
   nombre: string;
   paraQuien: string;
   bloques: Bloque[];
@@ -146,7 +152,11 @@ export const EXCLUSIONES = claves<Exclusion>({
 });
 export const MATERIALES = claves<Material>({ silla: true, banda: true, pesas: true, colchoneta: true });
 
+export type FuenteMenu = 'app' | 'propia';
+
 export type PreferenciasCocina = {
+  /** Qué se muestra en Menú: el menú armado por la app o la pauta propia. */
+  fuente: FuenteMenu;
   personas: number;
   minutos: (typeof MINUTOS_COCINA)[number];
   equipos: Equipo[];
@@ -155,7 +165,32 @@ export type PreferenciasCocina = {
 };
 
 export type PreferenciasEjercicio = {
-  programa: ProgramaId;
+  /** Un programa de la app o 'propio' para usar la rutina cargada por la persona. */
+  programa: ProgramaId | 'propio';
   minutos: (typeof MINUTOS_EJERCICIO)[number];
   materiales: Material[];
+};
+
+// ---------- Pauta y rutina propias ----------
+// La app las muestra tal como la persona las escribe: no las revisa ni las corrige.
+
+export type OrigenPauta = 'profesional' | 'propia';
+export type ComidaPauta = { nombre: string; detalle: string };
+export type PautaPropia = {
+  origen: OrigenPauta;
+  titulo: string;
+  comidas: ComidaPauta[];
+  notas: string;
+  /** Dirección del documento original (PDF o foto guardados en la nube), opcional. */
+  enlace: string;
+};
+
+export type IdSesionRutina = 'A' | 'B' | 'C';
+export type ItemRutina = { nombre: string; cantidad: number; unidad: 'reps' | 'seg' };
+export type SesionRutina = { id: IdSesionRutina; nombre: string; vueltas: number; items: ItemRutina[] };
+export type RutinaPropia = {
+  nombre: string;
+  sesiones: SesionRutina[];
+  caminata: { minutosDia: number; dias: number } | null;
+  notas: string;
 };

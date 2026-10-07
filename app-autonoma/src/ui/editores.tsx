@@ -80,18 +80,24 @@ export function EditorCocina({ valor, onCambio }: { valor: PreferenciasCocina; o
 }
 
 export function EditorEjercicio({ valor, onCambio }: { valor: PreferenciasEjercicio; onCambio: (v: PreferenciasEjercicio) => void }) {
-  const programa = PROGRAMAS[valor.programa];
+  const propio = valor.programa === 'propio';
+  const programa = valor.programa === 'propio' ? null : PROGRAMAS[valor.programa];
   return (
     <View style={{ gap: Spacing.xl }}>
       <View style={{ gap: Spacing.s }}>
-        <Opciones<ProgramaId>
+        <Opciones<ProgramaId | 'propio'>
           etiqueta="Elige tu programa de ejercicio"
-          opciones={(Object.keys(PROGRAMAS) as ProgramaId[]).map((k) => ({ valor: k, texto: PROGRAMAS[k].nombre }))}
+          opciones={[...(Object.keys(PROGRAMAS) as ProgramaId[]).map((k) => ({ valor: k, texto: PROGRAMAS[k].nombre })), { valor: 'propio' as const, texto: 'Mi propia rutina' }]}
           valor={valor.programa}
-          onCambio={(v) => onCambio({ ...valor, programa: v as ProgramaId })}
+          onCambio={(v) => onCambio({ ...valor, programa: v as ProgramaId | 'propio' })}
         />
-        <Pequeno>{programa.paraQuien}</Pequeno>
+        <Pequeno>
+          {programa
+            ? programa.paraQuien
+            : 'Tus propias sesiones, escritas por ti o indicadas por tu kinesiólogo o entrenador. Se cargan y se editan en la pestaña Ejercicio; la app las muestra tal como las escribes.'}
+        </Pequeno>
       </View>
+      {propio ? null : (
       <Opciones<10 | 20 | 30>
         etiqueta="¿Cuánto dura cada sesión?"
         ayuda="Tres sesiones por semana. Puedes cambiarlo cuando quieras."
@@ -99,6 +105,8 @@ export function EditorEjercicio({ valor, onCambio }: { valor: PreferenciasEjerci
         valor={valor.minutos}
         onCambio={(v) => onCambio({ ...valor, minutos: v as 10 | 20 | 30 })}
       />
+      )}
+      {propio ? null : (
       <Opciones<Material>
         etiqueta="¿Qué tienes para entrenar?"
         ayuda="Si te falta algo, la app cambia el ejercicio por otro que no lo necesite."
@@ -107,6 +115,7 @@ export function EditorEjercicio({ valor, onCambio }: { valor: PreferenciasEjerci
         valor={valor.materiales}
         onCambio={(v) => onCambio({ ...valor, materiales: v as Material[] })}
       />
+      )}
     </View>
   );
 }

@@ -7,11 +7,14 @@ import { Spacing } from '@/constants/theme';
 import { COMPONENTES, componentePorId } from '@/content/componentes';
 import { usePaleta } from '@/hooks/use-paleta';
 import { cambiarComponente, diasDelMenu, MINUTOS_ORGANIZACION, ordenSesion } from '@/logic/menu';
-import type { Rol } from '@/logic/tipos';
+import { PAUTA_PLANTILLA } from '@/logic/propio';
+import { textosConfirmacion } from '@/logic/seguridad';
+import type { FuenteMenu, Rol } from '@/logic/tipos';
 import { useApp } from '@/state/app-state';
 import { accesoMenu } from '@/state/derivados';
 import { EditorCocina, TEXTO_EQUIPO, TEXTO_EXCLUSION } from '@/ui/editores';
-import { Aviso, Boton, Chip, Etiqueta, Fila, Pantalla, Pequeno, Separador, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { Aviso, Boton, Chip, Etiqueta, Fila, Opciones, Pantalla, Pequeno, Separador, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { AVISO_PAUTA, EditorPauta, textoOrigen, VistaPauta } from '@/ui/propio';
 
 const NOMBRE_ROL: Record<Rol, string> = {
   proteina: 'Proteína',
@@ -23,11 +26,12 @@ const NOMBRE_ROL: Record<Rol, string> = {
 const DIAS = ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5'];
 
 export default function MenuSemana() {
-  const { estado, menuActual, actualizarCocina, nuevaCombinacion, reemplazarMenu } = useApp();
+  const { estado, menuActual, actualizarCocina, actualizarPerfil, nuevaCombinacion, reemplazarMenu } = useApp();
   const p = usePaleta();
   const perfil = estado.perfil!;
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [sinAlternativa, setSinAlternativa] = useState<string | null>(null);
+  const [editandoPauta, setEditandoPauta] = useState(false);
   const prefs = perfil.cocina;
 
   if (!accesoMenu(perfil)) {
@@ -38,9 +42,52 @@ export default function MenuSemana() {
           <Texto>
             {perfil.seguridad.alimentacion === 'bloqueado'
               ? 'Por tus respuestas iniciales, los menús no están disponibles en esta app. Te recomendamos la orientación de un profesional.'
-              : 'Antes de usar los menús, habla con tu médico por los medicamentos que usas. Cuando lo hayas hecho, confírmalo en Perfil.'}
+              : `Falta un paso: cuando ${textosConfirmacion(perfil.seguridad, 'alimentacion').pendiente}, márcalo en Perfil y esta sección se activa.`}
           </Texto>
         </Aviso>
+      </Pantalla>
+    );
+  }
+
+  const selectorFuente = (
+    <Tarjeta>
+      <Opciones<FuenteMenu>
+        etiqueta="¿Qué quieres usar?"
+        ayuda="El menú de Ruta 90 se arma con tus filtros. Tu pauta es la que te entregó tu nutricionista o la que armaste tú."
+        opciones={[{ valor: 'app', texto: 'Menú de Ruta 90' }, { valor: 'propia', texto: 'Mi pauta' }]}
+        valor={prefs.fuente}
+        onCambio={(v) => actualizarCocina({ ...prefs, fuente: v as FuenteMenu })}
+      />
+    </Tarjeta>
+  );
+
+  if (prefs.fuente === 'propia') {
+    const pauta = perfil.pauta;
+    return (
+      <Pantalla>
+        <View style={{ gap: Spacing.s }}>
+          <Etiqueta>{pauta ? textoOrigen(pauta) : 'Alimentación'}</Etiqueta>
+          <Titulo>{pauta ? pauta.titulo : 'Mi pauta'}</Titulo>
+        </View>
+        {selectorFuente}
+        <Aviso tipo="info">
+          <Pequeno tono="normal">{AVISO_PAUTA}</Pequeno>
+        </Aviso>
+        {!pauta || editandoPauta ? (
+          <EditorPauta
+            inicial={pauta ?? PAUTA_PLANTILLA}
+            onGuardar={(nueva) => {
+              actualizarPerfil({ pauta: nueva });
+              setEditandoPauta(false);
+            }}
+            onCancelar={pauta ? () => setEditandoPauta(false) : undefined}
+          />
+        ) : (
+          <>
+            <VistaPauta pauta={pauta} />
+            <Boton titulo="Editar mi pauta" variante="secundario" icono="create-outline" onPress={() => setEditandoPauta(true)} />
+          </>
+        )}
       </Pantalla>
     );
   }
@@ -70,6 +117,8 @@ export default function MenuSemana() {
         <Etiqueta>Cocina una vez, come 5 días</Etiqueta>
         <Titulo>Menú de la semana</Titulo>
       </View>
+
+      {selectorFuente}
 
       <Tarjeta>
         <Pressable

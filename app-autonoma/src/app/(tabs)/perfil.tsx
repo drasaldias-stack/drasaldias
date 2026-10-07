@@ -8,10 +8,11 @@ import { usePaleta } from '@/hooks/use-paleta';
 import { textosConfirmacion } from '@/logic/seguridad';
 import { useApp } from '@/state/app-state';
 import { EditorCocina, EditorEjercicio } from '@/ui/editores';
-import { Aviso, Boton, Etiqueta, FilaCheck, Pantalla, Pequeno, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { Aviso, Boton, Etiqueta, FilaCheck, Pantalla, Pequeno, Separador, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { CrearRespaldo, RestaurarRespaldo } from '@/ui/respaldo';
 
 export default function Perfil() {
-  const { estado, semana, actualizarPerfil, actualizarCocina, reiniciarPrograma, borrarTodo } = useApp();
+  const { estado, semana, actualizarPerfil, actualizarCocina, reiniciarPrograma, borrarTodo, restaurarEstado } = useApp();
   const p = usePaleta();
   const perfil = estado.perfil!;
   const [confirmarReinicio, setConfirmarReinicio] = useState(false);
@@ -85,6 +86,23 @@ export default function Perfil() {
       ) : null}
 
       <Tarjeta>
+        <Subtitulo>Copia de respaldo</Subtitulo>
+        <Texto>
+          Tu avance se guarda solo en este navegador o teléfono. Con un código de respaldo puedes recuperarlo en otro dispositivo, o si se borran los datos del navegador.
+        </Texto>
+        <CrearRespaldo estado={estado} />
+        <Separador />
+        <Subtitulo>Restaurar desde un código</Subtitulo>
+        <RestaurarRespaldo
+          confirmar
+          alRestaurar={(e) => {
+            restaurarEstado(e);
+            router.replace('/');
+          }}
+        />
+      </Tarjeta>
+
+      <Tarjeta>
         <Subtitulo>Tu programa</Subtitulo>
         <Texto>Reiniciar vuelve a la semana 1 y borra las sesiones, clases y caminatas marcadas. Tus preferencias se mantienen. No se puede deshacer.</Texto>
         {confirmarReinicio ? (
@@ -100,7 +118,7 @@ export default function Perfil() {
       <Tarjeta>
         <Subtitulo>Privacidad</Subtitulo>
         <Texto>
-          Tus respuestas, preferencias y avances se guardan solo en este dispositivo. La app no tiene cuentas ni envía esos datos a ningún servidor; por eso tampoco se recuperan si cambias de teléfono.
+          Tus respuestas, preferencias y avances se guardan solo en este dispositivo. La app no tiene cuentas ni envía esos datos a ningún servidor; por eso no se recuperan si cambias de teléfono o de navegador, salvo que uses un código de respaldo.
         </Texto>
         {urlPrivacidad ? <Boton titulo="Política de privacidad" variante="secundario" onPress={abrir(urlPrivacidad)} /> : null}
         {urlCondiciones ? <Boton titulo="Condiciones de uso" variante="secundario" onPress={abrir(urlCondiciones)} /> : null}

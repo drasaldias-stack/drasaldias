@@ -35,7 +35,10 @@
     "web": {
       "output": "single",
       "favicon": "./assets/images/favicon.png",
-      "lang": "es"
+      "lang": "es",
+      "themeColor": "#0D5C63",
+      "backgroundColor": "#0D5C63",
+      "description": "Clases, ejercicio en casa y menús para cocinar una vez a la semana, para personas que están empezando."
     },
     "plugins": [
       "expo-router",

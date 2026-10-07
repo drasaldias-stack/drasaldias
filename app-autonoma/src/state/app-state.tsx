@@ -33,6 +33,8 @@ type Acciones = {
   limpiarCompras: (semana: number) => void;
   reiniciarPrograma: () => void;
   borrarTodo: () => void;
+  /** Reemplaza todo el estado por uno restaurado desde un código de respaldo (ya validado). */
+  restaurarEstado: (e: EstadoApp) => void;
 };
 
 type Contexto = { estado: EstadoApp; listo: boolean; semana: number; menuActual: ResultadoMenu | null } & Acciones;
@@ -189,15 +191,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [],
   );
   const borrarTodo = useCallback(() => setEstado(VACIO), []);
+  const restaurarEstado = useCallback((e: EstadoApp) => setEstado(e), []);
 
   const valor = useMemo<Contexto>(
     () => ({
       estado, listo, semana, menuActual,
       guardarPerfil, actualizarPerfil, actualizarCocina, alternarClase, alternarSesion, cambiarCaminata,
-      nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo,
+      nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo, restaurarEstado,
     }),
     [estado, listo, semana, menuActual, guardarPerfil, actualizarPerfil, actualizarCocina, alternarClase, alternarSesion,
-      cambiarCaminata, nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo],
+      cambiarCaminata, nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo, restaurarEstado],
   );
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;

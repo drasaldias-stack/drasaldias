@@ -10,8 +10,9 @@ import type { PreferenciasCocina, PreferenciasEjercicio, RespuestasSeguridad, Re
 import { COCINA_INICIAL, EJERCICIO_INICIAL, useApp } from '@/state/app-state';
 import { EditorCocina, EditorEjercicio } from '@/ui/editores';
 import { Aviso, Boton, Cinta, Etiqueta, Pantalla, Pequeno, SiNo, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { RestaurarRespaldo } from '@/ui/respaldo';
 
-type Paso = 'inicio' | 'seguridad' | 'resultado' | 'cocina' | 'ejercicio';
+type Paso = 'inicio' | 'restaurar' | 'seguridad' | 'resultado' | 'cocina' | 'ejercicio';
 
 const mismoConjunto = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
@@ -37,7 +38,7 @@ export const PREGUNTAS: { clave: keyof RespuestasSeguridad; texto: string }[] = 
 ];
 
 export default function Bienvenida() {
-  const { estado, guardarPerfil, actualizarPerfil, borrarTodo } = useApp();
+  const { estado, guardarPerfil, actualizarPerfil, borrarTodo, restaurarEstado } = useApp();
   const p = usePaleta();
   const { modo } = useLocalSearchParams<{ modo?: string }>();
   const perfilActual = estado.perfil;
@@ -130,6 +131,25 @@ export default function Bienvenida() {
           </Pequeno>
         </Aviso>
         <Boton titulo="Empezar" onPress={() => setPaso('seguridad')} />
+        <Boton titulo="Tengo un código de respaldo" variante="secundario" icono="cloud-download-outline" onPress={() => setPaso('restaurar')} />
+      </Pantalla>
+    );
+  }
+
+  if (paso === 'restaurar') {
+    return (
+      <Pantalla key={paso}>
+        <Etiqueta>Código de respaldo</Etiqueta>
+        <Titulo>Recupera tu avance</Titulo>
+        <Texto tono="suave">Pega el código de respaldo que creaste en Perfil en tu otro navegador o teléfono. Se restauran tus respuestas, tus preferencias y tu avance.</Texto>
+        <RestaurarRespaldo
+          alRestaurar={(e) => {
+            recienGuardado.current = true;
+            restaurarEstado(e);
+            router.replace('/');
+          }}
+        />
+        <Boton titulo="Volver" variante="secundario" onPress={() => setPaso('inicio')} />
       </Pantalla>
     );
   }

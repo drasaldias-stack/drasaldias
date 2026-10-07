@@ -173,6 +173,7 @@ export default function Hoy() {
         )}
       </Tarjeta>
 
+      <Pequeno>Tu avance se guarda solo en este navegador o teléfono. En Perfil puedes crear un código de respaldo para no perderlo.</Pequeno>
       <Pequeno>Educación general sobre alimentación y actividad física. No reemplaza la atención de un profesional de la salud.</Pequeno>
     </Pantalla>
   );

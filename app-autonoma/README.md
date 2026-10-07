@@ -1,14 +1,15 @@
 # Ruta 90 · app autónoma
 
-App para iOS y Android (Expo SDK 57, React Native, Expo Router) para personas que están empezando a moverse y a ordenar su alimentación. Funciona sin cuenta y sin servidor propio: todo se guarda en el dispositivo. El mismo código se exporta a web (`npx expo export --platform web`), así que puede publicarse primero como aplicación web y después en las tiendas.
+Aplicación web (Expo SDK 57, React Native para web, Expo Router) para personas que están empezando a moverse y a ordenar su alimentación. Funciona sin cuenta y sin servidor propio: todo se guarda en el navegador o en el teléfono, y un código de respaldo permite llevar el avance a otro dispositivo. La vía elegida es publicarla como sitio web (ver «Publicar en web»); el mismo código puede compilarse para iOS y Android si más adelante hace falta (ver el anexo).
 
 ## Qué hace
 
 - **Filtro de seguridad al inicio.** Seis preguntas basadas en el modelo de evaluación previa al ejercicio del ACSM, más embarazo o lactancia, conducta alimentaria e insulina o sulfonilureas. Según las respuestas, desactiva los menús o el ejercicio, o los deja pendientes de que la persona confirme en Perfil que tiene autorización médica. Se guarda en el dispositivo el resultado del filtro (qué secciones quedan activas, pendientes o desactivadas) junto con los avisos que explican cada restricción; esos avisos nombran la condición que la motivó, por lo que son datos de salud aunque no salgan del dispositivo. No se guardan las respuestas una a una.
 - **Clases.** Biblioteca de 12 clases; se libera una por semana. Reproduce el video con `expo-video` cuando la clase tiene `videoUrl`; mientras no lo tenga, la clase se lee (resumen y puntos principales) sin marcador de "video pendiente".
-- **Ejercicio.** Tres programas de 12 semanas (Desde cero, Fuerza en casa, Bajo impacto), en cuatro bloques de 3 semanas con tres sesiones cada uno. Las sesiones de 10, 20 o 30 minutos cambian el número de vueltas. Si falta un material, el ejercicio se reemplaza por su alternativa. La pantalla de sesión mantiene el teléfono encendido (solo en iOS y Android; en la versión web la pantalla puede apagarse), tiene cronómetro para los ejercicios por segundos, marca por ejercicio y por vuelta, y una meta de caminata semanal que progresa.
+- **Ejercicio.** Tres programas de 12 semanas (Desde cero, Fuerza en casa, Bajo impacto), en cuatro bloques de 3 semanas con tres sesiones cada uno. Las sesiones de 10, 20 o 30 minutos cambian el número de vueltas. Si falta un material, el ejercicio se reemplaza por su alternativa. La pantalla de sesión mantiene el teléfono encendido (en web con la API Screen Wake Lock cuando el navegador la ofrece; en iOS y Android con `expo-keep-awake`), tiene cronómetro para los ejercicios por segundos, marca por ejercicio y por vuelta, y una meta de caminata semanal que progresa.
 - **Menú por componentes (cocina por tandas).** Arma una sesión de cocina semanal que rinde 5 almuerzos o cenas y 5 desayunos, filtrando por tiempo (60, 90 o 120 min), equipamiento, patrón (omnívoro o vegetariano), exclusiones y número de personas. Reparte los días según cuánto dura cada preparación en el refrigerador, contados desde el día en que se cocina, e indica qué congelar. Permite cambiar una receta o pedir otra combinación.
 - **Lista de compras** agregada, redondeada hacia arriba, por categoría y con casillas.
+- **Código de respaldo.** Desde Perfil se genera un texto que contiene todo el estado (respuestas, preferencias y avance) y se puede pegar en otro navegador o teléfono, desde la pantalla de inicio o desde Perfil. Es la forma de no perder el avance sin tener cuentas.
 
 La app no genera recetas con inteligencia artificial: solo combina contenido revisado.
 
@@ -23,11 +24,13 @@ src/
     sesion/[id].tsx    Sesión de ejercicio con cronómetro
     receta/[id].tsx    Receta escalada por personas
     compras.tsx        Lista de compras
+    +not-found.tsx     Ruta desconocida
   constants/           Paleta y direcciones legales (URL_PRIVACIDAD, URL_CONDICIONES)
   content/             CONTENIDO EDITABLE: recetas, ejercicios y programas, clases
-  logic/               Lógica pura y probada: seguridad, menú, compras, programa
-  state/               Estado guardado en el dispositivo (AsyncStorage) con validación al cargar
+  logic/               Lógica pura y probada: seguridad, menú, compras, programa, estado guardado, código de respaldo
+  state/               Estado guardado en el dispositivo (AsyncStorage) y acciones
   ui/                  Componentes visuales
+public/                Se copia tal cual a la exportación web: cáscara HTML, manifiesto, íconos y reglas de redirección
 ```
 
 ## Editar el contenido
@@ -52,17 +55,38 @@ npx expo export --platform web   # versión web para revisar en el navegador o p
 
 Las dependencias directas son solo las que la app importa. `@expo/ui`, `expo-glass-effect` y `expo-symbols` siguen en `node_modules` porque `expo-router` las declara, y el enlace automático las compila en cada build nativo; si se quiere excluirlas hay que revisar la opción `exclude` de `expo.autolinking` en la documentación de Expo.
 
+## Publicar en web
+
+La vía elegida es la web: una sola dirección para iPhone, Android y computador, sin tiendas.
+
+1. `npx expo export --platform web` genera la carpeta `dist` con todo lo necesario. Lo que hay en `public/` se copia tal cual: `index.html` (la cáscara HTML, con el manifiesto y las etiquetas para agregar a la pantalla de inicio), `manifest.webmanifest`, `icons/` y `_redirects`. El idioma, el título, el color y la descripción salen de `app.json` (`web.lang`, `name`, `web.themeColor`, `web.description`).
+2. Subir el contenido de `dist` a un servicio de archivos estáticos con HTTPS, en la raíz de un dominio o subdominio. Las rutas de los archivos son absolutas (`/_expo/...`, `/icons/...`), así que no funciona dentro de una subcarpeta sin configurar la base en Expo (opción `experiments.baseUrl`, revisar en la documentación de Expo).
+3. El servicio debe devolver `index.html` para cualquier ruta (`/perfil`, `/receta/...`), porque la navegación ocurre en el navegador. El archivo `_redirects` lo configura en Netlify y en Cloudflare Pages; en otros servicios hay que crear la regla equivalente. Comprobarlo después de publicar abriendo directamente `https://tu-dominio/perfil` y recargando.
+4. Los archivos de `_expo/static/` llevan un hash en el nombre y pueden guardarse en caché por mucho tiempo; `index.html` no debe guardarse en caché (o solo por minutos), para que cada publicación se vea al recargar.
+5. Para actualizar: volver a exportar y subir `dist` completo. No hay base de datos ni migraciones; lo que cambia es el contenido y la validación del estado guardado (`src/logic/estado.ts`), que tolera estados de versiones anteriores.
+
+Agregar a la pantalla de inicio. En Android (Chrome) el manifiesto permite instalarla como aplicación; en iPhone se hace desde Compartir y «Agregar a pantalla de inicio», y Safari usa `apple-touch-icon` y `apple-mobile-web-app-title`. Dos consecuencias que hay que explicar a los pacientes: la aplicación instalada en iPhone se abre sin la barra del navegador (por eso el encabezado tiene su propio botón Volver), y su almacenamiento es independiente del de Safari, así que el avance hecho en Safari no aparece en la aplicación instalada ni al revés. La forma de moverlo es el código de respaldo.
+
+Pantalla encendida. En web se usa la API Screen Wake Lock del navegador cuando existe (`src/ui/mantener-pantalla.tsx`); si no existe, la pantalla puede apagarse durante la sesión. No se pudo verificar aquí en qué versiones de Safari para iPhone está disponible.
+
+Pérdida de datos. WebKit anunció en 2020 que Safari elimina el almacenamiento local de un sitio tras siete días sin interacción con él; no se pudo verificar aquí si aplica a las aplicaciones agregadas a la pantalla de inicio. Es la razón principal del código de respaldo y, más adelante, de las cuentas con sincronización en servidor si la app se vende.
+
+Qué ve el servicio de alojamiento: solo las peticiones de archivos (dirección IP, navegador, hora), como en cualquier sitio. Ningún dato del paciente sale del navegador. Hay que decirlo en la política de privacidad, junto con el proveedor de video cuando exista.
+
+Íconos. Los de `public/icons/` y `assets/images/icon.png` son provisionales (generados para esta versión con el nombre y el color de la app); al reemplazarlos por el diseño definitivo hay que mantener los tamaños 192, 512 y 180 píxeles y que el contenido quepa en el 80 % central (el de 512 se usa también como ícono enmascarable).
+
 ## Privacidad
 
 - No hay cuentas ni servidor propio. El estado (perfil, preferencias, avances, menú de la semana) se guarda con AsyncStorage; en web, en localStorage.
 - `android.allowBackup` está en `false` para que Android no copie ese estado al respaldo en la nube. En iOS, AsyncStorage excluye su carpeta del respaldo de iCloud por defecto (no agregar `RCTAsyncStorageExcludeFromBackup: false` al `infoPlist`). Por eso el avance no se recupera al cambiar de teléfono en ninguna de las dos plataformas, y la app lo dice en Perfil. Queda por confirmar en la documentación de Android si en Android 12 o superior hace falta además `dataExtractionRules` para bloquear la transferencia directa entre dispositivos.
 - `android.blockedPermissions` quita del manifiesto los permisos de la plantilla que la app no usa (ventanas sobre otras apps y almacenamiento externo). El de vibración se mantiene porque el cronómetro vibra al terminar.
+- El código de respaldo contiene el estado completo, incluido el resultado del filtro de seguridad; la app lo advierte antes de mostrarlo. Si la persona lo envía por correo o mensaje, ese servicio lo tendrá.
 - Al cargar, un estado guardado que no pasa la validación de `src/logic/estado.ts` se elimina del dispositivo. Un menú guardado con forma inválida se descarta solo y se vuelve a generar; una preferencia con un valor desconocido vuelve a su valor inicial sin perder el resto.
 - Mientras `URL_PRIVACIDAD` y `URL_CONDICIONES` (en `src/constants/enlaces.ts`) sean `null`, la app no muestra los enlaces. Antes de publicar deben apuntar a páginas reales.
 
-## Qué falta para publicar en App Store y Google Play
+## Anexo: publicar en App Store y Google Play (opcional)
 
-Los requisitos de las tiendas que siguen (tarifas, pagos dentro de la app, declaración de apps de salud, categorías y clasificación por edad) se escribieron sin acceso a las consolas ni a su documentación y deben confirmarse en developer.apple.com y en support.google.com/googleplay/android-developer antes de enviar.
+No es la vía elegida; queda documentado por si más adelante hace falta (notificaciones, uso sin conexión o porque los pacientes lo pidan). Los requisitos de las tiendas que siguen (tarifas, pagos dentro de la app, declaración de apps de salud, categorías y clasificación por edad) se escribieron sin acceso a las consolas ni a su documentación y deben confirmarse en developer.apple.com y en support.google.com/googleplay/android-developer antes de enviar.
 
 1. **Cuentas de desarrollador:** Apple Developer Program (pago anual) y Google Play Console (pago único). Además una cuenta en expo.dev y `npx eas-cli@latest login`.
 2. **Identidad:** cambiar `com.tumarca.ruta90` en `app.json` por el identificador definitivo (queda fijado tras el primer envío), y reemplazar el ícono, el splash y los íconos adaptativos de Android, que todavía son los de la plantilla de Expo (`assets/`). Para iOS, lo más simple es eliminar la clave `ios.icon` y dejar que Expo genere el ícono desde `assets/images/icon.png`.

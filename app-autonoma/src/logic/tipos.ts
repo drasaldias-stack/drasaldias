@@ -152,11 +152,7 @@ export const EXCLUSIONES = claves<Exclusion>({
 });
 export const MATERIALES = claves<Material>({ silla: true, banda: true, pesas: true, colchoneta: true });
 
-export type FuenteMenu = 'app' | 'propia';
-
 export type PreferenciasCocina = {
-  /** Qué se muestra en Menú: el menú armado por la app o la pauta propia. */
-  fuente: FuenteMenu;
   personas: number;
   minutos: (typeof MINUTOS_COCINA)[number];
   equipos: Equipo[];
@@ -165,13 +161,13 @@ export type PreferenciasCocina = {
 };
 
 export type PreferenciasEjercicio = {
-  /** Un programa de la app o 'propio' para usar la rutina cargada por la persona. */
-  programa: ProgramaId | 'propio';
+  programa: ProgramaId;
   minutos: (typeof MINUTOS_EJERCICIO)[number];
   materiales: Material[];
 };
 
 // ---------- Pauta y rutina propias ----------
+// Se suman al menú y al programa de la app, no los reemplazan.
 // La app las muestra tal como la persona las escribe: no las revisa ni las corrige.
 
 export type OrigenPauta = 'profesional' | 'propia';
@@ -191,6 +187,5 @@ export type SesionRutina = { id: IdSesionRutina; nombre: string; vueltas: number
 export type RutinaPropia = {
   nombre: string;
   sesiones: SesionRutina[];
-  caminata: { minutosDia: number; dias: number } | null;
   notas: string;
 };

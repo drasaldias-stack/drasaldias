@@ -21,18 +21,19 @@ export default function Hoy() {
   const perfil = estado.perfil!;
   const [confirmarCiclo, setConfirmarCiclo] = useState(false);
   const terminado = programaTerminado(semana);
-  const { sesiones, caminata, diasCaminata, programa } = resumenSemana(estado, semana);
+  const { sesiones, caminata, diasCaminata, programa, propias } = resumenSemana(estado, semana);
   const proxima = sesiones.find((s) => !s.hecha);
   const hechas = sesiones.filter((s) => s.hecha).length;
+  const proximaPropia = propias.find((s) => !s.hecha);
+  const hechasPropias = propias.filter((s) => s.hecha).length;
   const clase = claseSugerida(estado, semana);
   const ejercicioOk = accesoEjercicio(perfil);
   const menuOk = accesoMenu(perfil);
-  const pautaPropia = perfil.cocina.fuente === 'propia';
   const claseAntes = semana === 1 && clase && !clase.vista;
   const avisoRespaldo = textoAvisoRespaldo(estado.respaldo.ultimo, hoyISO());
 
   let comprasTexto = '';
-  if (menuOk && !pautaPropia && menuActual?.ok) {
+  if (menuOk && menuActual?.ok) {
     const lista = listaCompras(menuActual.menu, COMPONENTES, perfil.cocina.personas);
     const items = lista.categorias.flatMap((c) => c.items);
     const marcados = items.filter((i) => estado.compras[`${semana}|${i.clave}`]).length;
@@ -119,7 +120,19 @@ export default function Hoy() {
             ) : (
               <Texto>Hiciste las tres sesiones de esta semana. La próxima semana sigue la progresión.</Texto>
             )}
-            {caminata ? (
+            {propias.length > 0 ? (
+              <View style={{ gap: Spacing.s, marginTop: Spacing.s }}>
+                <Fila style={{ justifyContent: 'space-between' }}>
+                  <Texto style={{ fontWeight: '700' }}>{perfil.rutina?.nombre ?? 'Mi rutina'}</Texto>
+                  <Chip texto={`${hechasPropias} de ${propias.length} ${propias.length === 1 ? 'sesión' : 'sesiones'}`} tono={hechasPropias === propias.length ? 'ok' : 'neutro'} />
+                </Fila>
+                {proximaPropia ? (
+                  <Boton titulo={`Empezar ${proximaPropia.sesion.nombre}`} variante="secundario" icono="play" onPress={() => router.push(`/sesion/${proximaPropia.sesion.id}`)} />
+                ) : (
+                  <Pequeno>Hiciste todas las sesiones de tu rutina esta semana.</Pequeno>
+                )}
+              </View>
+            ) : null}
             <View style={{ gap: Spacing.s, marginTop: Spacing.s }}>
               <Fila style={{ justifyContent: 'space-between' }}>
                 <Fila>
@@ -143,7 +156,6 @@ export default function Hoy() {
                 {caminata.texto}
               </Pequeno>
             </View>
-            ) : null}
           </>
         ) : (
           bloqueo('ejercicio', 'Las clases y los menús sí.')
@@ -153,24 +165,9 @@ export default function Hoy() {
       {!claseAntes ? tarjetaClase : null}
 
       <Tarjeta>
-        <Etiqueta>{pautaPropia ? 'Tu pauta' : 'Menú de la semana'}</Etiqueta>
+        <Etiqueta>Menú de la semana</Etiqueta>
         {!menuOk ? (
           bloqueo('alimentacion', 'Te recomendamos la orientación de un profesional.')
-        ) : pautaPropia ? (
-          perfil.pauta ? (
-            <>
-              <Subtitulo>{perfil.pauta.titulo}</Subtitulo>
-              <Pequeno>
-                {perfil.pauta.comidas.length} {perfil.pauta.comidas.length === 1 ? 'comida' : 'comidas'} · {perfil.pauta.origen === 'profesional' ? 'entregada por un profesional' : 'armada por ti'}
-              </Pequeno>
-              <Boton titulo="Ver mi pauta" onPress={() => router.push('/menu')} />
-            </>
-          ) : (
-            <>
-              <Texto>Elegiste usar tu propia pauta, pero todavía no la has cargado.</Texto>
-              <Boton titulo="Cargar mi pauta" onPress={() => router.push('/menu')} />
-            </>
-          )
         ) : menuActual?.ok ? (
           <>
             <Subtitulo>Una sesión de cocina de unos {menuActual.menu.minutos} minutos</Subtitulo>
@@ -192,6 +189,21 @@ export default function Hoy() {
           <Texto>Con tus filtros actuales no hay recetas suficientes. Ajusta los filtros en la pestaña Menú.</Texto>
         )}
       </Tarjeta>
+
+      {menuOk && perfil.pauta ? (
+        <Tarjeta onPress={() => router.push('/pauta')} accesible={`Tu pauta: ${perfil.pauta.titulo}`}>
+          <Etiqueta>Tu pauta</Etiqueta>
+          <Fila style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+            <View style={{ flex: 1, gap: Spacing.xs }}>
+              <Subtitulo>{perfil.pauta.titulo}</Subtitulo>
+              <Pequeno>
+                {perfil.pauta.comidas.length} {perfil.pauta.comidas.length === 1 ? 'comida' : 'comidas'} · {perfil.pauta.origen === 'profesional' ? 'entregada por un profesional' : 'armada por ti'}
+              </Pequeno>
+            </View>
+            <Ionicons aria-hidden name="chevron-forward" size={24} color={p.ink2} />
+          </Fila>
+        </Tarjeta>
+      ) : null}
 
       {avisoRespaldo ? <Pequeno>{avisoRespaldo}</Pequeno> : null}
       <Pequeno>Educación general sobre alimentación y actividad física. No reemplaza la atención de un profesional de la salud.</Pequeno>

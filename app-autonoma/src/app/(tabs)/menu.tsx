@@ -7,14 +7,12 @@ import { Spacing } from '@/constants/theme';
 import { COMPONENTES, componentePorId } from '@/content/componentes';
 import { usePaleta } from '@/hooks/use-paleta';
 import { cambiarComponente, diasDelMenu, MINUTOS_ORGANIZACION, ordenSesion } from '@/logic/menu';
-import { PAUTA_PLANTILLA } from '@/logic/propio';
 import { textosConfirmacion } from '@/logic/seguridad';
-import type { FuenteMenu, Rol } from '@/logic/tipos';
+import type { Rol } from '@/logic/tipos';
 import { useApp } from '@/state/app-state';
 import { accesoMenu } from '@/state/derivados';
 import { EditorCocina, TEXTO_EQUIPO, TEXTO_EXCLUSION } from '@/ui/editores';
-import { Aviso, Boton, Chip, Etiqueta, Fila, Opciones, Pantalla, Pequeno, Separador, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
-import { AVISO_PAUTA, EditorPauta, textoOrigen, VistaPauta } from '@/ui/propio';
+import { Aviso, Boton, Chip, Etiqueta, Fila, Pantalla, Pequeno, Separador, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
 
 const NOMBRE_ROL: Record<Rol, string> = {
   proteina: 'Proteína',
@@ -26,12 +24,11 @@ const NOMBRE_ROL: Record<Rol, string> = {
 const DIAS = ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5'];
 
 export default function MenuSemana() {
-  const { estado, menuActual, actualizarCocina, actualizarPerfil, nuevaCombinacion, reemplazarMenu } = useApp();
+  const { estado, menuActual, actualizarCocina, nuevaCombinacion, reemplazarMenu } = useApp();
   const p = usePaleta();
   const perfil = estado.perfil!;
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [sinAlternativa, setSinAlternativa] = useState<string | null>(null);
-  const [editandoPauta, setEditandoPauta] = useState(false);
   const prefs = perfil.cocina;
 
   if (!accesoMenu(perfil)) {
@@ -49,48 +46,26 @@ export default function MenuSemana() {
     );
   }
 
-  const selectorFuente = (
+  const tarjetaPauta = perfil.pauta ? (
+    <Tarjeta onPress={() => router.push('/pauta')} accesible={`Tu pauta: ${perfil.pauta.titulo}`}>
+      <Fila style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+        <View style={{ flex: 1, gap: Spacing.xs }}>
+          <Etiqueta>Además del menú · tu pauta</Etiqueta>
+          <Subtitulo>{perfil.pauta.titulo}</Subtitulo>
+          <Pequeno>
+            {perfil.pauta.comidas.length} {perfil.pauta.comidas.length === 1 ? 'comida' : 'comidas'} · {perfil.pauta.origen === 'profesional' ? 'entregada por un profesional' : 'armada por ti'}
+          </Pequeno>
+        </View>
+        <Ionicons aria-hidden name="chevron-forward" size={24} color={p.ink2} />
+      </Fila>
+    </Tarjeta>
+  ) : (
     <Tarjeta>
-      <Opciones<FuenteMenu>
-        etiqueta="¿Qué quieres usar?"
-        ayuda="El menú de Ruta 90 se arma con tus filtros. Tu pauta es la que te entregó tu nutricionista o la que armaste tú."
-        opciones={[{ valor: 'app', texto: 'Menú de Ruta 90' }, { valor: 'propia', texto: 'Mi pauta' }]}
-        valor={prefs.fuente}
-        onCambio={(v) => actualizarCocina({ ...prefs, fuente: v as FuenteMenu })}
-      />
+      <Etiqueta>Además del menú</Etiqueta>
+      <Texto>¿Tienes una pauta de tu nutricionista o una que armaste tú? Guárdala aquí para tenerla a mano junto con el menú.</Texto>
+      <Boton titulo="Agregar mi pauta" variante="secundario" icono="create-outline" onPress={() => router.push('/pauta')} />
     </Tarjeta>
   );
-
-  if (prefs.fuente === 'propia') {
-    const pauta = perfil.pauta;
-    return (
-      <Pantalla>
-        <View style={{ gap: Spacing.s }}>
-          <Etiqueta>{pauta ? textoOrigen(pauta) : 'Alimentación'}</Etiqueta>
-          <Titulo>{pauta ? pauta.titulo : 'Mi pauta'}</Titulo>
-        </View>
-        {selectorFuente}
-        <Aviso tipo="info">
-          <Pequeno tono="normal">{AVISO_PAUTA}</Pequeno>
-        </Aviso>
-        {!pauta || editandoPauta ? (
-          <EditorPauta
-            inicial={pauta ?? PAUTA_PLANTILLA}
-            onGuardar={(nueva) => {
-              actualizarPerfil({ pauta: nueva });
-              setEditandoPauta(false);
-            }}
-            onCancelar={pauta ? () => setEditandoPauta(false) : undefined}
-          />
-        ) : (
-          <>
-            <VistaPauta pauta={pauta} />
-            <Boton titulo="Editar mi pauta" variante="secundario" icono="create-outline" onPress={() => setEditandoPauta(true)} />
-          </>
-        )}
-      </Pantalla>
-    );
-  }
 
   const resumenFiltros = [
     `${prefs.minutos} min`,
@@ -118,7 +93,7 @@ export default function MenuSemana() {
         <Titulo>Menú de la semana</Titulo>
       </View>
 
-      {selectorFuente}
+      {tarjetaPauta}
 
       <Tarjeta>
         <Pressable

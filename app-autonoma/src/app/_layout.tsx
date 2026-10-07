@@ -57,6 +57,7 @@ function Navegacion() {
       <Stack.Screen name="sesion/[id]" options={{ title: 'Sesión de ejercicio' }} />
       <Stack.Screen name="receta/[id]" options={{ title: 'Receta' }} />
       <Stack.Screen name="compras" options={{ title: 'Lista de compras' }} />
+      <Stack.Screen name="pauta" options={{ title: 'Mi pauta' }} />
     </Stack>
   );
 }

@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
-import { AVISO_HIPOGLUCEMIA, CALENTAMIENTO, CONSEJOS_SESION, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
+import { AVISO_HIPOGLUCEMIA, CALENTAMIENTO, CONSEJOS_SESION, PROGRAMAS, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
 import { usePaleta } from '@/hooks/use-paleta';
 import { claveSesion, resolverEjercicio, semanaVigente, sesionesDeSemana, vueltasDeSesion } from '@/logic/programa';
-import { catalogoActivo, esRutinaPropia, programaActivo } from '@/logic/propio';
+import { catalogoCompleto, esSesionPropia, sesionesPropias } from '@/logic/propio';
 import { useApp } from '@/state/app-state';
 import { accesoEjercicio } from '@/state/derivados';
 import { Cronometro } from '@/ui/cronometro';
@@ -21,10 +21,11 @@ export default function DetalleSesion() {
   const [hechos, setHechos] = useState<Record<string, boolean>>({});
   if (!estado.perfil) return <Redirect href="/bienvenida" />;
   const perfil = estado.perfil;
-  const programa = programaActivo(perfil);
-  const catalogo = catalogoActivo(perfil);
-  const propia = esRutinaPropia(perfil);
-  const sesion = sesionesDeSemana(programa, semana).find((s) => s.id === String(id));
+  const programa = PROGRAMAS[perfil.ejercicio.programa];
+  const catalogo = catalogoCompleto(perfil.rutina);
+  // La sesión puede ser del programa de la app o de la rutina propia (ids con prefijo).
+  const propia = esSesionPropia(String(id));
+  const sesion = (propia ? sesionesPropias(perfil.rutina, semana) : sesionesDeSemana(programa, semana)).find((s) => s.id === String(id));
   if (!sesion || !accesoEjercicio(perfil)) {
     return (
       <Pantalla conBarra={false}>
@@ -40,11 +41,11 @@ export default function DetalleSesion() {
 
   return (
     <Pantalla conBarra={false}>
-      <Stack.Screen options={{ title: `Sesión ${sesion.id}` }} />
+      <Stack.Screen options={{ title: propia ? `Mi rutina · sesión ${sesion.id.replace(/^mi-/, '')}` : `Sesión ${sesion.id}` }} />
       {/* La pantalla se usa con las manos ocupadas durante 10 a 30 minutos: no debe apagarse sola. */}
       <MantenerPantalla />
       <View style={{ gap: Spacing.s }}>
-        <Etiqueta>{programa.nombre} · semana {semanaVigente(semana)}</Etiqueta>
+        <Etiqueta>{propia ? (perfil.rutina?.nombre ?? 'Mi rutina') : programa.nombre} · semana {semanaVigente(semana)}</Etiqueta>
         <Titulo>{sesion.nombre}</Titulo>
         <Fila>
           {!propia ? <Chip texto={`${perfil.ejercicio.minutos} minutos`} tono="acento" /> : null}

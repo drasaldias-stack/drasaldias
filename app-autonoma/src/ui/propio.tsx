@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Linking, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
-import { DIAS_CAMINATA, enlaceValido, IDS_SESION, LIMITES, MINUTOS_CAMINATA, normalizarPauta, normalizarRutina } from '@/logic/propio';
+import { enlaceValido, IDS_SESION, LIMITES, normalizarPauta, normalizarRutina } from '@/logic/propio';
 import type { IdSesionRutina, OrigenPauta, PautaPropia, RutinaPropia } from '@/logic/tipos';
 import { CampoTexto } from '@/ui/campos';
 import { Aviso, Boton, Etiqueta, Fila, Opciones, Pequeno, Separador, Subtitulo, Tarjeta, Texto } from '@/ui/kit';
@@ -11,7 +11,7 @@ import { Aviso, Boton, Etiqueta, Fila, Opciones, Pequeno, Separador, Subtitulo, 
 export const AVISO_PAUTA =
   'Ruta 90 muestra tu pauta tal como la escribes; no la revisa ni la corrige. Si la armaste tú, pídele a tu médico o nutricionista que la revise. Saltarse comidas o comer menos de tres veces al día no es recomendable sin supervisión.';
 export const AVISO_RUTINA =
-  'Ruta 90 muestra tu rutina tal como la escribes; no la revisa. Si la armaste tú o viene de un gimnasio, mantén las señales para detenerse, deja al menos un día entre sesiones de fuerza y empieza con menos vueltas de las que crees poder hacer.';
+  'Ruta 90 muestra tu rutina tal como la escribes; no la revisa. Se suma a las sesiones de tu programa: si haces las dos, deja al menos un día de descanso entre sesiones de fuerza y empieza con menos vueltas de las que crees poder hacer. Mantén las señales para detenerse.';
 
 const TEXTO_ORIGEN: Record<OrigenPauta, string> = { profesional: 'Me la entregó un profesional', propia: 'La armé yo' };
 
@@ -88,14 +88,11 @@ export function EditorPauta({ inicial, onGuardar, onCancelar }: { inicial: Pauta
 
 type ItemBorrador = { nombre: string; cantidad: string; unidad: 'reps' | 'seg' };
 type SesionBorrador = { id: IdSesionRutina; nombre: string; vueltas: number; items: ItemBorrador[] };
-type Borrador = { nombre: string; sesiones: SesionBorrador[]; conCaminata: boolean; minutosDia: number; dias: number; notas: string };
+type Borrador = { nombre: string; sesiones: SesionBorrador[]; notas: string };
 
 const aBorrador = (r: RutinaPropia): Borrador => ({
   nombre: r.nombre,
   sesiones: r.sesiones.map((s) => ({ ...s, items: s.items.map((it) => ({ ...it, cantidad: String(it.cantidad) })) })),
-  conCaminata: r.caminata !== null,
-  minutosDia: r.caminata?.minutosDia ?? 20,
-  dias: r.caminata?.dias ?? 3,
   notas: r.notas,
 });
 
@@ -103,7 +100,6 @@ const aRutina = (b: Borrador): RutinaPropia | null =>
   normalizarRutina({
     nombre: b.nombre,
     sesiones: b.sesiones.map((s) => ({ ...s, items: s.items.map((it) => ({ ...it, cantidad: parseInt(it.cantidad, 10) })) })),
-    caminata: b.conCaminata ? { minutosDia: b.minutosDia, dias: b.dias } : null,
     notas: b.notas,
   });
 
@@ -119,7 +115,7 @@ export function EditorRutina({ inicial, onGuardar, onCancelar }: { inicial: Ruti
   return (
     <View style={{ gap: Spacing.l }}>
       <CampoTexto etiqueta="Nombre de la rutina" valor={b.nombre} onCambio={(t) => setB({ ...b, nombre: t })} maxLength={LIMITES.nombreRutina} placeholder="Mi rutina, rutina del gimnasio…" />
-      <Pequeno>Hasta tres sesiones por semana. En cada una escribe los ejercicios en orden, con repeticiones o segundos. Las sesiones por segundos tienen cronómetro.</Pequeno>
+      <Pequeno>Hasta tres sesiones por semana, además de las de tu programa. En cada una escribe los ejercicios en orden, con repeticiones o segundos; los ejercicios por segundos tienen cronómetro.</Pequeno>
       {b.sesiones.map((s, i) => (
         <Tarjeta key={s.id}>
           <Etiqueta>Sesión {s.id}</Etiqueta>
@@ -164,18 +160,6 @@ export function EditorRutina({ inicial, onGuardar, onCancelar }: { inicial: Ruti
           icono="add"
           onPress={() => setB({ ...b, sesiones: [...b.sesiones, { id: IDS_SESION[b.sesiones.length], nombre: '', vueltas: 1, items: [] }] })}
         />
-      ) : null}
-      <Opciones<'si' | 'no'>
-        etiqueta="¿Quieres una meta de caminata semanal?"
-        opciones={[{ valor: 'si', texto: 'Sí' }, { valor: 'no', texto: 'No' }]}
-        valor={b.conCaminata ? 'si' : 'no'}
-        onCambio={(v) => setB({ ...b, conCaminata: v === 'si' })}
-      />
-      {b.conCaminata ? (
-        <>
-          <Opciones<number> etiqueta="Minutos por día" opciones={MINUTOS_CAMINATA.map((m) => ({ valor: m, texto: `${m} min` }))} valor={b.minutosDia} onCambio={(v) => setB({ ...b, minutosDia: v as number })} />
-          <Opciones<number> etiqueta="Días por semana" opciones={DIAS_CAMINATA.map((d) => ({ valor: d, texto: String(d) }))} valor={b.dias} onCambio={(v) => setB({ ...b, dias: v as number })} />
-        </>
       ) : null}
       <CampoTexto etiqueta="Notas (opcional)" valor={b.notas} onCambio={(t) => setB({ ...b, notas: t })} multiline maxLength={LIMITES.notas} placeholder="Indicaciones de tu kinesiólogo o entrenador, pesos que usas…" />
       {!completa ? <Pequeno tono="alerta">Cada sesión necesita al menos un ejercicio con nombre y cantidad.</Pequeno> : null}

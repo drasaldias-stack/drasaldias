@@ -1,8 +1,10 @@
-import { EJERCICIOS, PROGRAMAS } from '../content/ejercicios';
-import type { Ejercicio, IdSesionRutina, PautaPropia, PreferenciasEjercicio, Programa, RutinaPropia, SesionRutina } from './tipos';
+import { EJERCICIOS } from '../content/ejercicios';
+import { sesionesDeSemana } from './programa';
+import type { Ejercicio, IdSesionRutina, PautaPropia, Programa, RutinaPropia, Sesion, SesionRutina } from './tipos';
 
-// Pauta de alimentación y rutina de ejercicio cargadas por la persona. La app las muestra tal como se
-// escriben, sin revisarlas; por eso se validan solo en forma y tamaño, nunca en contenido.
+// Pauta de alimentación y rutina de ejercicio cargadas por la persona, además del menú y del programa de
+// la app. La app las muestra tal como se escriben, sin revisarlas; por eso se validan solo en forma y
+// tamaño, nunca en contenido.
 
 export const LIMITES = {
   comidas: 8,
@@ -20,8 +22,8 @@ export const LIMITES = {
 } as const;
 
 export const IDS_SESION: IdSesionRutina[] = ['A', 'B', 'C'];
-export const MINUTOS_CAMINATA = [10, 15, 20, 30, 45, 60] as const;
-export const DIAS_CAMINATA = [2, 3, 4, 5, 6, 7] as const;
+/** Las sesiones propias llevan este prefijo en su id para no chocar con las A, B y C del programa. */
+export const PREFIJO_SESION_PROPIA = 'mi-';
 
 export const PAUTA_PLANTILLA: PautaPropia = {
   origen: 'profesional',
@@ -40,7 +42,6 @@ export const PAUTA_PLANTILLA: PautaPropia = {
 export const RUTINA_PLANTILLA: RutinaPropia = {
   nombre: 'Mi rutina',
   sesiones: [{ id: 'A', nombre: 'Sesión A', vueltas: 1, items: [] }],
-  caminata: null,
   notas: '',
 };
 
@@ -92,40 +93,41 @@ export function normalizarRutina(v: unknown): RutinaPropia | null {
     .slice(0, LIMITES.sesiones)
     .map((s, i) => ({ ...s, id: IDS_SESION[i], nombre: s.nombre || `Sesión ${IDS_SESION[i]}` }));
   if (sesiones.length === 0) return null;
-  const cam = esObjeto(v.caminata) ? v.caminata : null;
-  const minutosDia = cam ? entero(cam.minutosDia, 5, 180) : null;
-  const dias = cam ? entero(cam.dias, 1, 7) : null;
   return {
     nombre: texto(v.nombre, LIMITES.nombreRutina) || 'Mi rutina',
     sesiones,
-    caminata: minutosDia !== null && dias !== null ? { minutosDia, dias } : null,
     notas: texto(v.notas, LIMITES.notas),
   };
 }
 
 export const idItemRutina = (sesion: IdSesionRutina, indice: number) => `propio-${sesion}-${indice}`;
+export const idSesionPropia = (sesion: IdSesionRutina) => `${PREFIJO_SESION_PROPIA}${sesion}`;
+export const esSesionPropia = (id: string) => id.startsWith(PREFIJO_SESION_PROPIA);
 
-/** La rutina propia con la forma de un programa de la app, para reutilizar las pantallas de sesión y de semana. */
+/** La rutina propia con la forma de un programa, para reutilizar la pantalla de sesión. Sin caminata: la meta viene del programa de la app. */
 export function programaDeRutina(r: RutinaPropia | null): Programa {
   return {
     id: 'propio',
     nombre: r?.nombre ?? 'Mi rutina',
-    paraQuien: 'Rutina cargada por ti. La app la muestra tal como la escribiste y no la revisa.',
+    paraQuien: 'Rutina cargada por ti, además del programa de Ruta 90. La app la muestra tal como la escribiste y no la revisa.',
     bloques: [
       {
         semanas: [1, 12],
         sesiones: (r?.sesiones ?? []).map((s) => ({
-          id: s.id,
+          id: idSesionPropia(s.id),
           nombre: s.nombre,
           vueltas: s.vueltas,
           items: s.items.map((it, i) => ({ ejercicio: idItemRutina(s.id, i), cantidad: it.cantidad, unidad: it.unidad })),
         })),
       },
     ],
-    caminata: r?.caminata
-      ? [{ semanaDesde: 1, minutosDia: r.caminata.minutosDia, dias: r.caminata.dias, texto: 'Meta que definiste tú. Puedes cambiarla al editar tu rutina.' }]
-      : [],
+    caminata: [],
   };
+}
+
+/** Las sesiones propias de una semana (las mismas todas las semanas); vacío si no hay rutina. */
+export function sesionesPropias(r: RutinaPropia | null, semana: number): Sesion[] {
+  return r ? sesionesDeSemana(programaDeRutina(r), semana) : [];
 }
 
 /** Los ejercicios de la rutina propia como catálogo: sin instrucciones ni alternativas, porque la app no los conoce. */
@@ -135,14 +137,7 @@ export function catalogoDeRutina(r: RutinaPropia | null): Ejercicio[] {
   );
 }
 
-type ConRutina = { ejercicio: PreferenciasEjercicio; rutina: RutinaPropia | null };
-
-export const esRutinaPropia = (p: ConRutina) => p.ejercicio.programa === 'propio';
-
-export function programaActivo(p: ConRutina): Programa {
-  return p.ejercicio.programa === 'propio' ? programaDeRutina(p.rutina) : PROGRAMAS[p.ejercicio.programa];
-}
-
-export function catalogoActivo(p: ConRutina): Ejercicio[] {
-  return p.ejercicio.programa === 'propio' ? catalogoDeRutina(p.rutina) : EJERCICIOS;
+/** Catálogo de la app más los ejercicios propios; los ids no chocan porque los propios llevan prefijo. */
+export function catalogoCompleto(r: RutinaPropia | null): Ejercicio[] {
+  return r ? [...EJERCICIOS, ...catalogoDeRutina(r)] : EJERCICIOS;
 }

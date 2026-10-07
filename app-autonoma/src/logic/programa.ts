@@ -32,12 +32,9 @@ export function sesionesDeSemana(programa: Programa, semana: number): Sesion[] {
   return bloque.sesiones;
 }
 
-export type MetaCaminata = Programa['caminata'][number];
-
-/** Meta de caminata vigente; null si el programa (una rutina propia) no define ninguna. */
-export function metaCaminata(programa: Programa, semana: number): MetaCaminata | null {
+export function metaCaminata(programa: Programa, semana: number) {
   const s = semanaVigente(semana);
-  return [...programa.caminata].reverse().find((c) => s >= c.semanaDesde) ?? programa.caminata[0] ?? null;
+  return [...programa.caminata].reverse().find((c) => s >= c.semanaDesde) ?? programa.caminata[0];
 }
 
 /** Usa la alternativa si falta algún material. Evita ciclos. */

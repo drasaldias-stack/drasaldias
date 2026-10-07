@@ -5,7 +5,8 @@ import { COMPONENTES } from '@/content/componentes';
 import { normalizar, VACIO, type EstadoApp, type Perfil } from '@/logic/estado';
 import { generarMenu, menuVigente, type Menu, type ResultadoMenu } from '@/logic/menu';
 import { hoyISO, semanaDelPrograma, semanaVigente } from '@/logic/programa';
-import type { PreferenciasCocina } from '@/logic/tipos';
+import { esMarcaPropia, idSesionPropia } from '@/logic/propio';
+import type { PreferenciasCocina, RutinaPropia } from '@/logic/tipos';
 
 // Todo se guarda solo en el dispositivo (AsyncStorage; en web, localStorage). No hay cuenta ni servidor.
 // El resultado del filtro de seguridad incluye mensajes que nombran la condición: es un dato de salud.
@@ -37,6 +38,8 @@ type Acciones = {
   restaurarEstado: (e: EstadoApp) => void;
   /** Registra que hoy se creó un código de respaldo. */
   marcarRespaldo: () => void;
+  /** Guarda o quita (null) la rutina propia y elimina las marcas de sesiones propias que ya no existen. */
+  guardarRutina: (r: RutinaPropia | null) => void;
 };
 
 type Contexto = { estado: EstadoApp; listo: boolean; semana: number; menuActual: ResultadoMenu | null } & Acciones;
@@ -194,16 +197,29 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
   const borrarTodo = useCallback(() => setEstado(VACIO), []);
   const restaurarEstado = useCallback((e: EstadoApp) => setEstado(e), []);
+  const guardarRutina = useCallback(
+    (r: RutinaPropia | null) =>
+      setEstado((e) => {
+        if (!e.perfil) return e;
+        const vigentes = new Set((r?.sesiones ?? []).map((s) => idSesionPropia(s.clave)));
+        const hechas: Record<string, string> = {};
+        for (const [k, v] of Object.entries(e.sesionesHechas)) {
+          if (!esMarcaPropia(k) || vigentes.has(k.slice(k.indexOf('-') + 1))) hechas[k] = v;
+        }
+        return { ...e, perfil: { ...e.perfil, rutina: r }, sesionesHechas: hechas };
+      }),
+    [],
+  );
   const marcarRespaldo = useCallback(() => setEstado((e) => (e.respaldo.ultimo === hoyISO() ? e : { ...e, respaldo: { ultimo: hoyISO() } })), []);
 
   const valor = useMemo<Contexto>(
     () => ({
       estado, listo, semana, menuActual,
       guardarPerfil, actualizarPerfil, actualizarCocina, alternarClase, alternarSesion, cambiarCaminata,
-      nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo, restaurarEstado, marcarRespaldo,
+      nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo, restaurarEstado, marcarRespaldo, guardarRutina,
     }),
     [estado, listo, semana, menuActual, guardarPerfil, actualizarPerfil, actualizarCocina, alternarClase, alternarSesion,
-      cambiarCaminata, nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo, restaurarEstado, marcarRespaldo],
+      cambiarCaminata, nuevaCombinacion, reemplazarMenu, alternarCompra, limpiarCompras, reiniciarPrograma, borrarTodo, restaurarEstado, marcarRespaldo, guardarRutina],
   );
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;

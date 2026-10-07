@@ -9,6 +9,7 @@ import { usePaleta } from '@/hooks/use-paleta';
 import { listaCompras } from '@/logic/compras';
 import { MINUTOS_ORGANIZACION } from '@/logic/menu';
 import { hoyISO, SEMANAS_PROGRAMA } from '@/logic/programa';
+import { avisoVolumen } from '@/logic/propio';
 import { textoAvisoRespaldo } from '@/logic/respaldo';
 import { textosConfirmacion } from '@/logic/seguridad';
 import { useApp } from '@/state/app-state';
@@ -131,6 +132,7 @@ export default function Hoy() {
                 ) : (
                   <Pequeno>Hiciste todas las sesiones de tu rutina esta semana.</Pequeno>
                 )}
+                {propias.length >= 2 ? <Pequeno>{avisoVolumen(sesiones.length, perfil.rutina)}</Pequeno> : null}
               </View>
             ) : null}
             <View style={{ gap: Spacing.s, marginTop: Spacing.s }}>

@@ -187,7 +187,8 @@ export type PautaPropia = {
 
 export type IdSesionRutina = 'A' | 'B' | 'C';
 export type ItemRutina = { nombre: string; cantidad: number; unidad: 'reps' | 'seg' };
-export type SesionRutina = { id: IdSesionRutina; nombre: string; vueltas: number; items: ItemRutina[] };
+/** `id` es la letra por posición (A, B, C) para mostrar; `clave` es estable y es la que usan las marcas de sesión hecha. */
+export type SesionRutina = { id: IdSesionRutina; clave: string; nombre: string; vueltas: number; items: ItemRutina[] };
 export type RutinaPropia = {
   nombre: string;
   sesiones: SesionRutina[];

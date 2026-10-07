@@ -125,13 +125,13 @@ export default function Perfil() {
       <Tarjeta>
         <Subtitulo>Privacidad</Subtitulo>
         <Texto>
-          Tus respuestas, preferencias y avances se guardan solo en este dispositivo. La app no tiene cuentas ni envía esos datos a ningún servidor; por eso no se recuperan si cambias de teléfono o de navegador, salvo que uses un código de respaldo.
+          Tus respuestas, preferencias y avances, y tu pauta y tu rutina si las cargaste, se guardan solo en este dispositivo. La app no tiene cuentas ni envía esos datos a ningún servidor; por eso no se recuperan si cambias de teléfono o de navegador, salvo que uses un código de respaldo.
         </Texto>
         {urlPrivacidad ? <Boton titulo="Política de privacidad" variante="secundario" onPress={abrir(urlPrivacidad)} /> : null}
         {urlCondiciones ? <Boton titulo="Condiciones de uso" variante="secundario" onPress={abrir(urlCondiciones)} /> : null}
         {confirmarBorrado ? (
           <>
-            <Pequeno tono="alerta">Se borrarán tus respuestas, preferencias y avances de este dispositivo. No se puede deshacer y volverás a la pantalla de inicio.</Pequeno>
+            <Pequeno tono="alerta">Se borrarán tus respuestas, preferencias y avances, y tu pauta y tu rutina si las cargaste, de este dispositivo. No se puede deshacer y volverás a la pantalla de inicio.</Pequeno>
             <Boton
               titulo="Sí, borrar todo y salir"
               variante="peligro"

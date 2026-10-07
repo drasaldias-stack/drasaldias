@@ -7,16 +7,16 @@ import { Spacing } from '@/constants/theme';
 import { AVISO_HIPOGLUCEMIA, SENALES_DETENERSE } from '@/content/ejercicios';
 import { usePaleta } from '@/hooks/use-paleta';
 import { SEMANAS_PROGRAMA, semanaVigente, vueltasDeSesion, vueltasPorMinutos } from '@/logic/programa';
-import { RUTINA_PLANTILLA } from '@/logic/propio';
+import { avisoVolumen, letraSesionPropia, RUTINA_PLANTILLA } from '@/logic/propio';
 import { textosConfirmacion } from '@/logic/seguridad';
 import type { Sesion } from '@/logic/tipos';
 import { useApp } from '@/state/app-state';
 import { accesoEjercicio, accesoMenu, resumenSemana } from '@/state/derivados';
 import { Aviso, Boton, Chip, Etiqueta, Fila, Pantalla, Pequeno, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
-import { AVISO_RUTINA, EditorRutina } from '@/ui/propio';
+import { AVISO_RUTINA, AVISO_RUTINA_CARGA, EditorRutina } from '@/ui/propio';
 
 export default function Ejercicio() {
-  const { estado, semana, actualizarPerfil } = useApp();
+  const { estado, semana, guardarRutina } = useApp();
   const p = usePaleta();
   const perfil = estado.perfil!;
   const [editando, setEditando] = useState(false);
@@ -34,6 +34,20 @@ export default function Ejercicio() {
           </Texto>
         </Aviso>
         {!bloqueado ? <Boton titulo="Ir a Perfil" variante="secundario" onPress={() => router.push('/perfil')} /> : null}
+        {perfil.rutina ? (
+          <Tarjeta>
+            <Texto>Tienes guardada una rutina propia ({perfil.rutina.nombre}). No se muestra mientras el ejercicio esté desactivado o pendiente.</Texto>
+            {confirmarQuitar ? (
+              <>
+                <Pequeno tono="alerta">Se borra tu rutina guardada y sus marcas de este dispositivo. No se puede deshacer.</Pequeno>
+                <Boton titulo="Sí, quitar mi rutina guardada" variante="peligro" onPress={() => { guardarRutina(null); setConfirmarQuitar(false); }} />
+                <Boton titulo="Cancelar" variante="secundario" onPress={() => setConfirmarQuitar(false)} />
+              </>
+            ) : (
+              <Boton titulo="Quitar mi rutina guardada" variante="secundario" onPress={() => setConfirmarQuitar(true)} />
+            )}
+          </Tarjeta>
+        ) : null}
       </Pantalla>
     );
   }
@@ -48,11 +62,12 @@ export default function Ejercicio() {
         </View>
         <Aviso tipo="info">
           <Pequeno tono="normal">{AVISO_RUTINA}</Pequeno>
+          <Pequeno tono="normal">{AVISO_RUTINA_CARGA}</Pequeno>
         </Aviso>
         <EditorRutina
           inicial={rutina ?? RUTINA_PLANTILLA}
           onGuardar={(r) => {
-            actualizarPerfil({ rutina: r });
+            guardarRutina(r);
             setEditando(false);
           }}
           onCancelar={() => setEditando(false)}
@@ -115,7 +130,8 @@ export default function Ejercicio() {
       </View>
       {rutina ? (
         <>
-          {propias.map(({ sesion, hecha }) => tarjetaSesion(sesion, hecha, `Mi rutina · sesión ${sesion.id.replace(/^mi-/, '')}`))}
+          {propias.map(({ sesion, hecha }) => tarjetaSesion(sesion, hecha, `Mi rutina · sesión ${letraSesionPropia(rutina, sesion.id) ?? ''}`))}
+          {avisoVolumen(sesiones.length, rutina) ? <Pequeno>{avisoVolumen(sesiones.length, rutina)}</Pequeno> : null}
           {rutina.notas ? (
             <Tarjeta>
               <Etiqueta>Tus notas</Etiqueta>
@@ -130,7 +146,7 @@ export default function Ejercicio() {
                 titulo="Sí, quitar mi rutina"
                 variante="peligro"
                 onPress={() => {
-                  actualizarPerfil({ rutina: null });
+                  guardarRutina(null);
                   setConfirmarQuitar(false);
                 }}
               />

@@ -22,10 +22,15 @@ export const LIMITES = {
 } as const;
 
 export const IDS_SESION: IdSesionRutina[] = ['A', 'B', 'C'];
-/** Las sesiones propias llevan este prefijo en su id para no chocar con las A, B y C del programa. */
+/** Las sesiones propias llevan este prefijo y su clave estable en el id, para no chocar con las A, B y C del programa
+ * y para que las marcas sobrevivan a quitar o reordenar sesiones. */
 export const PREFIJO_SESION_PROPIA = 'mi-';
+const CLAVE_VALIDA = /^[a-z0-9]{1,12}$/;
 
-export const TITULO_PAUTA: Record<PautaPropia['origen'], string> = { profesional: 'Pauta de mi nutricionista', propia: 'Mi pauta' };
+/** Clave nueva para una sesión propia; no necesita ser única entre personas, solo dentro de la rutina. */
+export const nuevaClave = () => Math.random().toString(36).slice(2, 8) || 'x';
+
+export const TITULO_PAUTA: Record<PautaPropia['origen'], string> = { profesional: 'Pauta de mi profesional', propia: 'Mi pauta' };
 
 export const PAUTA_PLANTILLA: PautaPropia = {
   origen: 'propia',
@@ -43,7 +48,7 @@ export const PAUTA_PLANTILLA: PautaPropia = {
 
 export const RUTINA_PLANTILLA: RutinaPropia = {
   nombre: 'Mi rutina',
-  sesiones: [{ id: 'A', nombre: 'Sesión A', vueltas: 1, items: [] }],
+  sesiones: [{ id: 'A', clave: 'p1', nombre: 'Sesión A', vueltas: 1, items: [] }],
   notas: '',
 };
 
@@ -80,6 +85,7 @@ export function normalizarRutina(v: unknown): RutinaPropia | null {
   const sesiones: SesionRutina[] = (Array.isArray(v.sesiones) ? v.sesiones : [])
     .filter(esObjeto)
     .map((s) => ({
+      clave: typeof s.clave === 'string' && CLAVE_VALIDA.test(s.clave) ? s.clave : '',
       nombre: texto(s.nombre, LIMITES.nombreRutina),
       vueltas: entero(s.vueltas, 1, LIMITES.vueltasMax) ?? 1,
       items: (Array.isArray(s.items) ? s.items : [])
@@ -95,6 +101,12 @@ export function normalizarRutina(v: unknown): RutinaPropia | null {
     .filter((s) => s.items.length > 0)
     .slice(0, LIMITES.sesiones)
     .map((s, i) => ({ ...s, id: IDS_SESION[i], nombre: s.nombre || `Sesión ${IDS_SESION[i]}` }));
+  // Claves faltantes o repetidas: se asigna una derivada de la posición (solo pasa con estados antiguos o manipulados).
+  const vistas = new Set<string>();
+  for (const [i, s] of sesiones.entries()) {
+    if (!s.clave || vistas.has(s.clave)) s.clave = `p${i + 1}`;
+    vistas.add(s.clave);
+  }
   if (sesiones.length === 0) return null;
   return {
     nombre: texto(v.nombre, LIMITES.nombreRutina) || 'Mi rutina',
@@ -103,9 +115,16 @@ export function normalizarRutina(v: unknown): RutinaPropia | null {
   };
 }
 
-export const idItemRutina = (sesion: IdSesionRutina, indice: number) => `propio-${sesion}-${indice}`;
-export const idSesionPropia = (sesion: IdSesionRutina) => `${PREFIJO_SESION_PROPIA}${sesion}`;
+export const idItemRutina = (clave: string, indice: number) => `propio-${clave}-${indice}`;
+export const idSesionPropia = (clave: string) => `${PREFIJO_SESION_PROPIA}${clave}`;
 export const esSesionPropia = (id: string) => id.startsWith(PREFIJO_SESION_PROPIA);
+/** Clave de sesión hecha (`semana-mi-clave`) que pertenece a una sesión propia. */
+export const esMarcaPropia = (claveHecha: string) => claveHecha.includes(`-${PREFIJO_SESION_PROPIA}`);
+/** Letra por posición (A, B, C) de una sesión propia a partir de su id; null si ya no existe en la rutina. */
+export function letraSesionPropia(r: RutinaPropia | null, idSesion: string): IdSesionRutina | null {
+  const i = (r?.sesiones ?? []).findIndex((s) => idSesionPropia(s.clave) === idSesion);
+  return i >= 0 ? IDS_SESION[i] : null;
+}
 
 /** La rutina propia con la forma de un programa, para reutilizar la pantalla de sesión. Sin caminata: la meta viene del programa de la app. */
 export function programaDeRutina(r: RutinaPropia | null): Programa {
@@ -117,10 +136,10 @@ export function programaDeRutina(r: RutinaPropia | null): Programa {
       {
         semanas: [1, 12],
         sesiones: (r?.sesiones ?? []).map((s) => ({
-          id: idSesionPropia(s.id),
+          id: idSesionPropia(s.clave),
           nombre: s.nombre,
           vueltas: s.vueltas,
-          items: s.items.map((it, i) => ({ ejercicio: idItemRutina(s.id, i), cantidad: it.cantidad, unidad: it.unidad })),
+          items: s.items.map((it, i) => ({ ejercicio: idItemRutina(s.clave, i), cantidad: it.cantidad, unidad: it.unidad })),
         })),
       },
     ],
@@ -133,17 +152,29 @@ export function sesionesPropias(r: RutinaPropia | null, semana: number): Sesion[
   return r ? sesionesDeSemana(programaDeRutina(r), semana) : [];
 }
 
-/** Cuidado genérico que se muestra bajo cada ejercicio propio, porque la app no conoce su técnica. Pendiente de validación clínica. */
-export const CUIDADO_PROPIO = 'Técnica controlada, respira en cada repetición y detente si duele. Si usas carga, que te permita completar todas las repeticiones con buena técnica.';
+/** Cuidado genérico que se muestra una vez al inicio de una sesión propia, porque la app no conoce la técnica de esos ejercicios. Pendiente de validación clínica. */
+export const CUIDADO_PROPIO =
+  'Estos ejercicios los escribiste tú y Ruta 90 no conoce su técnica. Hazlos despacio y controlados, sin aguantar la respiración, y detente si duele. Si usas pesas o máquinas, elige una carga con la que completes todas las repeticiones con buena técnica.';
 
 /** Los ejercicios de la rutina propia como catálogo: sin instrucciones ni alternativas, porque la app no los conoce. */
 export function catalogoDeRutina(r: RutinaPropia | null): Ejercicio[] {
   return (r?.sesiones ?? []).flatMap((s) =>
-    s.items.map((it, i) => ({ id: idItemRutina(s.id, i), nombre: it.nombre, tipo: 'fuerza' as const, requiere: [], instrucciones: [], cuidado: CUIDADO_PROPIO })),
+    s.items.map((it, i) => ({ id: idItemRutina(s.clave, i), nombre: it.nombre, tipo: 'fuerza' as const, requiere: [], instrucciones: [], cuidado: '' })),
   );
 }
 
 /** Catálogo de la app más los ejercicios propios; los ids no chocan porque los propios llevan prefijo. */
 export function catalogoCompleto(r: RutinaPropia | null): Ejercicio[] {
   return r ? [...EJERCICIOS, ...catalogoDeRutina(r)] : EJERCICIOS;
+}
+
+/** Cuántas sesiones suman el programa y la rutina propia en una semana; sirve para avisar sobre el volumen total. */
+export const totalSesionesSemana = (sesionesPrograma: number, r: RutinaPropia | null) => sesionesPrograma + (r?.sesiones.length ?? 0);
+
+/** Aviso sobre el volumen total cuando la rutina propia se suma al programa. Pendiente de validación clínica. */
+export function avisoVolumen(sesionesPrograma: number, r: RutinaPropia | null): string | null {
+  const propias = r?.sesiones.length ?? 0;
+  if (propias === 0) return null;
+  const total = sesionesPrograma + propias;
+  return `Entre tu programa y tu rutina tienes ${total} sesiones esta semana. Si estás empezando, haz primero las ${sesionesPrograma} del programa y deja tu rutina en una o dos sesiones; no hagas fuerza dos días seguidos para los mismos músculos y descansa al menos un día a la semana sin sesión.`;
 }

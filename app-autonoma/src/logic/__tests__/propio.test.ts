@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { EJERCICIOS } from '../../content/ejercicios';
 import { COCINA_INICIAL, EJERCICIO_INICIAL, normalizar } from '../estado';
-import { catalogoCompleto, esSesionPropia, normalizarPauta, normalizarRutina, sesionesPropias } from '../propio';
+import { catalogoCompleto, esSesionPropia, letraSesionPropia, normalizarPauta, normalizarRutina, sesionesPropias } from '../propio';
 import { claveSesion, resolverEjercicio, vueltasDeSesion } from '../programa';
 import { evaluarSeguridad } from '../seguridad';
 import type { RutinaPropia } from '../tipos';
@@ -54,14 +54,18 @@ test('rutina propia: sesiones con ids A, B, C en orden e ítems inválidos fuera
   assert.equal(r.nombre, 'Mi rutina');
   assert.deepEqual(r.sesiones.map((s) => [s.id, s.nombre, s.vueltas, s.items.length]), [['A', 'Piernas', 1, 1], ['B', 'Sesión B', 2, 1], ['C', 'Cuarta', 1, 1]]);
   assert.equal(r.notas, 'n');
+  // Sin clave o con clave repetida se asigna una por posición; una clave válida se conserva.
+  assert.deepEqual(r.sesiones.map((s) => s.clave), ['p1', 'p2', 'p3']);
+  const conClaves = normalizarRutina({ sesiones: [{ clave: 'k9x', items: [{ nombre: 'a', cantidad: 1 }] }, { clave: 'k9x', items: [{ nombre: 'b', cantidad: 1 }] }, { clave: 'MAL!', items: [{ nombre: 'c', cantidad: 1 }] }] })!;
+  assert.deepEqual(conClaves.sesiones.map((s) => s.clave), ['k9x', 'p2', 'p3']);
 });
 
 test('rutina propia: se suma al programa con ids propios, en todas las semanas, y resuelve sus ejercicios', () => {
   const rutina: RutinaPropia = {
     nombre: 'Gimnasio',
     sesiones: [
-      { id: 'A', nombre: 'Tren superior', vueltas: 3, items: [{ nombre: 'Press', cantidad: 10, unidad: 'reps' }, { nombre: 'Plancha', cantidad: 40, unidad: 'seg' }] },
-      { id: 'B', nombre: 'Tren inferior', vueltas: 2, items: [{ nombre: 'Press', cantidad: 15, unidad: 'reps' }] },
+      { id: 'A', clave: 'sup', nombre: 'Tren superior', vueltas: 3, items: [{ nombre: 'Press', cantidad: 10, unidad: 'reps' }, { nombre: 'Plancha', cantidad: 40, unidad: 'seg' }] },
+      { id: 'B', clave: 'inf', nombre: 'Tren inferior', vueltas: 2, items: [{ nombre: 'Press', cantidad: 15, unidad: 'reps' }] },
     ],
     notas: '',
   };
@@ -70,7 +74,9 @@ test('rutina propia: se suma al programa con ids propios, en todas las semanas, 
   assert.equal(catalogo.length, EJERCICIOS.length + 3);
   for (const semana of [1, 5, 12, 20]) {
     const sesiones = sesionesPropias(rutina, semana);
-    assert.deepEqual(sesiones.map((s) => s.id), ['mi-A', 'mi-B']);
+    assert.deepEqual(sesiones.map((s) => s.id), ['mi-sup', 'mi-inf']);
+    assert.deepEqual(sesiones.map((s) => letraSesionPropia(rutina, s.id)), ['A', 'B']);
+    assert.equal(letraSesionPropia(rutina, 'mi-otra'), null);
     assert.ok(sesiones.every((s) => esSesionPropia(s.id)));
     assert.equal(vueltasDeSesion(sesiones[0], 10), 3);
     assert.equal(vueltasDeSesion(sesiones[1], 30), 2);
@@ -79,8 +85,8 @@ test('rutina propia: se suma al programa con ids propios, en todas las semanas, 
       assert.ok(ej && ej.id === it.ejercicio && ej.instrucciones.length === 0, it.ejercicio);
     }
   }
-  assert.equal(claveSesion(14, 'mi-A'), '12-mi-A');
-  assert.notEqual(claveSesion(3, 'mi-A'), claveSesion(3, 'A'));
+  assert.equal(claveSesion(14, 'mi-sup'), '12-mi-sup');
+  assert.notEqual(claveSesion(3, 'mi-sup'), claveSesion(3, 'A'));
   assert.deepEqual(sesionesPropias(null, 1), []);
   assert.equal(catalogoCompleto(null), EJERCICIOS);
 });
@@ -100,7 +106,7 @@ test('estado: pauta y rutina se guardan junto al menú y al programa; un program
   assert.equal(e.perfil?.ejercicio.programa, 'desde_cero');
   assert.equal('fuente' in (e.perfil?.cocina ?? {}), false);
   assert.equal(e.perfil?.pauta?.titulo, 'Mi pauta');
-  assert.equal(normalizarPauta({ origen: 'profesional', comidas: [{ nombre: 'A', detalle: 'b' }] })!.titulo, 'Pauta de mi nutricionista');
+  assert.equal(normalizarPauta({ origen: 'profesional', comidas: [{ nombre: 'A', detalle: 'b' }] })!.titulo, 'Pauta de mi profesional');
   assert.equal(e.perfil?.rutina?.sesiones[0].items[0].unidad, 'seg');
   const sin = normalizar({ version: 1, perfil: { inicio: '2026-10-01', seguridad: evaluarSeguridad(base) } });
   assert.equal(sin.perfil?.pauta, null);

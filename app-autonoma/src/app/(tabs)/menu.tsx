@@ -13,6 +13,7 @@ import { useApp } from '@/state/app-state';
 import { accesoMenu } from '@/state/derivados';
 import { EditorCocina, TEXTO_EQUIPO, TEXTO_EXCLUSION } from '@/ui/editores';
 import { Aviso, Boton, Chip, Etiqueta, Fila, Pantalla, Pequeno, Separador, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { PRIORIDAD_PAUTA } from '@/ui/propio';
 
 const NOMBRE_ROL: Record<Rol, string> = {
   proteina: 'Proteína',
@@ -55,6 +56,7 @@ export default function MenuSemana() {
           <Pequeno>
             {perfil.pauta.comidas.length} {perfil.pauta.comidas.length === 1 ? 'comida' : 'comidas'} · {perfil.pauta.origen === 'profesional' ? 'entregada por un profesional' : 'armada por ti'}
           </Pequeno>
+          <Pequeno>{PRIORIDAD_PAUTA[perfil.pauta.origen]}</Pequeno>
         </View>
         <Ionicons aria-hidden name="chevron-forward" size={24} color={p.ink2} />
       </Fila>

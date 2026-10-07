@@ -6,7 +6,7 @@ import { Spacing } from '@/constants/theme';
 import { AVISO_HIPOGLUCEMIA, CALENTAMIENTO, CONSEJOS_SESION, PROGRAMAS, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
 import { usePaleta } from '@/hooks/use-paleta';
 import { claveSesion, resolverEjercicio, semanaVigente, sesionesDeSemana, vueltasDeSesion } from '@/logic/programa';
-import { catalogoCompleto, esSesionPropia, sesionesPropias } from '@/logic/propio';
+import { catalogoCompleto, CUIDADO_PROPIO, esSesionPropia, letraSesionPropia, sesionesPropias } from '@/logic/propio';
 import { useApp } from '@/state/app-state';
 import { accesoEjercicio } from '@/state/derivados';
 import { Cronometro } from '@/ui/cronometro';
@@ -41,7 +41,7 @@ export default function DetalleSesion() {
 
   return (
     <Pantalla conBarra={false}>
-      <Stack.Screen options={{ title: propia ? `Mi rutina · sesión ${sesion.id.replace(/^mi-/, '')}` : `Sesión ${sesion.id}` }} />
+      <Stack.Screen options={{ title: propia ? `Mi rutina · sesión ${letraSesionPropia(perfil.rutina, sesion.id) ?? ''}` : `Sesión ${sesion.id}` }} />
       {/* La pantalla se usa con las manos ocupadas durante 10 a 30 minutos: no debe apagarse sola. */}
       <MantenerPantalla />
       <View style={{ gap: Spacing.s }}>
@@ -57,6 +57,7 @@ export default function DetalleSesion() {
         <Etiqueta>Calentamiento</Etiqueta>
         <Texto>{CALENTAMIENTO}</Texto>
         <Pequeno>{CONSEJOS_SESION}</Pequeno>
+        {propia ? <Pequeno>{CUIDADO_PROPIO}</Pequeno> : null}
       </Tarjeta>
 
       {perfil.seguridad.motivos.ejercicio.includes('insulina') ? (

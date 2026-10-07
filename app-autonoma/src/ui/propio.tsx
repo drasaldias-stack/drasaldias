@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Linking, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
-import { enlaceValido, IDS_SESION, LIMITES, normalizarPauta, normalizarRutina, TITULO_PAUTA } from '@/logic/propio';
+import { enlaceValido, IDS_SESION, LIMITES, normalizarPauta, normalizarRutina, nuevaClave, TITULO_PAUTA } from '@/logic/propio';
 import type { IdSesionRutina, OrigenPauta, PautaPropia, RutinaPropia } from '@/logic/tipos';
 import { CampoTexto } from '@/ui/campos';
 import { Aviso, Boton, Etiqueta, Fila, Opciones, Pequeno, Separador, Subtitulo, Tarjeta, Texto } from '@/ui/kit';
@@ -11,7 +11,14 @@ import { Aviso, Boton, Etiqueta, Fila, Opciones, Pequeno, Separador, Subtitulo, 
 export const AVISO_PAUTA =
   'Ruta 90 muestra tu pauta tal como la escribes; no la revisa ni la corrige. Si la armaste tú, pídele a tu médico o nutricionista que la revise, y no incluyas ayunos largos ni te saltes comidas sin que un profesional lo haya indicado.';
 export const AVISO_RUTINA =
-  'Ruta 90 muestra tu rutina tal como la escribes; no la revisa. Se suma a las sesiones de tu programa: si haces las dos, deja al menos un día de descanso entre sesiones de fuerza y empieza con menos vueltas de las que crees poder hacer. Con pesas o máquinas usa una carga con la que completes todas las repeticiones con buena técnica y sin aguantar la respiración, y súbela de a poco. Mantén las señales para detenerse.';
+  'Ruta 90 muestra tu rutina tal como la escribes; no la revisa. Las señales para detenerse que ves en cada sesión valen igual para tu rutina.';
+export const AVISO_RUTINA_CARGA =
+  'Tu rutina se suma a las sesiones de tu programa: si estás empezando, deja tu rutina en una o dos sesiones por semana, empieza con menos vueltas de las que crees poder hacer y descansa al menos un día a la semana sin sesión. Con pesas o máquinas usa una carga con la que completes todas las repeticiones con buena técnica y sin aguantar la respiración, y súbela de a poco.';
+/** Qué manda cuando conviven la pauta y el menú de la app, según el origen de la pauta. Pendiente de validación clínica. */
+export const PRIORIDAD_PAUTA: Record<OrigenPauta, string> = {
+  profesional: 'Si un profesional te entregó esta pauta, sigue esa pauta. Usa el menú de Ruta 90 solo como ideas de recetas que calcen con ella.',
+  propia: 'Esta pauta la escribiste tú; el menú de Ruta 90 sigue siendo la base revisada.',
+};
 
 const TEXTO_ORIGEN: Record<OrigenPauta, string> = { profesional: 'Me la entregó un profesional', propia: 'La armé yo' };
 
@@ -61,7 +68,12 @@ export function EditorPauta({ inicial, onGuardar, onCancelar }: { inicial: Pauta
       />
       <CampoTexto etiqueta="Nombre de la pauta" valor={b.titulo} onCambio={(t) => setB({ ...b, titulo: t })} maxLength={LIMITES.titulo} placeholder={TITULO_PAUTA[b.origen]} />
       <Texto style={{ fontWeight: '700' }}>Comidas del día</Texto>
-      <Pequeno>Escribe cada comida como te la indicaron: qué, cuánto y a qué hora si lo sabes. Puedes copiar el texto desde el documento. Las comidas que dejes sin detalle no se guardan.</Pequeno>
+      <Pequeno>
+        {b.origen === 'profesional'
+          ? 'Escribe cada comida como te la indicaron: qué, cuánto y a qué hora si lo sabes. Puedes copiar el texto desde el documento.'
+          : 'Escribe qué comes en cada comida, cuánto y a qué hora si lo sabes.'}{' '}
+        Las comidas que dejes sin detalle no se guardan.
+      </Pequeno>
       {b.comidas.map((c, i) => (
         <Tarjeta key={i}>
           <CampoTexto etiqueta={`Comida ${i + 1}`} valor={c.nombre} onCambio={(t) => comida(i, { nombre: t })} maxLength={LIMITES.nombreComida} placeholder="Desayuno, almuerzo, colación…" />
@@ -92,7 +104,7 @@ export function EditorPauta({ inicial, onGuardar, onCancelar }: { inicial: Pauta
 // ---------- Rutina ----------
 
 type ItemBorrador = { nombre: string; cantidad: string; unidad: 'reps' | 'seg' };
-type SesionBorrador = { id: IdSesionRutina; nombre: string; vueltas: number; items: ItemBorrador[] };
+type SesionBorrador = { id: IdSesionRutina; clave: string; nombre: string; vueltas: number; items: ItemBorrador[] };
 type Borrador = { nombre: string; sesiones: SesionBorrador[]; notas: string };
 
 const aBorrador = (r: RutinaPropia): Borrador => ({
@@ -122,7 +134,7 @@ export function EditorRutina({ inicial, onGuardar, onCancelar }: { inicial: Ruti
       <CampoTexto etiqueta="Nombre de la rutina" valor={b.nombre} onCambio={(t) => setB({ ...b, nombre: t })} maxLength={LIMITES.nombreRutina} placeholder="Mi rutina, rutina del gimnasio…" />
       <Pequeno>Hasta tres sesiones por semana, además de las de tu programa. En cada una escribe los ejercicios en orden, con repeticiones o segundos; los ejercicios por segundos tienen cronómetro.</Pequeno>
       {b.sesiones.map((s, i) => (
-        <Tarjeta key={s.id}>
+        <Tarjeta key={s.clave}>
           <Etiqueta>Sesión {s.id}</Etiqueta>
           <CampoTexto etiqueta={`Nombre de la sesión ${s.id}`} valor={s.nombre} onCambio={(t) => sesion(i, { nombre: t })} maxLength={LIMITES.nombreRutina} placeholder="Piernas, tren superior, circuito…" />
           <Opciones<number>
@@ -163,7 +175,7 @@ export function EditorRutina({ inicial, onGuardar, onCancelar }: { inicial: Ruti
           titulo="Agregar una sesión"
           variante="secundario"
           icono="add"
-          onPress={() => setB({ ...b, sesiones: [...b.sesiones, { id: IDS_SESION[b.sesiones.length], nombre: '', vueltas: 1, items: [] }] })}
+          onPress={() => setB({ ...b, sesiones: [...b.sesiones, { id: IDS_SESION[b.sesiones.length], clave: nuevaClave(), nombre: '', vueltas: 1, items: [] }] })}
         />
       ) : null}
       <CampoTexto etiqueta="Notas (opcional)" valor={b.notas} onCambio={(t) => setB({ ...b, notas: t })} multiline maxLength={LIMITES.notas} placeholder="Indicaciones de tu kinesiólogo o entrenador, pesos que usas…" />

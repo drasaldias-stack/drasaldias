@@ -21,7 +21,7 @@ const estado = (): EstadoApp => {
       cocina: { ...COCINA_INICIAL, exclusiones: ['lacteos', 'cilantro'], personas: 3 },
       ejercicio: { ...EJERCICIO_INICIAL, programa: 'fuerza_casa', materiales: ['banda', 'pesas'] },
       pauta: { origen: 'profesional', titulo: 'Pauta de mi nutricionista', comidas: [{ nombre: 'Desayuno', detalle: 'Avena con fruta' }], notas: '', enlace: '' },
-      rutina: { nombre: 'Gimnasio', sesiones: [{ id: 'A', nombre: 'Piernas', vueltas: 2, items: [{ nombre: 'Sentadilla', cantidad: 12, unidad: 'reps' }] }, { id: 'B', nombre: 'Brazos', vueltas: 1, items: [{ nombre: 'Plancha', cantidad: 40, unidad: 'seg' }] }], notas: 'Subir de a poco' },
+      rutina: { nombre: 'Gimnasio', sesiones: [{ id: 'A', clave: 'pier', nombre: 'Piernas', vueltas: 2, items: [{ nombre: 'Sentadilla', cantidad: 12, unidad: 'reps' }] }, { id: 'B', clave: 'braz', nombre: 'Brazos', vueltas: 1, items: [{ nombre: 'Plancha', cantidad: 40, unidad: 'seg' }] }], notas: 'Subir de a poco' },
     },
     clasesVistas: { c01: '2026-09-16', c02: '2026-09-23' },
     sesionesHechas: { '1-A': '2026-09-16', '2-B': '2026-09-25' },

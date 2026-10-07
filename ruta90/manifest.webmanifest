@@ -1,0 +1,30 @@
+{
+  "name": "Ruta 90",
+  "short_name": "Ruta 90",
+  "description": "Clases, ejercicio en casa y menús para cocinar una vez a la semana, para personas que están empezando.",
+  "lang": "es",
+  "start_url": "/hipotiroidismo/ruta90/",
+  "scope": "/hipotiroidismo/ruta90/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D5C63",
+  "theme_color": "#0D5C63",
+  "icons": [
+    {
+      "src": "/hipotiroidismo/ruta90/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/hipotiroidismo/ruta90/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/hipotiroidismo/ruta90/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

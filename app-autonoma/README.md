@@ -61,6 +61,16 @@ Las dependencias directas son solo las que la app importa. `@expo/ui`, `expo-gla
 
 La vía elegida es la web: una sola dirección para iPhone, Android y computador, sin tiendas.
 
+### Hoy: GitHub Pages del repositorio
+
+El repositorio es público y GitHub Pages sirve la rama `main` en `https://drasaldias-stack.github.io/hipotiroidismo/`. La app se publica como subcarpeta de ese sitio:
+
+- `npm run web:pages` (en `app-autonoma`) exporta la web con la base `/hipotiroidismo/ruta90` (variable `EXPO_BASE_URL`, leída por `app.config.js`), antepone esa base a lo que viene de `public/` (manifiesto, íconos, favicon), copia el resultado a `ruta90/` en la raíz del repositorio y deja `404.html` en la raíz: GitHub Pages lo sirve para cualquier ruta desconocida, así una ruta interna como `/ruta90/perfil` carga la app al recargar.
+- La app queda en `https://drasaldias-stack.github.io/hipotiroidismo/ruta90/` cuando esos archivos están en `main`. El flujo `.github/workflows/web-pages.yml` los regenera y los sube a `main` cada vez que cambia `app-autonoma` en esa rama (no se pudo ejecutar desde este entorno: revisar su primera corrida en la pestaña Actions).
+- Para pasar a un dominio propio basta exportar sin `EXPO_BASE_URL` (`npx expo export --platform web`) y seguir los pasos de abajo; `404.html` y `ruta90/` dejan de ser necesarios.
+
+### Con dominio propio
+
 1. `npx expo export --platform web` genera la carpeta `dist` con todo lo necesario. `public/index.html` es una plantilla: Expo reemplaza `%LANG_ISO_CODE%` y `%WEB_TITLE%`, e inserta el color (`theme-color`), la descripción, el favicon y el script del bundle; el idioma, el título, el color y la descripción salen de `app.json` (`web.lang`, `name`, `web.themeColor`, `web.description`). El resto de `public/` se copia tal cual: `manifest.webmanifest` (su `background_color` se mantiene a mano y debe coincidir con `web.themeColor`), `icons/` y `_redirects`.
 2. Subir el contenido de `dist` a un servicio de archivos estáticos con HTTPS, en la raíz de un dominio o subdominio. Las rutas de los archivos son absolutas (`/_expo/...`, `/icons/...`), así que no funciona dentro de una subcarpeta: haría falta configurar la base en Expo (opción `experiments.baseUrl`, revisar en la documentación) y además editar a mano las rutas de `public/index.html`, `manifest.webmanifest` y `_redirects`.
 3. El servicio debe devolver `index.html` para cualquier ruta (`/perfil`, `/receta/...`), porque la navegación ocurre en el navegador. El archivo `_redirects` lo configura en Netlify y en Cloudflare Pages; en otros servicios hay que crear la regla equivalente. Comprobarlo después de publicar abriendo directamente `https://tu-dominio/perfil` y recargando.

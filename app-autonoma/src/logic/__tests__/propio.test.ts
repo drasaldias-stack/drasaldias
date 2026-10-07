@@ -22,13 +22,16 @@ test('pauta propia: forma válida, límites y descarte de lo vacío', () => {
     notas: 7,
     enlace: 'javascript:alert(1)',
   })!;
-  assert.equal(p.origen, 'profesional');
-  assert.equal(p.titulo, 'Pauta de mi nutricionista');
+  assert.equal(p.origen, 'propia', 'sin origen válido se asume propia');
+  assert.equal(p.titulo, 'Mi pauta');
   assert.deepEqual(p.comidas.map((c) => c.nombre), ['Desayuno', 'Cena']);
   assert.equal(p.comidas[0].detalle, '1 taza de avena');
   assert.equal(p.comidas[1].detalle.length, 2000);
   assert.equal(p.notas, '');
   assert.equal(p.enlace, '');
+  // Caracteres de control fuera; saltos de línea y tabulaciones se conservan.
+  const control = normalizarPauta({ comidas: [{ nombre: '\u0000\u0001ab\u001f', detalle: '\u0007uno\r\ndos\tx\u0000' }] })!;
+  assert.deepEqual(control.comidas[0], { nombre: 'ab', detalle: 'uno\ndos\tx' });
   assert.equal(normalizarPauta({ comidas: [{ nombre: 'A', detalle: 'b' }], enlace: 'https://drive.google.com/x' })!.enlace, 'https://drive.google.com/x');
   const muchas = normalizarPauta({ comidas: Array.from({ length: 12 }, (_, i) => ({ nombre: `C${i}`, detalle: 'x' })) })!;
   assert.equal(muchas.comidas.length, 8);
@@ -97,6 +100,7 @@ test('estado: pauta y rutina se guardan junto al menú y al programa; un program
   assert.equal(e.perfil?.ejercicio.programa, 'desde_cero');
   assert.equal('fuente' in (e.perfil?.cocina ?? {}), false);
   assert.equal(e.perfil?.pauta?.titulo, 'Mi pauta');
+  assert.equal(normalizarPauta({ origen: 'profesional', comidas: [{ nombre: 'A', detalle: 'b' }] })!.titulo, 'Pauta de mi nutricionista');
   assert.equal(e.perfil?.rutina?.sesiones[0].items[0].unidad, 'seg');
   const sin = normalizar({ version: 1, perfil: { inicio: '2026-10-01', seguridad: evaluarSeguridad(base) } });
   assert.equal(sin.perfil?.pauta, null);

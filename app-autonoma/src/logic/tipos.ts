@@ -128,6 +128,8 @@ export type EstadoAcceso = 'ok' | 'requiere_confirmacion' | 'bloqueado';
 export type MotivoEjercicio = 'sintomas' | 'enfermedad' | 'insulina' | 'conducta';
 /** Respuestas que dejan los menús pendientes de confirmación. */
 export type MotivoAlimentacion = 'insulina';
+/** Respuestas que bloquean una sección. Se guardan para poder decidir políticas por motivo (por ejemplo, permitir la pauta de un profesional durante el embarazo). */
+export type MotivoBloqueo = 'edad' | 'embarazo' | 'conducta';
 
 export type ResultadoSeguridad = {
   apta: boolean;
@@ -135,6 +137,8 @@ export type ResultadoSeguridad = {
   ejercicio: EstadoAcceso;
   /** Qué dejó cada sección pendiente; vacío si está disponible o bloqueada. Decide el texto de la casilla de Perfil. */
   motivos: { ejercicio: MotivoEjercicio[]; alimentacion: MotivoAlimentacion[] };
+  /** Qué bloqueó cada sección; vacío si no está bloqueada. */
+  bloqueos: { ejercicio: MotivoBloqueo[]; alimentacion: MotivoBloqueo[] };
   /** Se guarda en el teléfono y nombra la condición que motivó cada restricción: es un dato de salud. */
   mensajes: string[];
 };

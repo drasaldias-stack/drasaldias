@@ -25,9 +25,11 @@ export const IDS_SESION: IdSesionRutina[] = ['A', 'B', 'C'];
 /** Las sesiones propias llevan este prefijo en su id para no chocar con las A, B y C del programa. */
 export const PREFIJO_SESION_PROPIA = 'mi-';
 
+export const TITULO_PAUTA: Record<PautaPropia['origen'], string> = { profesional: 'Pauta de mi nutricionista', propia: 'Mi pauta' };
+
 export const PAUTA_PLANTILLA: PautaPropia = {
-  origen: 'profesional',
-  titulo: 'Pauta de mi nutricionista',
+  origen: 'propia',
+  titulo: TITULO_PAUTA.propia,
   comidas: [
     { nombre: 'Desayuno', detalle: '' },
     { nombre: 'Colación', detalle: '' },
@@ -46,7 +48,8 @@ export const RUTINA_PLANTILLA: RutinaPropia = {
 };
 
 const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
-const texto = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+// Quita caracteres de control (salvo salto de línea y tabulación), que solo pueden entrar por un código de respaldo manipulado.
+const texto = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').trim().slice(0, max) : '');
 const entero = (v: unknown, min: number, max: number): number | null =>
   typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : null;
 
@@ -63,8 +66,8 @@ export function normalizarPauta(v: unknown): PautaPropia | null {
   if (comidas.length === 0) return null;
   const enlace = texto(v.enlace, LIMITES.enlace);
   return {
-    origen: v.origen === 'propia' ? 'propia' : 'profesional',
-    titulo: texto(v.titulo, LIMITES.titulo) || (v.origen === 'propia' ? 'Mi pauta' : 'Pauta de mi nutricionista'),
+    origen: v.origen === 'profesional' ? 'profesional' : 'propia',
+    titulo: texto(v.titulo, LIMITES.titulo) || TITULO_PAUTA[v.origen === 'profesional' ? 'profesional' : 'propia'],
     comidas,
     notas: texto(v.notas, LIMITES.notas),
     enlace: enlaceValido(enlace) ? enlace : '',
@@ -130,10 +133,13 @@ export function sesionesPropias(r: RutinaPropia | null, semana: number): Sesion[
   return r ? sesionesDeSemana(programaDeRutina(r), semana) : [];
 }
 
+/** Cuidado genérico que se muestra bajo cada ejercicio propio, porque la app no conoce su técnica. Pendiente de validación clínica. */
+export const CUIDADO_PROPIO = 'Técnica controlada, respira en cada repetición y detente si duele. Si usas carga, que te permita completar todas las repeticiones con buena técnica.';
+
 /** Los ejercicios de la rutina propia como catálogo: sin instrucciones ni alternativas, porque la app no los conoce. */
 export function catalogoDeRutina(r: RutinaPropia | null): Ejercicio[] {
   return (r?.sesiones ?? []).flatMap((s) =>
-    s.items.map((it, i) => ({ id: idItemRutina(s.id, i), nombre: it.nombre, tipo: 'fuerza' as const, requiere: [], instrucciones: [], cuidado: '' })),
+    s.items.map((it, i) => ({ id: idItemRutina(s.id, i), nombre: it.nombre, tipo: 'fuerza' as const, requiere: [], instrucciones: [], cuidado: CUIDADO_PROPIO })),
   );
 }
 

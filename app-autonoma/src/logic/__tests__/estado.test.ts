@@ -49,12 +49,16 @@ test('seguridad: mensajes y motivos coherentes con el estado de cada sección', 
   assert.ok(emb.mensajes.every((m) => !m.includes('Perfil')), emb.mensajes.join('\n'));
   assert.ok(emb.mensajes.some((m) => m.includes('síntomas')));
   assert.deepEqual(emb.motivos, { ejercicio: [], alimentacion: [] });
+  assert.deepEqual(emb.bloqueos, { ejercicio: ['embarazo'], alimentacion: ['embarazo'] });
 
   const ca = evaluarSeguridad({ ...base, conductaAlimentaria: true, insulinaSulfonilurea: true });
   assert.deepEqual([ca.alimentacion, ca.ejercicio], ['bloqueado', 'requiere_confirmacion']);
   const insulina = ca.mensajes.find((m) => m.startsWith('Con insulina'))!;
   assert.ok(insulina.includes('los programas') && !insulina.includes('los menús'), insulina);
   assert.deepEqual(ca.motivos, { ejercicio: ['conducta', 'insulina'], alimentacion: [] });
+  assert.deepEqual(ca.bloqueos, { ejercicio: [], alimentacion: ['conducta'] });
+  assert.deepEqual(evaluarSeguridad({ ...base, mayorEdad: false }).bloqueos, { ejercicio: ['edad'], alimentacion: ['edad'] });
+  assert.deepEqual(evaluarSeguridad(base).bloqueos, { ejercicio: [], alimentacion: [] });
 
   const ins = evaluarSeguridad({ ...base, insulinaSulfonilurea: true });
   assert.ok(ins.mensajes[0].includes('los menús y los programas'));
@@ -75,7 +79,7 @@ test('seguridad: la casilla de Perfil nombra lo que realmente hay que confirmar'
   const mixto = textosConfirmacion(evaluarSeguridad({ ...base, enfermedadConocida: true, insulinaSulfonilurea: true, conductaAlimentaria: true }), 'ejercicio');
   assert.ok(mixto.casilla.includes('autorizó') && mixto.casilla.includes('glucosa') && mixto.casilla.includes('evaluación'), mixto.casilla);
   // Estados guardados antes de que existieran los motivos: texto genérico.
-  const antiguo = textosConfirmacion({ apta: true, alimentacion: 'ok', ejercicio: 'requiere_confirmacion', motivos: { ejercicio: [], alimentacion: [] }, mensajes: [] }, 'ejercicio');
+  const antiguo = textosConfirmacion({ apta: true, alimentacion: 'ok', ejercicio: 'requiere_confirmacion', motivos: { ejercicio: [], alimentacion: [] }, bloqueos: { ejercicio: [], alimentacion: [] }, mensajes: [] }, 'ejercicio');
   assert.equal(antiguo.casilla, 'Un médico me autorizó a hacer ejercicio');
   assert.ok(textosConfirmacion(medico as never, 'alimentacion').casilla.length > 0);
 });
@@ -126,6 +130,7 @@ test('estado: preferencias con valores desconocidos vuelven a su valor inicial, 
   assert.deepEqual(n.ejercicio, EJERCICIO_INICIAL);
   assert.deepEqual(n.cocina, { ...COCINA_INICIAL, exclusiones: ['gluten'] });
   assert.deepEqual(n.seguridad.motivos, { ejercicio: ['insulina'], alimentacion: [] });
+  assert.deepEqual(n.seguridad.bloqueos, { ejercicio: [], alimentacion: [] }, 'sin bloqueos guardados: listas vacías');
   assert.equal(n.seguridad.alimentacion, 'ok');
   assert.equal(n.nombre, 'Ana');
 });

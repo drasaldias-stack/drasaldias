@@ -158,7 +158,7 @@ export default function Hoy() {
             </View>
           </>
         ) : (
-          bloqueo('ejercicio', 'Las clases y los menús sí.')
+          bloqueo('ejercicio', menuOk ? 'Las clases y los menús sí.' : 'Las clases sí.')
         )}
       </Tarjeta>
 

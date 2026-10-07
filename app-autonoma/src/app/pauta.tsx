@@ -20,7 +20,7 @@ export default function Pauta() {
     return (
       <Pantalla conBarra={false}>
         <Stack.Screen options={{ title: 'Mi pauta' }} />
-        <Texto>Esta sección no está disponible mientras los menús estén desactivados o pendientes de confirmación.</Texto>
+        <Texto>Esta sección no está disponible mientras los menús estén desactivados o pendientes de confirmación. Si un profesional te entregó una pauta, sigue esa indicación directamente.</Texto>
       </Pantalla>
     );
   }

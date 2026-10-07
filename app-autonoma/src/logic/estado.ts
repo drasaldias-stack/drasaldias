@@ -11,6 +11,7 @@ import {
   PATRONES,
   type EstadoAcceso,
   type MotivoAlimentacion,
+  type MotivoBloqueo,
   type MotivoEjercicio,
   type PautaPropia,
   type PreferenciasCocina,
@@ -77,6 +78,7 @@ const PERSONAS = [1, 2, 3, 4] as const;
 const ACCESOS: readonly EstadoAcceso[] = ['ok', 'requiere_confirmacion', 'bloqueado'];
 const MOTIVOS_EJERCICIO: readonly MotivoEjercicio[] = ['sintomas', 'enfermedad', 'insulina', 'conducta'];
 const MOTIVOS_ALIMENTACION: readonly MotivoAlimentacion[] = ['insulina'];
+const MOTIVOS_BLOQUEO: readonly MotivoBloqueo[] = ['edad', 'embarazo', 'conducta'];
 
 export function normalizarCocina(c: unknown): PreferenciasCocina {
   const o = esObjeto(c) ? c : {};
@@ -111,6 +113,7 @@ export function normalizar(crudo: unknown): EstadoApp {
     if (!esObjeto(p) || !esString(p.inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(p.inicio) || !esObjeto(p.seguridad)) return VACIO;
     const s = p.seguridad;
     const motivos = esObjeto(s.motivos) ? s.motivos : {};
+    const bloqueos = esObjeto(s.bloqueos) ? s.bloqueos : {};
     perfil = {
       nombre: esString(p.nombre) ? p.nombre : '',
       inicio: p.inicio,
@@ -121,6 +124,10 @@ export function normalizar(crudo: unknown): EstadoApp {
         motivos: {
           ejercicio: varios(motivos.ejercicio, MOTIVOS_EJERCICIO, []),
           alimentacion: varios(motivos.alimentacion, MOTIVOS_ALIMENTACION, []),
+        },
+        bloqueos: {
+          ejercicio: varios(bloqueos.ejercicio, MOTIVOS_BLOQUEO, []),
+          alimentacion: varios(bloqueos.alimentacion, MOTIVOS_BLOQUEO, []),
         },
         mensajes: Array.isArray(s.mensajes) ? s.mensajes.filter(esString) : [],
       },

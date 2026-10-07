@@ -11,7 +11,7 @@ import { RUTINA_PLANTILLA } from '@/logic/propio';
 import { textosConfirmacion } from '@/logic/seguridad';
 import type { Sesion } from '@/logic/tipos';
 import { useApp } from '@/state/app-state';
-import { accesoEjercicio, resumenSemana } from '@/state/derivados';
+import { accesoEjercicio, accesoMenu, resumenSemana } from '@/state/derivados';
 import { Aviso, Boton, Chip, Etiqueta, Fila, Pantalla, Pequeno, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
 import { AVISO_RUTINA, EditorRutina } from '@/ui/propio';
 
@@ -29,7 +29,7 @@ export default function Ejercicio() {
         <Aviso tipo={bloqueado ? 'alerta' : 'info'}>
           <Texto>
             {bloqueado
-              ? 'Por tus respuestas iniciales, los programas de ejercicio no están disponibles en esta app. Las clases y los menús sí.'
+              ? `Por tus respuestas iniciales, los programas de ejercicio no están disponibles en esta app. ${accesoMenu(perfil) ? 'Las clases y los menús sí.' : 'Las clases sí.'}`
               : `Falta un paso: cuando ${textosConfirmacion(perfil.seguridad, 'ejercicio').pendiente}, márcalo en Perfil y esta sección se activa.`}
           </Texto>
         </Aviso>
@@ -117,9 +117,10 @@ export default function Ejercicio() {
         <>
           {propias.map(({ sesion, hecha }) => tarjetaSesion(sesion, hecha, `Mi rutina · sesión ${sesion.id.replace(/^mi-/, '')}`))}
           {rutina.notas ? (
-            <Aviso tipo="info">
-              <Pequeno tono="normal">{rutina.notas}</Pequeno>
-            </Aviso>
+            <Tarjeta>
+              <Etiqueta>Tus notas</Etiqueta>
+              <Texto>{rutina.notas}</Texto>
+            </Tarjeta>
           ) : null}
           <Boton titulo="Editar mi rutina" variante="secundario" icono="create-outline" onPress={() => setEditando(true)} />
           {confirmarQuitar ? (

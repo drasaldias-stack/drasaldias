@@ -92,7 +92,7 @@ export default function Perfil() {
         </Texto>
         <Aviso tipo="info">
           <Pequeno tono="normal">
-            El código contiene información de salud (por ejemplo, si marcaste embarazo, diabetes con insulina o problemas con la comida) y tu avance. Guárdalo en un lugar privado, como las notas de tu teléfono o un correo que solo tú uses, y no lo compartas.
+            El código contiene información de salud (por ejemplo, si marcaste embarazo, diabetes con insulina o problemas con la comida), tu avance y, si las cargaste, tu pauta y tu rutina con todo lo que escribiste, incluido el enlace a tu documento. Guárdalo en un lugar privado, como las notas de tu teléfono o un correo que solo tú uses, y no lo compartas.
           </Pequeno>
         </Aviso>
         <Pequeno>{estado.respaldo.ultimo ? `Último código creado el ${estado.respaldo.ultimo.split('-').reverse().join('-')}.` : 'Todavía no has creado ningún código.'}</Pequeno>

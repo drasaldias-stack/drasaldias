@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { Linking, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
-import { enlaceValido, IDS_SESION, LIMITES, normalizarPauta, normalizarRutina } from '@/logic/propio';
+import { enlaceValido, IDS_SESION, LIMITES, normalizarPauta, normalizarRutina, TITULO_PAUTA } from '@/logic/propio';
 import type { IdSesionRutina, OrigenPauta, PautaPropia, RutinaPropia } from '@/logic/tipos';
 import { CampoTexto } from '@/ui/campos';
 import { Aviso, Boton, Etiqueta, Fila, Opciones, Pequeno, Separador, Subtitulo, Tarjeta, Texto } from '@/ui/kit';
 
 // Textos clínicos de estas pantallas: pendientes de validación por el equipo médico.
 export const AVISO_PAUTA =
-  'Ruta 90 muestra tu pauta tal como la escribes; no la revisa ni la corrige. Si la armaste tú, pídele a tu médico o nutricionista que la revise. Saltarse comidas o comer menos de tres veces al día no es recomendable sin supervisión.';
+  'Ruta 90 muestra tu pauta tal como la escribes; no la revisa ni la corrige. Si la armaste tú, pídele a tu médico o nutricionista que la revise, y no incluyas ayunos largos ni te saltes comidas sin que un profesional lo haya indicado.';
 export const AVISO_RUTINA =
-  'Ruta 90 muestra tu rutina tal como la escribes; no la revisa. Se suma a las sesiones de tu programa: si haces las dos, deja al menos un día de descanso entre sesiones de fuerza y empieza con menos vueltas de las que crees poder hacer. Mantén las señales para detenerse.';
+  'Ruta 90 muestra tu rutina tal como la escribes; no la revisa. Se suma a las sesiones de tu programa: si haces las dos, deja al menos un día de descanso entre sesiones de fuerza y empieza con menos vueltas de las que crees poder hacer. Con pesas o máquinas usa una carga con la que completes todas las repeticiones con buena técnica y sin aguantar la respiración, y súbela de a poco. Mantén las señales para detenerse.';
 
 const TEXTO_ORIGEN: Record<OrigenPauta, string> = { profesional: 'Me la entregó un profesional', propia: 'La armé yo' };
 
@@ -52,9 +52,14 @@ export function EditorPauta({ inicial, onGuardar, onCancelar }: { inicial: Pauta
         etiqueta="¿De dónde viene esta pauta?"
         opciones={(Object.keys(TEXTO_ORIGEN) as OrigenPauta[]).map((k) => ({ valor: k, texto: TEXTO_ORIGEN[k] }))}
         valor={b.origen}
-        onCambio={(v) => setB({ ...b, origen: v as OrigenPauta })}
+        onCambio={(v) => {
+          const origen = v as OrigenPauta;
+          // Si el título sigue siendo el predeterminado, se cambia junto con el origen.
+          const titulo = Object.values(TITULO_PAUTA).includes(b.titulo.trim()) ? TITULO_PAUTA[origen] : b.titulo;
+          setB({ ...b, origen, titulo });
+        }}
       />
-      <CampoTexto etiqueta="Nombre de la pauta" valor={b.titulo} onCambio={(t) => setB({ ...b, titulo: t })} maxLength={LIMITES.titulo} placeholder="Pauta de mi nutricionista" />
+      <CampoTexto etiqueta="Nombre de la pauta" valor={b.titulo} onCambio={(t) => setB({ ...b, titulo: t })} maxLength={LIMITES.titulo} placeholder={TITULO_PAUTA[b.origen]} />
       <Texto style={{ fontWeight: '700' }}>Comidas del día</Texto>
       <Pequeno>Escribe cada comida como te la indicaron: qué, cuánto y a qué hora si lo sabes. Puedes copiar el texto desde el documento. Las comidas que dejes sin detalle no se guardan.</Pequeno>
       {b.comidas.map((c, i) => (

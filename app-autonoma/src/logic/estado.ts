@@ -1,6 +1,7 @@
 import { COMPONENTES } from '../content/componentes';
 import { PROGRAMAS } from '../content/ejercicios';
 import { menuVigente, type Menu } from './menu';
+import { normalizarPauta, normalizarRutina } from './propio';
 import {
   EQUIPOS,
   EXCLUSIONES,
@@ -10,10 +11,13 @@ import {
   PATRONES,
   type EstadoAcceso,
   type MotivoAlimentacion,
+  type MotivoBloqueo,
   type MotivoEjercicio,
+  type PautaPropia,
   type PreferenciasCocina,
   type PreferenciasEjercicio,
   type ResultadoSeguridad,
+  type RutinaPropia,
 } from './tipos';
 
 // Forma del estado que se guarda en el dispositivo y su validación al cargarlo.
@@ -27,6 +31,10 @@ export type Perfil = {
   confirmaAlimentacion: boolean;
   cocina: PreferenciasCocina;
   ejercicio: PreferenciasEjercicio;
+  /** Pauta de alimentación cargada por la persona (propia o de su profesional), además del menú de la app. */
+  pauta: PautaPropia | null;
+  /** Rutina de ejercicio cargada por la persona, además del programa de la app. */
+  rutina: RutinaPropia | null;
 };
 
 export type EstadoApp = {
@@ -70,6 +78,7 @@ const PERSONAS = [1, 2, 3, 4] as const;
 const ACCESOS: readonly EstadoAcceso[] = ['ok', 'requiere_confirmacion', 'bloqueado'];
 const MOTIVOS_EJERCICIO: readonly MotivoEjercicio[] = ['sintomas', 'enfermedad', 'insulina', 'conducta'];
 const MOTIVOS_ALIMENTACION: readonly MotivoAlimentacion[] = ['insulina'];
+const MOTIVOS_BLOQUEO: readonly MotivoBloqueo[] = ['edad', 'embarazo', 'conducta'];
 
 export function normalizarCocina(c: unknown): PreferenciasCocina {
   const o = esObjeto(c) ? c : {};
@@ -104,6 +113,7 @@ export function normalizar(crudo: unknown): EstadoApp {
     if (!esObjeto(p) || !esString(p.inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(p.inicio) || !esObjeto(p.seguridad)) return VACIO;
     const s = p.seguridad;
     const motivos = esObjeto(s.motivos) ? s.motivos : {};
+    const bloqueos = esObjeto(s.bloqueos) ? s.bloqueos : {};
     perfil = {
       nombre: esString(p.nombre) ? p.nombre : '',
       inicio: p.inicio,
@@ -115,12 +125,18 @@ export function normalizar(crudo: unknown): EstadoApp {
           ejercicio: varios(motivos.ejercicio, MOTIVOS_EJERCICIO, []),
           alimentacion: varios(motivos.alimentacion, MOTIVOS_ALIMENTACION, []),
         },
+        bloqueos: {
+          ejercicio: varios(bloqueos.ejercicio, MOTIVOS_BLOQUEO, []),
+          alimentacion: varios(bloqueos.alimentacion, MOTIVOS_BLOQUEO, []),
+        },
         mensajes: Array.isArray(s.mensajes) ? s.mensajes.filter(esString) : [],
       },
       confirmaEjercicio: p.confirmaEjercicio === true,
       confirmaAlimentacion: p.confirmaAlimentacion === true,
       cocina: normalizarCocina(p.cocina),
       ejercicio: normalizarEjercicio(p.ejercicio),
+      pauta: normalizarPauta(p.pauta),
+      rutina: normalizarRutina(p.rutina),
     };
   }
   const m = crudo.menu;

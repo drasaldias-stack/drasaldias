@@ -9,6 +9,7 @@ import { usePaleta } from '@/hooks/use-paleta';
 import { listaCompras } from '@/logic/compras';
 import { MINUTOS_ORGANIZACION } from '@/logic/menu';
 import { hoyISO, SEMANAS_PROGRAMA } from '@/logic/programa';
+import { avisoVolumen } from '@/logic/propio';
 import { textoAvisoRespaldo } from '@/logic/respaldo';
 import { textosConfirmacion } from '@/logic/seguridad';
 import { useApp } from '@/state/app-state';
@@ -21,9 +22,11 @@ export default function Hoy() {
   const perfil = estado.perfil!;
   const [confirmarCiclo, setConfirmarCiclo] = useState(false);
   const terminado = programaTerminado(semana);
-  const { sesiones, caminata, diasCaminata, programa } = resumenSemana(estado, semana);
+  const { sesiones, caminata, diasCaminata, programa, propias } = resumenSemana(estado, semana);
   const proxima = sesiones.find((s) => !s.hecha);
   const hechas = sesiones.filter((s) => s.hecha).length;
+  const proximaPropia = propias.find((s) => !s.hecha);
+  const hechasPropias = propias.filter((s) => s.hecha).length;
   const clase = claseSugerida(estado, semana);
   const ejercicioOk = accesoEjercicio(perfil);
   const menuOk = accesoMenu(perfil);
@@ -118,6 +121,20 @@ export default function Hoy() {
             ) : (
               <Texto>Hiciste las tres sesiones de esta semana. La próxima semana sigue la progresión.</Texto>
             )}
+            {propias.length > 0 ? (
+              <View style={{ gap: Spacing.s, marginTop: Spacing.s }}>
+                <Fila style={{ justifyContent: 'space-between' }}>
+                  <Texto style={{ fontWeight: '700' }}>{perfil.rutina?.nombre ?? 'Mi rutina'}</Texto>
+                  <Chip texto={`${hechasPropias} de ${propias.length} ${propias.length === 1 ? 'sesión' : 'sesiones'}`} tono={hechasPropias === propias.length ? 'ok' : 'neutro'} />
+                </Fila>
+                {proximaPropia ? (
+                  <Boton titulo={`Empezar ${proximaPropia.sesion.nombre}`} variante="secundario" icono="play" onPress={() => router.push(`/sesion/${proximaPropia.sesion.id}`)} />
+                ) : (
+                  <Pequeno>Hiciste todas las sesiones de tu rutina esta semana.</Pequeno>
+                )}
+                {propias.length >= 2 ? <Pequeno>{avisoVolumen(sesiones.length, perfil.rutina)}</Pequeno> : null}
+              </View>
+            ) : null}
             <View style={{ gap: Spacing.s, marginTop: Spacing.s }}>
               <Fila style={{ justifyContent: 'space-between' }}>
                 <Fila>
@@ -143,7 +160,7 @@ export default function Hoy() {
             </View>
           </>
         ) : (
-          bloqueo('ejercicio', 'Las clases y los menús sí.')
+          bloqueo('ejercicio', menuOk ? 'Las clases y los menús sí.' : 'Las clases sí.')
         )}
       </Tarjeta>
 
@@ -174,6 +191,21 @@ export default function Hoy() {
           <Texto>Con tus filtros actuales no hay recetas suficientes. Ajusta los filtros en la pestaña Menú.</Texto>
         )}
       </Tarjeta>
+
+      {menuOk && perfil.pauta ? (
+        <Tarjeta onPress={() => router.push('/pauta')} accesible={`Tu pauta: ${perfil.pauta.titulo}`}>
+          <Etiqueta>Tu pauta</Etiqueta>
+          <Fila style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+            <View style={{ flex: 1, gap: Spacing.xs }}>
+              <Subtitulo>{perfil.pauta.titulo}</Subtitulo>
+              <Pequeno>
+                {perfil.pauta.comidas.length} {perfil.pauta.comidas.length === 1 ? 'comida' : 'comidas'} · {perfil.pauta.origen === 'profesional' ? 'entregada por un profesional' : 'armada por ti'}
+              </Pequeno>
+            </View>
+            <Ionicons aria-hidden name="chevron-forward" size={24} color={p.ink2} />
+          </Fila>
+        </Tarjeta>
+      ) : null}
 
       {avisoRespaldo ? <Pequeno>{avisoRespaldo}</Pequeno> : null}
       <Pequeno>Educación general sobre alimentación y actividad física. No reemplaza la atención de un profesional de la salud.</Pequeno>

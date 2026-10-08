@@ -51,4 +51,7 @@ export function resolverEjercicio(id: string, materiales: Material[], catalogo: 
 
 export const vueltasPorMinutos = (minutos: 10 | 20 | 30) => (minutos === 10 ? 1 : minutos === 20 ? 2 : 3);
 
+/** Vueltas de una sesión: las fijas de una rutina propia o las que salen de los minutos elegidos. */
+export const vueltasDeSesion = (sesion: Sesion, minutos: 10 | 20 | 30) => sesion.vueltas ?? vueltasPorMinutos(minutos);
+
 export const claveSesion = (semana: number, sesionId: string) => `${semanaVigente(semana)}-${sesionId}`;

@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
-import { AVISO_HIPOGLUCEMIA, CALENTAMIENTO, CONSEJOS_SESION, EJERCICIOS, PROGRAMAS, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
+import { AVISO_HIPOGLUCEMIA, CALENTAMIENTO, CONSEJOS_SESION, PROGRAMAS, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
 import { usePaleta } from '@/hooks/use-paleta';
-import { claveSesion, resolverEjercicio, semanaVigente, sesionesDeSemana, vueltasPorMinutos } from '@/logic/programa';
+import { claveSesion, resolverEjercicio, semanaVigente, sesionesDeSemana, vueltasDeSesion } from '@/logic/programa';
+import { catalogoCompleto, CUIDADO_PROPIO, esSesionPropia, letraSesionPropia, sesionesPropias } from '@/logic/propio';
 import { useApp } from '@/state/app-state';
 import { accesoEjercicio } from '@/state/derivados';
 import { Cronometro } from '@/ui/cronometro';
@@ -21,7 +22,10 @@ export default function DetalleSesion() {
   if (!estado.perfil) return <Redirect href="/bienvenida" />;
   const perfil = estado.perfil;
   const programa = PROGRAMAS[perfil.ejercicio.programa];
-  const sesion = sesionesDeSemana(programa, semana).find((s) => s.id === String(id));
+  const catalogo = catalogoCompleto(perfil.rutina);
+  // La sesión puede ser del programa de la app o de la rutina propia (ids con prefijo).
+  const propia = esSesionPropia(String(id));
+  const sesion = (propia ? sesionesPropias(perfil.rutina, semana) : sesionesDeSemana(programa, semana)).find((s) => s.id === String(id));
   if (!sesion || !accesoEjercicio(perfil)) {
     return (
       <Pantalla conBarra={false}>
@@ -29,7 +33,7 @@ export default function DetalleSesion() {
       </Pantalla>
     );
   }
-  const vueltas = vueltasPorMinutos(perfil.ejercicio.minutos);
+  const vueltas = vueltasDeSesion(sesion, perfil.ejercicio.minutos);
   const clave = claveSesion(semana, sesion.id);
   const hecha = Boolean(estado.sesionesHechas[clave]);
   const claveItem = (i: number) => `${vuelta}-${i}`;
@@ -37,14 +41,14 @@ export default function DetalleSesion() {
 
   return (
     <Pantalla conBarra={false}>
-      <Stack.Screen options={{ title: `Sesión ${sesion.id}` }} />
+      <Stack.Screen options={{ title: propia ? `Mi rutina · sesión ${letraSesionPropia(perfil.rutina, sesion.id) ?? ''}` : `Sesión ${sesion.id}` }} />
       {/* La pantalla se usa con las manos ocupadas durante 10 a 30 minutos: no debe apagarse sola. */}
       <MantenerPantalla />
       <View style={{ gap: Spacing.s }}>
-        <Etiqueta>{programa.nombre} · semana {semanaVigente(semana)}</Etiqueta>
+        <Etiqueta>{propia ? (perfil.rutina?.nombre ?? 'Mi rutina') : programa.nombre} · semana {semanaVigente(semana)}</Etiqueta>
         <Titulo>{sesion.nombre}</Titulo>
         <Fila>
-          <Chip texto={`${perfil.ejercicio.minutos} minutos`} tono="acento" />
+          {!propia ? <Chip texto={`${perfil.ejercicio.minutos} minutos`} tono="acento" /> : null}
           <Chip texto={`${vueltas} ${vueltas === 1 ? 'vuelta' : 'vueltas'}`} />
         </Fila>
       </View>
@@ -53,6 +57,7 @@ export default function DetalleSesion() {
         <Etiqueta>Calentamiento</Etiqueta>
         <Texto>{CALENTAMIENTO}</Texto>
         <Pequeno>{CONSEJOS_SESION}</Pequeno>
+        {propia ? <Pequeno>{CUIDADO_PROPIO}</Pequeno> : null}
       </Tarjeta>
 
       {perfil.seguridad.motivos.ejercicio.includes('insulina') ? (
@@ -74,7 +79,7 @@ export default function DetalleSesion() {
       )}
 
       {sesion.items.map((item, i) => {
-        const ej = resolverEjercicio(item.ejercicio, perfil.ejercicio.materiales, EJERCICIOS);
+        const ej = resolverEjercicio(item.ejercicio, perfil.ejercicio.materiales, catalogo);
         if (!ej) return null;
         const cambiado = ej.id !== item.ejercicio;
         const listo = Boolean(hechos[claveItem(i)]);
@@ -93,7 +98,7 @@ export default function DetalleSesion() {
             {ej.instrucciones.map((t) => (
               <Texto key={t}>{`•  ${t}`}</Texto>
             ))}
-            <Pequeno>{ej.cuidado}</Pequeno>
+            {ej.cuidado ? <Pequeno>{ej.cuidado}</Pequeno> : null}
             <Pressable
               accessibilityRole="checkbox"
               accessibilityState={{ checked: listo }}

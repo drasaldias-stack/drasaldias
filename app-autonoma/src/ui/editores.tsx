@@ -91,6 +91,7 @@ export function EditorEjercicio({ valor, onCambio }: { valor: PreferenciasEjerci
           onCambio={(v) => onCambio({ ...valor, programa: v as ProgramaId })}
         />
         <Pequeno>{programa.paraQuien}</Pequeno>
+        <Pequeno>Si además tienes tu propia rutina (del gimnasio, de tu kinesiólogo o armada por ti), puedes agregarla en la pestaña Ejercicio.</Pequeno>
       </View>
       <Opciones<10 | 20 | 30>
         etiqueta="¿Cuánto dura cada sesión?"

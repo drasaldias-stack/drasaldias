@@ -7,11 +7,13 @@ import { Spacing } from '@/constants/theme';
 import { COMPONENTES, componentePorId } from '@/content/componentes';
 import { usePaleta } from '@/hooks/use-paleta';
 import { cambiarComponente, diasDelMenu, MINUTOS_ORGANIZACION, ordenSesion } from '@/logic/menu';
+import { textosConfirmacion } from '@/logic/seguridad';
 import type { Rol } from '@/logic/tipos';
 import { useApp } from '@/state/app-state';
 import { accesoMenu } from '@/state/derivados';
 import { EditorCocina, TEXTO_EQUIPO, TEXTO_EXCLUSION } from '@/ui/editores';
 import { Aviso, Boton, Chip, Etiqueta, Fila, Pantalla, Pequeno, Separador, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { PRIORIDAD_PAUTA } from '@/ui/propio';
 
 const NOMBRE_ROL: Record<Rol, string> = {
   proteina: 'Proteína',
@@ -38,12 +40,34 @@ export default function MenuSemana() {
           <Texto>
             {perfil.seguridad.alimentacion === 'bloqueado'
               ? 'Por tus respuestas iniciales, los menús no están disponibles en esta app. Te recomendamos la orientación de un profesional.'
-              : 'Antes de usar los menús, habla con tu médico por los medicamentos que usas. Cuando lo hayas hecho, confírmalo en Perfil.'}
+              : `Falta un paso: cuando ${textosConfirmacion(perfil.seguridad, 'alimentacion').pendiente}, márcalo en Perfil y esta sección se activa.`}
           </Texto>
         </Aviso>
       </Pantalla>
     );
   }
+
+  const tarjetaPauta = perfil.pauta ? (
+    <Tarjeta onPress={() => router.push('/pauta')} accesible={`Tu pauta: ${perfil.pauta.titulo}`}>
+      <Fila style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+        <View style={{ flex: 1, gap: Spacing.xs }}>
+          <Etiqueta>Además del menú · tu pauta</Etiqueta>
+          <Subtitulo>{perfil.pauta.titulo}</Subtitulo>
+          <Pequeno>
+            {perfil.pauta.comidas.length} {perfil.pauta.comidas.length === 1 ? 'comida' : 'comidas'} · {perfil.pauta.origen === 'profesional' ? 'entregada por un profesional' : 'armada por ti'}
+          </Pequeno>
+          <Pequeno>{PRIORIDAD_PAUTA[perfil.pauta.origen]}</Pequeno>
+        </View>
+        <Ionicons aria-hidden name="chevron-forward" size={24} color={p.ink2} />
+      </Fila>
+    </Tarjeta>
+  ) : (
+    <Tarjeta>
+      <Etiqueta>Además del menú</Etiqueta>
+      <Texto>¿Tienes una pauta de tu nutricionista o una que armaste tú? Guárdala aquí para tenerla a mano junto con el menú.</Texto>
+      <Boton titulo="Agregar mi pauta" variante="secundario" icono="create-outline" onPress={() => router.push('/pauta')} />
+    </Tarjeta>
+  );
 
   const resumenFiltros = [
     `${prefs.minutos} min`,
@@ -70,6 +94,8 @@ export default function MenuSemana() {
         <Etiqueta>Cocina una vez, come 5 días</Etiqueta>
         <Titulo>Menú de la semana</Titulo>
       </View>
+
+      {tarjetaPauta}
 
       <Tarjeta>
         <Pressable

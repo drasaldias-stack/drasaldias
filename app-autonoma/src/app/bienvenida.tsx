@@ -85,6 +85,8 @@ export default function Bienvenida() {
       confirmaAlimentacion: false,
       cocina,
       ejercicio,
+      pauta: null,
+      rutina: null,
     });
     router.replace('/');
   };
@@ -141,7 +143,7 @@ export default function Bienvenida() {
       <Pantalla key={paso}>
         <Etiqueta>Código de respaldo</Etiqueta>
         <Titulo>Recupera tu avance</Titulo>
-        <Texto tono="suave">Pega el código de respaldo que creaste en Perfil en tu otro navegador o teléfono. Se restauran tus respuestas, tus preferencias y el avance que tenías el día en que creaste el código.</Texto>
+        <Texto tono="suave">Pega el código de respaldo que creaste en Perfil en tu otro navegador o teléfono. Se restauran tus respuestas, tus preferencias, tu pauta y tu rutina si las tenías, y el avance que tenías el día en que creaste el código.</Texto>
         <RestaurarRespaldo
           alRestaurar={(e) => {
             recienGuardado.current = true;

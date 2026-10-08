@@ -1,4 +1,4 @@
-import type { EstadoAcceso, MotivoAlimentacion, MotivoEjercicio, RespuestasSeguridad, ResultadoSeguridad } from './tipos';
+import type { EstadoAcceso, MotivoAlimentacion, MotivoBloqueo, MotivoEjercicio, RespuestasSeguridad, ResultadoSeguridad } from './tipos';
 
 // Filtro de ingreso. Sigue el modelo de evaluación previa al ejercicio del ACSM
 // (síntomas y enfermedad cardiovascular, metabólica o renal conocida)
@@ -7,12 +7,14 @@ import type { EstadoAcceso, MotivoAlimentacion, MotivoEjercicio, RespuestasSegur
 // aunque no salgan del teléfono.
 export function evaluarSeguridad(r: RespuestasSeguridad): ResultadoSeguridad {
   const motivos = { ejercicio: [] as MotivoEjercicio[], alimentacion: [] as MotivoAlimentacion[] };
+  const bloqueos = { ejercicio: [] as MotivoBloqueo[], alimentacion: [] as MotivoBloqueo[] };
   if (!r.mayorEdad) {
     return {
       apta: false,
       alimentacion: 'bloqueado',
       ejercicio: 'bloqueado',
       motivos,
+      bloqueos: { ejercicio: ['edad'], alimentacion: ['edad'] },
       mensajes: ['Esta app es para personas de 18 años o más.'],
     };
   }
@@ -24,12 +26,15 @@ export function evaluarSeguridad(r: RespuestasSeguridad): ResultadoSeguridad {
   if (r.embarazoLactancia) {
     alimentacion = 'bloqueado';
     ejercicio = 'bloqueado';
+    bloqueos.alimentacion.push('embarazo');
+    bloqueos.ejercicio.push('embarazo');
     mensajes.push(
       'Durante el embarazo y la lactancia cambian las necesidades de alimentación y ejercicio. Los menús y los programas quedan desactivados; las clases siguen disponibles como información general.',
     );
   }
   if (r.conductaAlimentaria) {
     alimentacion = 'bloqueado';
+    bloqueos.alimentacion.push('conducta');
     if (ejercicio !== 'bloqueado') {
       ejercicio = 'requiere_confirmacion';
       motivos.ejercicio.push('conducta');
@@ -79,7 +84,7 @@ export function evaluarSeguridad(r: RespuestasSeguridad): ResultadoSeguridad {
       );
     }
   }
-  return { apta: true, alimentacion, ejercicio, motivos, mensajes };
+  return { apta: true, alimentacion, ejercicio, motivos, bloqueos, mensajes };
 }
 
 export type Confirmaciones = { ejercicio: boolean; alimentacion: boolean };

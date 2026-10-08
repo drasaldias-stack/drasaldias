@@ -83,14 +83,20 @@ export type Ejercicio = {
 
 export type ItemSesion = { ejercicio: string; cantidad: number; unidad: 'reps' | 'seg' };
 
-export type Sesion = { id: string; nombre: string; items: ItemSesion[] };
+export type Sesion = {
+  id: string;
+  nombre: string;
+  items: ItemSesion[];
+  /** Solo en rutinas propias: vueltas fijas. En los programas de la app las vueltas salen de los minutos elegidos. */
+  vueltas?: number;
+};
 
 export type Bloque = { semanas: [number, number]; sesiones: Sesion[] };
 
 export type ProgramaId = 'desde_cero' | 'fuerza_casa' | 'bajo_impacto';
 
 export type Programa = {
-  id: ProgramaId;
+  id: ProgramaId | 'propio';
   nombre: string;
   paraQuien: string;
   bloques: Bloque[];
@@ -122,6 +128,8 @@ export type EstadoAcceso = 'ok' | 'requiere_confirmacion' | 'bloqueado';
 export type MotivoEjercicio = 'sintomas' | 'enfermedad' | 'insulina' | 'conducta';
 /** Respuestas que dejan los menús pendientes de confirmación. */
 export type MotivoAlimentacion = 'insulina';
+/** Respuestas que bloquean una sección. Se guardan para poder decidir políticas por motivo (por ejemplo, permitir la pauta de un profesional durante el embarazo). */
+export type MotivoBloqueo = 'edad' | 'embarazo' | 'conducta';
 
 export type ResultadoSeguridad = {
   apta: boolean;
@@ -129,6 +137,8 @@ export type ResultadoSeguridad = {
   ejercicio: EstadoAcceso;
   /** Qué dejó cada sección pendiente; vacío si está disponible o bloqueada. Decide el texto de la casilla de Perfil. */
   motivos: { ejercicio: MotivoEjercicio[]; alimentacion: MotivoAlimentacion[] };
+  /** Qué bloqueó cada sección; vacío si no está bloqueada. */
+  bloqueos: { ejercicio: MotivoBloqueo[]; alimentacion: MotivoBloqueo[] };
   /** Se guarda en el teléfono y nombra la condición que motivó cada restricción: es un dato de salud. */
   mensajes: string[];
 };
@@ -158,4 +168,29 @@ export type PreferenciasEjercicio = {
   programa: ProgramaId;
   minutos: (typeof MINUTOS_EJERCICIO)[number];
   materiales: Material[];
+};
+
+// ---------- Pauta y rutina propias ----------
+// Se suman al menú y al programa de la app, no los reemplazan.
+// La app las muestra tal como la persona las escribe: no las revisa ni las corrige.
+
+export type OrigenPauta = 'profesional' | 'propia';
+export type ComidaPauta = { nombre: string; detalle: string };
+export type PautaPropia = {
+  origen: OrigenPauta;
+  titulo: string;
+  comidas: ComidaPauta[];
+  notas: string;
+  /** Dirección del documento original (PDF o foto guardados en la nube), opcional. */
+  enlace: string;
+};
+
+export type IdSesionRutina = 'A' | 'B' | 'C';
+export type ItemRutina = { nombre: string; cantidad: number; unidad: 'reps' | 'seg' };
+/** `id` es la letra por posición (A, B, C) para mostrar; `clave` es estable y es la que usan las marcas de sesión hecha. */
+export type SesionRutina = { id: IdSesionRutina; clave: string; nombre: string; vueltas: number; items: ItemRutina[] };
+export type RutinaPropia = {
+  nombre: string;
+  sesiones: SesionRutina[];
+  notas: string;
 };

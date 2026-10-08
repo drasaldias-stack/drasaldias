@@ -38,7 +38,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "tsx --test src/logic/__tests__/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "web:pages": "node scripts/publicar-pages.js"
   },
   "private": true
 }

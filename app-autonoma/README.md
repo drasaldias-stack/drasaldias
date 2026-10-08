@@ -9,9 +9,11 @@ Aplicación web (Expo SDK 57, React Native para web, Expo Router) para personas 
 - **Ejercicio.** Tres programas de 12 semanas (Desde cero, Fuerza en casa, Bajo impacto), en cuatro bloques de 3 semanas con tres sesiones cada uno. Las sesiones de 10, 20 o 30 minutos cambian el número de vueltas. Si falta un material, el ejercicio se reemplaza por su alternativa. La pantalla de sesión mantiene el teléfono encendido (en web con la API Screen Wake Lock cuando el navegador la ofrece; en iOS y Android con `expo-keep-awake`), tiene cronómetro para los ejercicios por segundos, marca por ejercicio y por vuelta, y una meta de caminata semanal que progresa.
 - **Menú por componentes (cocina por tandas).** Arma una sesión de cocina semanal que rinde 5 almuerzos o cenas y 5 desayunos, filtrando por tiempo (60, 90 o 120 min), equipamiento, patrón (omnívoro o vegetariano), exclusiones y número de personas. Reparte los días según cuánto dura cada preparación en el refrigerador, contados desde el día en que se cocina, e indica qué congelar. Permite cambiar una receta o pedir otra combinación.
 - **Lista de compras** agregada, redondeada hacia arriba, por categoría y con casillas.
+- **Pauta propia, además del menú.** Desde Menú (y desde Hoy cuando existe) la persona guarda su propia pauta: la que le entregó su nutricionista o una armada por ella. Se escribe por comidas (nombre y detalle), con indicaciones generales y un enlace opcional al documento original, y se ve en una pantalla aparte. El menú de Ruta 90 y la lista de compras siguen disponibles igual. La app muestra la pauta tal como se escribe, no la revisa ni la corrige, y lo dice en pantalla.
+- **Rutina propia, además del programa.** En la pestaña Ejercicio se puede agregar una rutina propia (del gimnasio, del kinesiólogo o armada por la persona): hasta tres sesiones por semana con ejercicios escritos por ella (nombre, repeticiones o segundos, vueltas). Sus sesiones aparecen junto a las del programa, con ids `mi-A`, `mi-B` y `mi-C`, se marcan por semana igual que las del programa y usan la misma pantalla de sesión (cronómetro para los segundos, marcas por ejercicio y por vuelta, señales para detenerse), sin instrucciones ni alternativas por material porque la app no conoce esos ejercicios. La meta de caminata sigue siendo la del programa.
 - **Código de respaldo.** Desde Perfil se genera un texto que contiene todo el estado (respuestas, preferencias y avance hasta ese día) y se puede pegar en otro navegador o teléfono, desde la pantalla de inicio o desde Perfil. El código no se actualiza solo: la app pide crear uno nuevo cada cierto tiempo (Hoy lo recuerda hasta el primer código y cuando el último tiene más de dos semanas) y, al restaurar encima de un avance existente, muestra cuánto avance tiene cada uno antes de confirmar. Sin cuentas, es la única forma de mover el avance.
 
-La app no genera recetas con inteligencia artificial: solo combina contenido revisado.
+La app no genera recetas con inteligencia artificial: solo combina contenido revisado. La pauta y la rutina propias están sujetas al mismo filtro de seguridad que los menús y los programas: si los menús o el ejercicio están desactivados o pendientes de confirmación, tampoco se puede cargar una pauta o una rutina. Es una decisión conservadora que la médica puede revisar (por ejemplo, permitir la pauta de un profesional durante el embarazo y mantener el bloqueo en conducta alimentaria): el resultado del filtro guarda ahora el motivo de cada bloqueo (`bloqueos` en `src/logic/tipos.ts`: edad, embarazo o conducta), así que una política por motivo se puede aplicar en `accesoMenu` sin volver a preguntar.
 
 ## Estructura
 
@@ -27,9 +29,9 @@ src/
     +not-found.tsx     Ruta desconocida
   constants/           Paleta y direcciones legales (URL_PRIVACIDAD, URL_CONDICIONES)
   content/             CONTENIDO EDITABLE: recetas, ejercicios y programas, clases
-  logic/               Lógica pura y probada: seguridad, menú, compras, programa, estado guardado, código de respaldo
+  logic/               Lógica pura y probada: seguridad, menú, compras, programa, pauta y rutina propias, estado guardado, código de respaldo
   state/               Estado guardado en el dispositivo (AsyncStorage) y acciones
-  ui/                  Componentes visuales
+  ui/                  Componentes visuales (kit, editores de preferencias, campos de texto, pauta y rutina propias, respaldo)
 public/                Se copia tal cual a la exportación web: cáscara HTML, manifiesto, íconos y reglas de redirección
 ```
 
@@ -38,7 +40,7 @@ public/                Se copia tal cual a la exportación web: cáscara HTML, m
 Todo el contenido está en `src/content/` y está marcado como **contenido de ejemplo**: el equipo clínico debe revisarlo antes de publicar. Las cantidades, los días de refrigeración, las temperaturas de cocción y las afirmaciones de las clases fueron revisadas una vez en esta base, pero la aprobación final es de la médica.
 
 - `componentes.ts`: cada receta tiene su función en el plato (`rol`), patrones, equipos, exclusiones (`contiene`, que es lo único que mira el filtro), minutos de trabajo y totales, días que dura refrigerada, si se puede congelar, porciones e ingredientes por persona.
-- `ejercicios.ts`: ejercicios (con su alternativa si falta material), los tres programas, la progresión de caminata y los textos de seguridad de la sesión.
+- `ejercicios.ts`: ejercicios (con su alternativa si falta material), los tres programas, la progresión de caminata y los textos de seguridad de la sesión. Los avisos de la pauta y la rutina propias (`AVISO_PAUTA`, `AVISO_RUTINA`) están en `src/ui/propio.tsx` y también deben validarse clínicamente.
 - `clases.ts`: guiones de las 12 clases. Para agregar un video, completa `videoUrl` con la dirección del archivo alojado (por ejemplo en Cloudflare Stream, Mux, Bunny o Vimeo). Al reproducir un video alojado, el dispositivo se conecta a ese proveedor, que recibe la dirección IP y qué video se pidió: hay que incluirlo en la política de privacidad y desactivar la analítica de espectadores si el proveedor la ofrece.
 
 Después de editar, corre las pruebas: comprueban que todas las combinaciones de filtros sigan armando un menú válido, que ningún ingrediente use dos unidades distintas y que ninguna sesión repita un ejercicio con cualquier combinación de materiales.
@@ -58,6 +60,16 @@ Las dependencias directas son solo las que la app importa. `@expo/ui`, `expo-gla
 ## Publicar en web
 
 La vía elegida es la web: una sola dirección para iPhone, Android y computador, sin tiendas.
+
+### Hoy: GitHub Pages del repositorio
+
+El repositorio es público y GitHub Pages sirve la rama `main` en `https://drasaldias-stack.github.io/hipotiroidismo/`. La app se publica como subcarpeta de ese sitio:
+
+- `npm run web:pages` (en `app-autonoma`) exporta la web con la base `/hipotiroidismo/ruta90` (variable `EXPO_BASE_URL`, leída por `app.config.js`), antepone esa base a lo que viene de `public/` (manifiesto, íconos, favicon), copia el resultado a `ruta90/` en la raíz del repositorio y deja `404.html` en la raíz: GitHub Pages lo sirve para cualquier ruta desconocida, así una ruta interna como `/ruta90/perfil` carga la app al recargar.
+- La app queda en `https://drasaldias-stack.github.io/hipotiroidismo/ruta90/` cuando esos archivos están en `main`. El flujo `.github/workflows/web-pages.yml` los regenera y los sube a `main` cada vez que cambia `app-autonoma` en esa rama (no se pudo ejecutar desde este entorno: revisar su primera corrida en la pestaña Actions).
+- Para pasar a un dominio propio basta exportar sin `EXPO_BASE_URL` (`npx expo export --platform web`) y seguir los pasos de abajo; `404.html` y `ruta90/` dejan de ser necesarios.
+
+### Con dominio propio
 
 1. `npx expo export --platform web` genera la carpeta `dist` con todo lo necesario. `public/index.html` es una plantilla: Expo reemplaza `%LANG_ISO_CODE%` y `%WEB_TITLE%`, e inserta el color (`theme-color`), la descripción, el favicon y el script del bundle; el idioma, el título, el color y la descripción salen de `app.json` (`web.lang`, `name`, `web.themeColor`, `web.description`). El resto de `public/` se copia tal cual: `manifest.webmanifest` (su `background_color` se mantiene a mano y debe coincidir con `web.themeColor`), `icons/` y `_redirects`.
 2. Subir el contenido de `dist` a un servicio de archivos estáticos con HTTPS, en la raíz de un dominio o subdominio. Las rutas de los archivos son absolutas (`/_expo/...`, `/icons/...`), así que no funciona dentro de una subcarpeta: haría falta configurar la base en Expo (opción `experiments.baseUrl`, revisar en la documentación) y además editar a mano las rutas de `public/index.html`, `manifest.webmanifest` y `_redirects`.
@@ -80,7 +92,7 @@ Qué ve el servicio de alojamiento: solo las peticiones de archivos (dirección 
 - No hay cuentas ni servidor propio. El estado (perfil, preferencias, avances, menú de la semana) se guarda con AsyncStorage; en web, en localStorage.
 - `android.allowBackup` está en `false` para que Android no copie ese estado al respaldo en la nube. En iOS, AsyncStorage excluye su carpeta del respaldo de iCloud por defecto (no agregar `RCTAsyncStorageExcludeFromBackup: false` al `infoPlist`). Por eso el avance no se recupera al cambiar de teléfono en ninguna de las dos plataformas, y la app lo dice en Perfil. Queda por confirmar en la documentación de Android si en Android 12 o superior hace falta además `dataExtractionRules` para bloquear la transferencia directa entre dispositivos.
 - `android.blockedPermissions` quita del manifiesto los permisos de la plantilla que la app no usa (ventanas sobre otras apps y almacenamiento externo). El de vibración se mantiene porque el cronómetro vibra al terminar.
-- El código de respaldo contiene el estado completo, incluido el resultado del filtro de seguridad con los avisos que nombran condiciones; la app lo advierte junto al botón que lo crea y recomienda guardarlo en un lugar privado sin compartirlo. Si la persona lo guarda en un servicio (notas en la nube, correo), ese servicio lo tendrá.
+- El código de respaldo contiene el estado completo: el resultado del filtro de seguridad con los avisos que nombran condiciones y, si existen, la pauta y la rutina propias con todo el texto libre que la persona escribió (puede incluir dosis, pesos o diagnósticos) y el enlace a su documento. La app lo advierte junto al botón que lo crea y recomienda guardarlo en un lugar privado sin compartirlo. Si la persona lo guarda en un servicio (notas en la nube, correo), ese servicio lo tendrá. Un enlace «compartido con cualquiera» de la nube queda accesible para quien tenga el código. Al abrir ese enlace desde la app, el proveedor del documento recibe la petición como cualquier visita; la cáscara HTML declara `referrer: no-referrer` para no enviarle la dirección de la app.
 - Al cargar, un estado guardado que no pasa la validación de `src/logic/estado.ts` se elimina del dispositivo. Un menú guardado con forma inválida se descarta solo y se vuelve a generar; una preferencia con un valor desconocido vuelve a su valor inicial sin perder el resto.
 - Mientras `URL_PRIVACIDAD` y `URL_CONDICIONES` (en `src/constants/enlaces.ts`) sean `null`, la app no muestra los enlaces. Antes de publicar deben apuntar a páginas reales.
 

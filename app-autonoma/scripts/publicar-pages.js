@@ -1,12 +1,13 @@
 // Exporta la web para el sitio de GitHub Pages del repositorio y deja la copia en la RAÍZ del repositorio
 // (Pages sirve main desde / sin ninguna configuración adicional). La base es /<nombre del repositorio>; el flujo de
 // GitHub Actions la toma del nombre real, así que renombrar el repositorio no exige cambiar código.
-// Uso local: EXPO_BASE_URL=/ruta90 node scripts/publicar-pages.js
+// Uso local: EXPO_BASE_URL=/<nombre-del-repositorio> node scripts/publicar-pages.js
+// (sin la variable se usa /drasaldias, el nombre actual del repositorio).
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const BASE = (process.env.EXPO_BASE_URL || '/ruta90').replace(/\/+$/, '');
+const BASE = (process.env.EXPO_BASE_URL || '/drasaldias').replace(/\/+$/, '');
 const raiz = path.resolve(__dirname, '..');
 const repo = path.resolve(raiz, '..');
 const dist = path.join(raiz, 'dist');

@@ -1,6 +1,6 @@
-// Exporta la web para el sitio de GitHub Pages del repositorio y deja la copia en la carpeta docs/ de la raíz
-// (Pages se configura para servir main → /docs). La base es /<nombre del repositorio>; el flujo de GitHub
-// Actions la toma del nombre real, así que renombrar el repositorio no exige cambiar código.
+// Exporta la web para el sitio de GitHub Pages del repositorio y deja la copia en la RAÍZ del repositorio
+// (Pages sirve main desde / sin ninguna configuración adicional). La base es /<nombre del repositorio>; el flujo de
+// GitHub Actions la toma del nombre real, así que renombrar el repositorio no exige cambiar código.
 // Uso local: EXPO_BASE_URL=/ruta90 node scripts/publicar-pages.js
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -10,7 +10,8 @@ const BASE = (process.env.EXPO_BASE_URL || '/ruta90').replace(/\/+$/, '');
 const raiz = path.resolve(__dirname, '..');
 const repo = path.resolve(raiz, '..');
 const dist = path.join(raiz, 'dist');
-const destino = path.join(repo, process.env.PAGES_DIR || 'docs');
+// Lo único que se escribe en la raíz del repositorio: se borra y se vuelve a copiar en cada publicación.
+const ARTEFACTOS = ['index.html', '404.html', '.nojekyll', 'manifest.webmanifest', 'favicon.ico', '_expo', 'assets', 'icons'];
 
 fs.rmSync(dist, { recursive: true, force: true });
 execSync('npx expo export --platform web', { cwd: raiz, stdio: 'inherit', env: { ...process.env, CI: '1', EXPO_BASE_URL: BASE } });
@@ -27,17 +28,15 @@ m.icons = m.icons.map((i) => ({ ...i, src: `${BASE}${i.src}` }));
 fs.writeFileSync(manifiesto, JSON.stringify(m, null, 2) + '\n');
 fs.rmSync(path.join(dist, '_redirects'), { force: true });
 fs.rmSync(path.join(dist, 'metadata.json'), { force: true });
-
-fs.rmSync(destino, { recursive: true, force: true });
-fs.cpSync(dist, destino, { recursive: true });
 // GitHub Pages sirve 404.html para cualquier ruta desconocida: así /perfil carga la app al recargar.
-fs.copyFileSync(index, path.join(destino, '404.html'));
+fs.copyFileSync(index, path.join(dist, '404.html'));
 // Sin .nojekyll, Pages procesa el sitio con Jekyll y omite las carpetas que empiezan con guion bajo (_expo)
 // y las rutas con node_modules (la fuente de los íconos): la página abre pero la app nunca carga.
-fs.writeFileSync(path.join(destino, '.nojekyll'), '');
-// Lo demás que ya se publicaba en el sitio sigue disponible bajo la misma carpeta.
-for (const extra of ['prototipo', 'hipotiroidismo_infografia.html']) {
-  const origen = path.join(repo, extra);
-  if (fs.existsSync(origen)) fs.cpSync(origen, path.join(destino, extra), { recursive: true });
+fs.writeFileSync(path.join(dist, '.nojekyll'), '');
+
+for (const nombre of ARTEFACTOS) fs.rmSync(path.join(repo, nombre), { recursive: true, force: true });
+for (const nombre of fs.readdirSync(dist)) {
+  if (!ARTEFACTOS.includes(nombre)) throw new Error(`La exportación produjo "${nombre}", que no está en la lista de artefactos; revisar el script antes de publicar.`);
+  fs.cpSync(path.join(dist, nombre), path.join(repo, nombre), { recursive: true });
 }
-console.log(`Publicado en ${destino} (base ${BASE})`);
+console.log(`Publicado en la raíz de ${repo} (base ${BASE}): ${ARTEFACTOS.join(', ')}`);

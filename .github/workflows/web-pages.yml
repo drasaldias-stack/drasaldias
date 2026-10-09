@@ -1,5 +1,5 @@
-# Reconstruye la copia publicada de la app web (carpeta docs/) cada vez que cambia app-autonoma o prototipo en main.
-# GitHub Pages se configura para servir la rama main desde /docs, así que el commit que hace este flujo es lo que se publica.
+# Reconstruye la copia publicada de la app web (en la raíz del repositorio) cada vez que cambia app-autonoma en main.
+# GitHub Pages sirve la rama main desde la raíz, así que el commit que hace este flujo es lo que se publica.
 # La base de la app es /<nombre del repositorio>: renombrar el repositorio no exige cambiar nada aquí.
 name: Publicar web en GitHub Pages
 
@@ -8,8 +8,6 @@ on:
     branches: [main]
     paths:
       - 'app-autonoma/**'
-      - 'prototipo/**'
-      - 'hipotiroidismo_infografia.html'
       - '!app-autonoma/README.md'
   workflow_dispatch:
 
@@ -46,5 +44,5 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A docs
+          git add -A index.html 404.html .nojekyll manifest.webmanifest favicon.ico _expo assets icons
           if git diff --cached --quiet; then echo "Sin cambios que publicar"; else git commit -m "Publicar la app web en GitHub Pages" && git push; fi

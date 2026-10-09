@@ -24,26 +24,38 @@ for (const marca of [path.join('.github', 'workflows', 'web-pages.yml'), path.jo
   if (!fs.existsSync(path.join(repo, marca))) throw new Error(`${repo} no parece la raíz del repositorio (falta ${marca}); no se borra nada.`);
 }
 
-fs.rmSync(dist, { recursive: true, force: true });
-execSync('npx expo export --platform web', { cwd: raiz, stdio: 'inherit', env: { ...process.env, CI: '1', EXPO_BASE_URL: BASE } });
+// --solo-copiar: no vuelve a exportar; valida y copia a la raíz lo que ya hay en dist. Lo usa el flujo de Actions
+// para rehacer el commit sobre la punta de la rama cuando esta avanzó mientras exportaba.
+const soloCopiar = process.argv.includes('--solo-copiar');
+if (soloCopiar) {
+  if (!fs.existsSync(dist)) throw new Error(`No existe ${dist}; ejecutar primero el script sin --solo-copiar.`);
+} else {
+  exportar();
+}
 
-// Lo que viene de public/ no lo reescribe Expo: se le antepone la base a mano.
-const conBase = (texto) => texto.replace(/(href|src|content)="\/(manifest\.webmanifest|icons\/|favicon\.ico)/g, `$1="${BASE}/$2`);
-const index = path.join(dist, 'index.html');
-fs.writeFileSync(index, conBase(fs.readFileSync(index, 'utf8')));
-const manifiesto = path.join(dist, 'manifest.webmanifest');
-const m = JSON.parse(fs.readFileSync(manifiesto, 'utf8'));
-m.start_url = `${BASE}/`;
-m.scope = `${BASE}/`;
-m.icons = m.icons.map((i) => ({ ...i, src: `${BASE}${i.src}` }));
-fs.writeFileSync(manifiesto, JSON.stringify(m, null, 2) + '\n');
-fs.rmSync(path.join(dist, '_redirects'), { force: true });
-fs.rmSync(path.join(dist, 'metadata.json'), { force: true });
-// GitHub Pages sirve 404.html para cualquier ruta desconocida: así /perfil carga la app al recargar.
-fs.copyFileSync(index, path.join(dist, '404.html'));
-// Sin .nojekyll, Pages procesa el sitio con Jekyll y omite las carpetas que empiezan con guion bajo, entre ellas
-// _expo, donde está el código: la página abre pero la app nunca carga.
-fs.writeFileSync(path.join(dist, '.nojekyll'), '');
+function exportar() {
+  fs.rmSync(dist, { recursive: true, force: true });
+  execSync('npx expo export --platform web', { cwd: raiz, stdio: 'inherit', env: { ...process.env, CI: '1', EXPO_BASE_URL: BASE } });
+
+  // Lo que viene de public/ (manifiesto e íconos) no lo reescribe Expo: se le antepone la base a mano.
+  // El favicon lo genera Expo desde app.json y ya sale con la base.
+  const conBase = (texto) => texto.replace(/(href|src|content)="\/(manifest\.webmanifest|icons\/)/g, `$1="${BASE}/$2`);
+  const index = path.join(dist, 'index.html');
+  fs.writeFileSync(index, conBase(fs.readFileSync(index, 'utf8')));
+  const manifiesto = path.join(dist, 'manifest.webmanifest');
+  const m = JSON.parse(fs.readFileSync(manifiesto, 'utf8'));
+  m.start_url = `${BASE}/`;
+  m.scope = `${BASE}/`;
+  m.icons = m.icons.map((i) => ({ ...i, src: `${BASE}${i.src}` }));
+  fs.writeFileSync(manifiesto, JSON.stringify(m, null, 2) + '\n');
+  fs.rmSync(path.join(dist, '_redirects'), { force: true });
+  fs.rmSync(path.join(dist, 'metadata.json'), { force: true });
+  // GitHub Pages sirve 404.html para cualquier ruta desconocida: así /perfil carga la app al recargar.
+  fs.copyFileSync(index, path.join(dist, '404.html'));
+  // Sin .nojekyll, Pages procesa el sitio con Jekyll y omite las carpetas que empiezan con guion bajo, entre ellas
+  // _expo, donde está el código: la página abre pero la app nunca carga.
+  fs.writeFileSync(path.join(dist, '.nojekyll'), '');
+}
 
 // La exportación se comprueba completa ANTES de borrar nada en la raíz: si trae algo fuera de la lista (por ejemplo
 // un CNAME nuevo en public/) o le falta un artefacto, el script se detiene y la copia publicada queda intacta.
@@ -54,4 +66,8 @@ const faltan = ARTEFACTOS.filter((nombre) => !producidos.includes(nombre));
 if (faltan.length > 0) throw new Error(`La exportación no produjo ${faltan.join(', ')}; revisar el script antes de publicar.`);
 for (const nombre of ARTEFACTOS) fs.rmSync(path.join(repo, nombre), { recursive: true, force: true });
 for (const nombre of producidos) fs.cpSync(path.join(dist, nombre), path.join(repo, nombre), { recursive: true });
-console.log(`Publicado en la raíz de ${repo} (base ${BASE || '/'}): ${ARTEFACTOS.join(', ')}`);
+console.log(
+  soloCopiar
+    ? `Copiado ${dist} a la raíz de ${repo}: ${ARTEFACTOS.join(', ')}`
+    : `Publicado en la raíz de ${repo} (base ${BASE || '/'}): ${ARTEFACTOS.join(', ')}`,
+);

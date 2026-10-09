@@ -8,7 +8,6 @@ on:
     branches: [main]
     paths:
       - 'app-autonoma/**'
-      - '!app-autonoma/README.md'
       - '.github/workflows/web-pages.yml'
   # Ejecutar a mano (pestaña Actions, «Run workflow») después de renombrar el repositorio: el cambio de nombre no
   # dispara el flujo y la copia publicada lleva la base del nombre anterior hasta que se vuelva a exportar.
@@ -50,14 +49,19 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # El script garantiza que los ocho artefactos existen, así que estas rutas siempre coinciden.
-          git add -A -- index.html 404.html .nojekyll manifest.webmanifest favicon.ico _expo assets icons
-          if git diff --cached --quiet; then echo "Sin cambios que publicar"; exit 0; fi
-          git commit -m "Publicar la app web en GitHub Pages"
-          # Si la rama avanzó mientras corría el flujo, el commit del bot se rebasa sobre la punta real antes de subirlo.
+          # El checkout trae el commit que disparó el flujo, no la punta de la rama (que puede incluir ya el commit
+          # del bot de la ejecución anterior). Por eso el commit se construye sobre la punta real: se trae, se vuelven
+          # a copiar los artefactos recién exportados desde app-autonoma/dist y se sube; si la rama avanza entre
+          # medio, se repite desde la punta nueva. El script garantiza que los ocho artefactos existen.
           for intento in 1 2 3; do
-            git push && exit 0
-            git fetch origin "$GITHUB_REF_NAME" && git rebase "origin/$GITHUB_REF_NAME"
+            git fetch origin "$GITHUB_REF_NAME"
+            git reset -q --hard "origin/$GITHUB_REF_NAME"
+            node app-autonoma/scripts/publicar-pages.js --solo-copiar
+            git add -A -- index.html 404.html .nojekyll manifest.webmanifest favicon.ico _expo assets icons
+            if git diff --cached --quiet; then echo "Sin cambios que publicar"; exit 0; fi
+            git commit -q -m "Publicar la app web en GitHub Pages"
+            if git push origin "HEAD:$GITHUB_REF_NAME"; then exit 0; fi
+            echo "La rama avanzó durante el intento $intento; se repite sobre la punta nueva"
           done
           echo "No se pudo subir la copia publicada tras tres intentos" >&2
           exit 1

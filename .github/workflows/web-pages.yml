@@ -9,6 +9,9 @@ on:
     paths:
       - 'app-autonoma/**'
       - '!app-autonoma/README.md'
+      - '.github/workflows/web-pages.yml'
+  # Ejecutar a mano (pestaña Actions, «Run workflow») después de renombrar el repositorio: el cambio de nombre no
+  # dispara el flujo y la copia publicada lleva la base del nombre anterior hasta que se vuelva a exportar.
   workflow_dispatch:
 
 permissions:
@@ -39,10 +42,22 @@ jobs:
         working-directory: app-autonoma
         env:
           CI: '1'
-          EXPO_BASE_URL: /${{ github.event.repository.name }}
+          EXPO_NO_TELEMETRY: '1'
+          # Base de la app: /<nombre del repositorio>. Con un dominio propio configurado en GitHub Pages, crear la
+          # variable de repositorio PAGES_BASE con el valor / para publicar en la raíz del dominio.
+          EXPO_BASE_URL: ${{ vars.PAGES_BASE || format('/{0}', github.event.repository.name) }}
       - name: Subir la copia publicada
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A index.html 404.html .nojekyll manifest.webmanifest favicon.ico _expo assets icons
-          if git diff --cached --quiet; then echo "Sin cambios que publicar"; else git commit -m "Publicar la app web en GitHub Pages" && git push; fi
+          # El script garantiza que los ocho artefactos existen, así que estas rutas siempre coinciden.
+          git add -A -- index.html 404.html .nojekyll manifest.webmanifest favicon.ico _expo assets icons
+          if git diff --cached --quiet; then echo "Sin cambios que publicar"; exit 0; fi
+          git commit -m "Publicar la app web en GitHub Pages"
+          # Si la rama avanzó mientras corría el flujo, el commit del bot se rebasa sobre la punta real antes de subirlo.
+          for intento in 1 2 3; do
+            git push && exit 0
+            git fetch origin "$GITHUB_REF_NAME" && git rebase "origin/$GITHUB_REF_NAME"
+          done
+          echo "No se pudo subir la copia publicada tras tres intentos" >&2
+          exit 1

@@ -56,11 +56,19 @@ jobs:
           for intento in 1 2 3; do
             git fetch origin "$GITHUB_REF_NAME"
             git reset -q --hard "origin/$GITHUB_REF_NAME"
-            # Lo exportado corresponde a las fuentes del commit del evento. Si en la punta app-autonoma ya es otro
-            # (otro push encolado, o un «Re-run» de una ejecución vieja), no se publica una copia atrasada: la
-            # ejecución de la punta es la que publica.
-            if [ "$(git rev-parse "$GITHUB_SHA:app-autonoma")" != "$(git rev-parse "origin/$GITHUB_REF_NAME:app-autonoma")" ]; then
-              echo "Las fuentes de app-autonoma en la punta ya no son las exportadas; publicará la ejecución de la punta"
+            # Lo exportado corresponde al commit del evento y a la versión del flujo de ese commit. Si en la punta
+            # app-autonoma o el flujo ya son otros (otro push encolado, o un «Re-run» de una ejecución vieja), no se
+            # publica una copia atrasada: la ejecución de la punta es la que publica.
+            for ruta in app-autonoma .github/workflows/web-pages.yml; do
+              if [ "$(git rev-parse "$GITHUB_SHA:$ruta")" != "$(git rev-parse "origin/$GITHUB_REF_NAME:$ruta")" ]; then
+                echo "$ruta en la punta ya no es lo exportado; publicará la ejecución de la punta"
+                exit 0
+              fi
+            done
+            # Un «Re-run» conserva los datos del evento original (incluido el nombre del repositorio de entonces):
+            # si ya no es la punta, no publica.
+            if [ "${GITHUB_RUN_ATTEMPT:-1}" != "1" ] && [ "$GITHUB_SHA" != "$(git rev-parse "origin/$GITHUB_REF_NAME")" ]; then
+              echo "Re-run de una ejecución que ya no es la punta de la rama; no se publica"
               exit 0
             fi
             node app-autonoma/scripts/publicar-pages.js --solo-copiar

@@ -56,6 +56,13 @@ jobs:
           for intento in 1 2 3; do
             git fetch origin "$GITHUB_REF_NAME"
             git reset -q --hard "origin/$GITHUB_REF_NAME"
+            # Lo exportado corresponde a las fuentes del commit del evento. Si en la punta app-autonoma ya es otro
+            # (otro push encolado, o un «Re-run» de una ejecución vieja), no se publica una copia atrasada: la
+            # ejecución de la punta es la que publica.
+            if [ "$(git rev-parse "$GITHUB_SHA:app-autonoma")" != "$(git rev-parse "origin/$GITHUB_REF_NAME:app-autonoma")" ]; then
+              echo "Las fuentes de app-autonoma en la punta ya no son las exportadas; publicará la ejecución de la punta"
+              exit 0
+            fi
             node app-autonoma/scripts/publicar-pages.js --solo-copiar
             git add -A -- index.html 404.html .nojekyll manifest.webmanifest favicon.ico _expo assets icons
             if git diff --cached --quiet; then echo "Sin cambios que publicar"; exit 0; fi

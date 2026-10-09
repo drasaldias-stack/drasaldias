@@ -30,4 +30,7 @@ fs.rmSync(destino, { recursive: true, force: true });
 fs.cpSync(dist, destino, { recursive: true });
 // GitHub Pages sirve 404.html para cualquier ruta desconocida: así /ruta90/perfil carga la app al recargar.
 fs.copyFileSync(index, path.join(repo, '404.html'));
+// Sin .nojekyll, GitHub Pages procesa el sitio con Jekyll y omite las carpetas que empiezan con guion bajo (_expo)
+// y las rutas con node_modules (la fuente de los íconos): la página abre pero la app nunca carga.
+fs.writeFileSync(path.join(repo, '.nojekyll'), '');
 console.log(`Publicado en ${destino} (base ${BASE}) y 404.html en ${repo}`);

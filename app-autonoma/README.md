@@ -63,11 +63,11 @@ La vía elegida es la web: una sola dirección para iPhone, Android y computador
 
 ### Hoy: GitHub Pages del repositorio
 
-El repositorio es público y GitHub Pages sirve la rama `main` en `https://drasaldias-stack.github.io/hipotiroidismo/`. La app se publica como subcarpeta de ese sitio:
+El repositorio es público y GitHub Pages lo publica en `https://drasaldias-stack.github.io/<nombre-del-repositorio>/`. Pages se configura para servir la rama `main` desde la carpeta `/docs`, y la app vive en la raíz de ese sitio:
 
-- `npm run web:pages` (en `app-autonoma`) exporta la web con la base `/hipotiroidismo/ruta90` (variable `EXPO_BASE_URL`, leída por `app.config.js`), antepone esa base a lo que viene de `public/` (manifiesto, íconos, favicon), copia el resultado a `ruta90/` en la raíz del repositorio y deja en la raíz `404.html` (GitHub Pages lo sirve para cualquier ruta desconocida, así una ruta interna como `/ruta90/perfil` carga la app al recargar) y `.nojekyll` (sin él, Pages procesa el sitio con Jekyll y omite la carpeta `_expo` del código y las rutas con `node_modules` de la fuente de íconos: la página abre pero queda en blanco).
-- La app queda en `https://drasaldias-stack.github.io/hipotiroidismo/ruta90/` cuando esos archivos están en `main`. El flujo `.github/workflows/web-pages.yml` los regenera y los sube a `main` cada vez que cambia `app-autonoma` en esa rama (no se pudo ejecutar desde este entorno: revisar su primera corrida en la pestaña Actions).
-- Para pasar a un dominio propio basta exportar sin `EXPO_BASE_URL` (`npx expo export --platform web`) y seguir los pasos de abajo; `404.html` y `ruta90/` dejan de ser necesarios.
+- `npm run web:pages` (en `app-autonoma`) exporta la web con la base `/<nombre-del-repositorio>` (variable `EXPO_BASE_URL`, leída por `app.config.js`; en local el valor predeterminado es `/ruta90`), antepone esa base a lo que viene de `public/` (manifiesto, íconos, favicon), copia el resultado a `docs/` y deja ahí `404.html` (GitHub Pages lo sirve para cualquier ruta desconocida, así una ruta interna como `/perfil` carga la app al recargar) y `.nojekyll` (sin él, Pages procesa el sitio con Jekyll y omite la carpeta `_expo` del código y las rutas con `node_modules` de la fuente de íconos: la página abre pero queda en blanco). También copia a `docs/` la carpeta `prototipo/` y la infografía, para que sigan publicadas bajo el mismo sitio.
+- El flujo `.github/workflows/web-pages.yml` regenera `docs/` y lo sube a `main` cada vez que cambia `app-autonoma`, `prototipo/` o la infografía en esa rama, tomando la base del nombre real del repositorio: renombrar el repositorio no exige cambiar código. En la configuración de GitHub (Settings › Pages › Build and deployment) la fuente debe ser la rama `main` y la carpeta `/docs`.
+- Para pasar a un dominio propio basta exportar sin `EXPO_BASE_URL` (`npx expo export --platform web`) y seguir los pasos de abajo; `docs/` deja de ser necesario.
 
 ### Con dominio propio
 

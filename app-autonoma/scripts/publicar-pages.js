@@ -1,14 +1,16 @@
-// Exporta la web bajo la subcarpeta del sitio de GitHub Pages y deja la copia en ../ruta90 (más 404.html en la raíz
-// del repositorio para que las rutas internas funcionen al recargar). Uso: node scripts/publicar-pages.js
+// Exporta la web para el sitio de GitHub Pages del repositorio y deja la copia en la carpeta docs/ de la raíz
+// (Pages se configura para servir main → /docs). La base es /<nombre del repositorio>; el flujo de GitHub
+// Actions la toma del nombre real, así que renombrar el repositorio no exige cambiar código.
+// Uso local: EXPO_BASE_URL=/ruta90 node scripts/publicar-pages.js
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const BASE = process.env.EXPO_BASE_URL || '/hipotiroidismo/ruta90';
+const BASE = (process.env.EXPO_BASE_URL || '/ruta90').replace(/\/+$/, '');
 const raiz = path.resolve(__dirname, '..');
 const repo = path.resolve(raiz, '..');
 const dist = path.join(raiz, 'dist');
-const destino = path.join(repo, BASE.split('/').filter(Boolean).slice(1).join('/') || 'ruta90');
+const destino = path.join(repo, process.env.PAGES_DIR || 'docs');
 
 fs.rmSync(dist, { recursive: true, force: true });
 execSync('npx expo export --platform web', { cwd: raiz, stdio: 'inherit', env: { ...process.env, CI: '1', EXPO_BASE_URL: BASE } });
@@ -28,9 +30,14 @@ fs.rmSync(path.join(dist, 'metadata.json'), { force: true });
 
 fs.rmSync(destino, { recursive: true, force: true });
 fs.cpSync(dist, destino, { recursive: true });
-// GitHub Pages sirve 404.html para cualquier ruta desconocida: así /ruta90/perfil carga la app al recargar.
-fs.copyFileSync(index, path.join(repo, '404.html'));
-// Sin .nojekyll, GitHub Pages procesa el sitio con Jekyll y omite las carpetas que empiezan con guion bajo (_expo)
+// GitHub Pages sirve 404.html para cualquier ruta desconocida: así /perfil carga la app al recargar.
+fs.copyFileSync(index, path.join(destino, '404.html'));
+// Sin .nojekyll, Pages procesa el sitio con Jekyll y omite las carpetas que empiezan con guion bajo (_expo)
 // y las rutas con node_modules (la fuente de los íconos): la página abre pero la app nunca carga.
-fs.writeFileSync(path.join(repo, '.nojekyll'), '');
-console.log(`Publicado en ${destino} (base ${BASE}) y 404.html en ${repo}`);
+fs.writeFileSync(path.join(destino, '.nojekyll'), '');
+// Lo demás que ya se publicaba en el sitio sigue disponible bajo la misma carpeta.
+for (const extra of ['prototipo', 'hipotiroidismo_infografia.html']) {
+  const origen = path.join(repo, extra);
+  if (fs.existsSync(origen)) fs.cpSync(origen, path.join(destino, extra), { recursive: true });
+}
+console.log(`Publicado en ${destino} (base ${BASE})`);

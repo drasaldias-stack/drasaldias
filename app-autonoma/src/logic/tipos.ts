@@ -24,7 +24,17 @@ export type Exclusion =
   | 'picante'
   | 'cilantro';
 
-export type Rol = 'proteina' | 'carbohidrato' | 'verdura' | 'salsa' | 'desayuno';
+export type Rol = 'proteina' | 'carbohidrato' | 'verdura' | 'salsa' | 'desayuno' | 'once';
+
+/** Las cuatro comidas del día que arma la minuta. */
+export type Comida = 'desayuno' | 'almuerzo' | 'once' | 'cena';
+export const COMIDAS: readonly Comida[] = ['desayuno', 'almuerzo', 'once', 'cena'];
+
+/**
+ * Energía y proteína de un alimento por 100 g (o por 100 ml cuando la receta lo mide en ml o cucharadas).
+ * `porUnidad`: gramos de una unidad (o de un diente), para ingredientes que se cuentan por unidad.
+ */
+export type Alimento = { kcal: number; proteina: number; porUnidad?: number };
 
 export type CategoriaCompra =
   | 'Verduras y frutas'
@@ -169,6 +179,22 @@ export type PreferenciasEjercicio = {
   minutos: (typeof MINUTOS_EJERCICIO)[number];
   materiales: Material[];
 };
+
+// ---------- Objetivo diario de energía y proteína ----------
+// Lo indica el profesional (kcal y gramos de proteína al día) o lo sugiere la app a partir de los datos corporales.
+// La minuta reparte ese objetivo en las cuatro comidas y dimensiona las porciones de cada una.
+
+export type OrigenObjetivo = 'profesional' | 'calculado';
+export type Objetivo = { kcal: number; proteina: number; origen: OrigenObjetivo };
+
+export type Sexo = 'mujer' | 'hombre';
+export type Actividad = 'baja' | 'media' | 'alta';
+/** Datos para calcular la sugerencia. Se guardan en el dispositivo solo si la persona los ingresa. */
+export type DatosCalculo = { sexo: Sexo; edad: number; pesoKg: number; tallaCm: number; actividad: Actividad };
+
+export const ORIGENES_OBJETIVO = claves<OrigenObjetivo>({ profesional: true, calculado: true });
+export const SEXOS = claves<Sexo>({ mujer: true, hombre: true });
+export const ACTIVIDADES = claves<Actividad>({ baja: true, media: true, alta: true });
 
 // ---------- Pauta y rutina propias ----------
 // Se suman al menú y al programa de la app, no los reemplazan.

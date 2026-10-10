@@ -7,6 +7,7 @@ import { CLASES } from '../../content/clases';
 import { evaluarSeguridad } from '../seguridad';
 import { cambiarComponente, diasDelMenu, esCompatible, generarMenu, opcionesRol, ORDEN_ROLES, planificarDias } from '../menu';
 import { formatearCantidad, listaCompras } from '../compras';
+import { consumoSemanal } from '../porciones';
 import { metaCaminata, resolverEjercicio, semanaDelPrograma, sesionesDeSemana } from '../programa';
 import type { Equipo, Exclusion, Material, Patron, PreferenciasCocina, RespuestasSeguridad } from '../tipos';
 
@@ -161,8 +162,9 @@ test('lista de compras: escala por personas y agrupa', () => {
   const r = generarMenu(prefs, COMPONENTES, 4);
   assert.ok(r.ok);
   if (!r.ok) return;
-  const uno = listaCompras(r.menu, COMPONENTES, 1);
-  const tres = listaCompras(r.menu, COMPONENTES, 3);
+  const consumo = consumoSemanal(r.menu, COMPONENTES, null);
+  const uno = listaCompras(r.menu, COMPONENTES, 1, consumo);
+  const tres = listaCompras(r.menu, COMPONENTES, 3, consumo);
   assert.ok(uno.categorias.length >= 3);
   const totalUno = uno.categorias.flatMap((c) => c.items).find((i) => i.unidad === 'g')!;
   const totalTres = tres.categorias.flatMap((c) => c.items).find((i) => i.clave === totalUno.clave)!;

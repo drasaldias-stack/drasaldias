@@ -9,6 +9,7 @@ import { textosConfirmacion } from '@/logic/seguridad';
 import { useApp } from '@/state/app-state';
 import { EditorCocina, EditorEjercicio } from '@/ui/editores';
 import { Aviso, Boton, Etiqueta, FilaCheck, Pantalla, Pequeno, Separador, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { EditorObjetivo } from '@/ui/objetivo';
 import { CrearRespaldo, RestaurarRespaldo } from '@/ui/respaldo';
 
 export default function Perfil() {
@@ -71,11 +72,17 @@ export default function Perfil() {
       </Tarjeta>
 
       {seg.alimentacion !== 'bloqueado' ? (
-        <Tarjeta>
-          <Subtitulo>Cocina</Subtitulo>
-          <Pequeno>Los cambios se aplican al instante al menú de la semana.</Pequeno>
-          <EditorCocina valor={perfil.cocina} onCambio={actualizarCocina} />
-        </Tarjeta>
+        <>
+          <Tarjeta>
+            <Subtitulo>Objetivo diario de alimentación</Subtitulo>
+            <EditorObjetivo perfil={perfil} onCambio={actualizarPerfil} />
+          </Tarjeta>
+          <Tarjeta>
+            <Subtitulo>Cocina</Subtitulo>
+            <Pequeno>Los cambios se aplican al instante al menú de la semana.</Pequeno>
+            <EditorCocina valor={perfil.cocina} onCambio={actualizarCocina} />
+          </Tarjeta>
+        </>
       ) : null}
 
       {seg.ejercicio !== 'bloqueado' ? (
@@ -92,7 +99,7 @@ export default function Perfil() {
         </Texto>
         <Aviso tipo="info">
           <Pequeno tono="normal">
-            El código contiene información de salud (por ejemplo, si marcaste embarazo, diabetes con insulina o problemas con la comida), tu avance y, si las cargaste, tu pauta y tu rutina con todo lo que escribiste, incluido el enlace a tu documento. Guárdalo en un lugar privado, como las notas de tu teléfono o un correo que solo tú uses, y no lo compartas.
+            El código contiene información de salud (por ejemplo, si marcaste embarazo, diabetes con insulina o problemas con la comida), tu avance, tu objetivo de alimentación y los datos corporales que hayas ingresado para calcularlo, y, si las cargaste, tu pauta y tu rutina con todo lo que escribiste, incluido el enlace a tu documento. Guárdalo en un lugar privado, como las notas de tu teléfono o un correo que solo tú uses, y no lo compartas.
           </Pequeno>
         </Aviso>
         <Pequeno>{estado.respaldo.ultimo ? `Último código creado el ${estado.respaldo.ultimo.split('-').reverse().join('-')}.` : 'Todavía no has creado ningún código.'}</Pequeno>
@@ -125,13 +132,13 @@ export default function Perfil() {
       <Tarjeta>
         <Subtitulo>Privacidad</Subtitulo>
         <Texto>
-          Tus respuestas, preferencias y avances, y tu pauta y tu rutina si las cargaste, se guardan solo en este dispositivo. La app no tiene cuentas ni envía esos datos a ningún servidor; por eso no se recuperan si cambias de teléfono o de navegador, salvo que uses un código de respaldo.
+          Tus respuestas, preferencias y avances, tu objetivo de alimentación y los datos corporales que uses para calcularlo, y tu pauta y tu rutina si las cargaste, se guardan solo en este dispositivo. La app no tiene cuentas ni envía esos datos a ningún servidor; por eso no se recuperan si cambias de teléfono o de navegador, salvo que uses un código de respaldo.
         </Texto>
         {urlPrivacidad ? <Boton titulo="Política de privacidad" variante="secundario" onPress={abrir(urlPrivacidad)} /> : null}
         {urlCondiciones ? <Boton titulo="Condiciones de uso" variante="secundario" onPress={abrir(urlCondiciones)} /> : null}
         {confirmarBorrado ? (
           <>
-            <Pequeno tono="alerta">Se borrarán tus respuestas, preferencias y avances, y tu pauta y tu rutina si las cargaste, de este dispositivo. No se puede deshacer y volverás a la pantalla de inicio.</Pequeno>
+            <Pequeno tono="alerta">Se borrarán tus respuestas, preferencias y avances, tu objetivo y tus datos corporales, y tu pauta y tu rutina si las cargaste, de este dispositivo. No se puede deshacer y volverás a la pantalla de inicio.</Pequeno>
             <Boton
               titulo="Sí, borrar todo y salir"
               variante="peligro"

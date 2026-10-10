@@ -30,14 +30,19 @@ function redondear(cantidad: number, unidad: Ingrediente['unidad']): number {
   return Math.max(1, Math.ceil(cantidad - 1e-9));
 }
 
-export function listaCompras(menu: Menu, catalogo: Componente[], personas: number): ListaCompras {
+/**
+ * Lista de compras de la semana. `consumo` son las porciones base de cada componente que se comen en la semana
+ * (ver consumoSemanal en porciones.ts): las cantidades de la receta, pensadas para `porciones`, se escalan a eso.
+ */
+export function listaCompras(menu: Menu, catalogo: Componente[], personas: number, consumo: Map<string, number>): ListaCompras {
   const suma = new Map<string, ItemCompra>();
   const basicos = new Set<string>();
   for (const rol of ORDEN_ROLES) {
     for (const e of menu.porRol[rol].elecciones) {
       const c = catalogo.find((x) => x.id === e.id);
       if (!c) continue;
-      const factor = personas * (e.doble ? 2 : 1);
+      const porcionesSemana = consumo.get(c.id) ?? c.porciones * (e.doble ? 2 : 1);
+      const factor = (personas * porcionesSemana) / c.porciones;
       for (const ing of c.ingredientes) {
         if (ing.basico) {
           basicos.add(ing.nombre);

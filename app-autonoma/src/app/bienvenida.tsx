@@ -87,6 +87,8 @@ export default function Bienvenida() {
       ejercicio,
       pauta: null,
       rutina: null,
+      objetivo: null,
+      datos: null,
     });
     router.replace('/');
   };

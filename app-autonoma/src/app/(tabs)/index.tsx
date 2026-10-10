@@ -8,6 +8,7 @@ import { COMPONENTES } from '@/content/componentes';
 import { usePaleta } from '@/hooks/use-paleta';
 import { listaCompras } from '@/logic/compras';
 import { MINUTOS_ORGANIZACION } from '@/logic/menu';
+import { consumoSemanal } from '@/logic/porciones';
 import { hoyISO, SEMANAS_PROGRAMA } from '@/logic/programa';
 import { avisoVolumen } from '@/logic/propio';
 import { textoAvisoRespaldo } from '@/logic/respaldo';
@@ -35,7 +36,7 @@ export default function Hoy() {
 
   let comprasTexto = '';
   if (menuOk && menuActual?.ok) {
-    const lista = listaCompras(menuActual.menu, COMPONENTES, perfil.cocina.personas);
+    const lista = listaCompras(menuActual.menu, COMPONENTES, perfil.cocina.personas, consumoSemanal(menuActual.menu, COMPONENTES, perfil.objetivo));
     const items = lista.categorias.flatMap((c) => c.items);
     const marcados = items.filter((i) => estado.compras[`${semana}|${i.clave}`]).length;
     comprasTexto = `${marcados} de ${items.length} productos marcados`;
@@ -174,8 +175,9 @@ export default function Hoy() {
           <>
             <Subtitulo>Una sesión de cocina de unos {menuActual.menu.minutos} minutos</Subtitulo>
             <Pequeno>
-              Incluye {MINUTOS_ORGANIZACION} minutos para organizarte y limpiar. Rinde almuerzos o cenas y desayunos para 5 días, para{' '}
-              {perfil.cocina.personas} {perfil.cocina.personas === 1 ? 'persona' : 'personas'}.
+              Incluye {MINUTOS_ORGANIZACION} minutos para organizarte y limpiar. Rinde desayuno, almuerzo, once y cena para 5 días, para{' '}
+              {perfil.cocina.personas} {perfil.cocina.personas === 1 ? 'persona' : 'personas'}
+              {perfil.objetivo ? `, con porciones ajustadas a tu objetivo de ${perfil.objetivo.kcal} kcal y ${perfil.objetivo.proteina} g de proteína al día` : ''}.
             </Pequeno>
             <Fila>
               <View style={{ flexGrow: 1 }}>

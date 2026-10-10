@@ -590,6 +590,88 @@ export const COMPONENTES: Componente[] = [
     ],
     nota: NOTA_AVENA,
   },
+
+  // ---------- Once ----------
+  // La cuarta comida: preparaciones simples que se arman al momento con lo que se dejó listo en la sesión.
+  {
+    id: 'o_tostadas_huevo', nombre: 'Tostadas integrales con huevo duro y tomate', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['cocinilla'], contiene: ['gluten', 'huevo'],
+    minutosActivos: 5, minutosTotales: 15, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Pan integral', cantidad: 300, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Huevo', cantidad: 5, unidad: 'unidad', categoria: 'Carnes, pescados y huevos' },
+      { nombre: 'Tomate', cantidad: 2.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
+      SAL,
+    ],
+    pasos: [
+      'En la sesión, cocina los huevos 10 minutos desde que hierve el agua, pásalos a agua fría y guárdalos con cáscara.',
+      'Cada once: tuesta 2 rebanadas de pan (unos 60 g), pela un huevo y sírvelo en rodajas con medio tomate y una pizca de sal.',
+    ],
+    conservacion: 'Los huevos duros con cáscara duran hasta 5 días refrigerados. El pan se guarda cerrado a temperatura ambiente, o congelado por rebanadas.',
+  },
+  {
+    id: 'o_yogur', nombre: 'Yogur natural con fruta y nueces', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: ['lacteos', 'frutos_secos'],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Yogur natural sin azúcar', cantidad: 850, unidad: 'g', categoria: 'Lácteos y alternativas' },
+      { nombre: 'Fruta de estación', cantidad: 500, unidad: 'g', categoria: 'Verduras y frutas' },
+      { nombre: 'Nueces', cantidad: 75, unidad: 'g', categoria: 'Despensa' },
+    ],
+    pasos: ['En la sesión, reparte las nueces en 5 bolsitas o frascos pequeños.', 'Cada once: un pote de yogur (170 g) con fruta picada y una porción de nueces.'],
+    conservacion: 'El yogur y la fruta van refrigerados y se sirven al momento; las nueces, en frasco cerrado.',
+  },
+  {
+    id: 'o_palta_quesillo', nombre: 'Pan integral con palta y quesillo', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: ['gluten', 'lacteos'],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Pan integral', cantidad: 300, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Palta', cantidad: 250, unidad: 'g', categoria: 'Verduras y frutas' },
+      { nombre: 'Quesillo', cantidad: 300, unidad: 'g', categoria: 'Lácteos y alternativas' },
+      SAL,
+    ],
+    pasos: ['Cada once: 2 rebanadas de pan (unos 60 g) con un cuarto de palta (50 g) y una rebanada de quesillo (60 g).'],
+    conservacion: 'Compra las paltas en distintos puntos de madurez para que duren la semana. El quesillo, refrigerado y cerrado, hasta la fecha del envase.',
+  },
+  {
+    id: 'o_atun', nombre: 'Pan integral con atún y tomate', rol: 'once',
+    patrones: ['omnivoro'], equipos: ['sin_coccion'], contiene: ['gluten', 'pescado'],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Pan integral', cantidad: 300, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Atún o jurel en agua, en conserva', cantidad: 300, unidad: 'g', categoria: 'Despensa' },
+      { nombre: 'Tomate', cantidad: 2.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
+    ],
+    pasos: ['Cada once: 2 rebanadas de pan (unos 60 g) con 60 g de atún o jurel escurrido y medio tomate en rodajas.'],
+    conservacion: 'Una lata abierta, pasada a un recipiente cerrado, dura 3 días refrigerada: usa latas chicas o reparte una entre dos días seguidos.',
+  },
+  {
+    id: 'o_fruta_mani', nombre: 'Fruta con mantequilla de maní y chía', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: ['frutos_secos'],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Fruta de estación', cantidad: 750, unidad: 'g', categoria: 'Verduras y frutas' },
+      { nombre: 'Mantequilla de maní', cantidad: 100, unidad: 'g', categoria: 'Despensa' },
+      { nombre: 'Semillas de chía', cantidad: 25, unidad: 'g', categoria: 'Despensa' },
+    ],
+    pasos: ['Cada once: una fruta grande o dos chicas (unos 150 g) en trozos, con una cucharada colmada de mantequilla de maní (20 g) y una cucharadita de chía.'],
+    conservacion: 'La fruta entera se guarda refrigerada; la mantequilla de maní (sin azúcar añadida) y la chía, en la despensa.',
+    nota: 'El maní es una legumbre, pero por su alergia se agrupa con los frutos secos: esta once queda fuera si marcaste «Frutos secos».',
+  },
+  {
+    id: 'o_batido', nombre: 'Batido de leche, avena y plátano', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['licuadora'], contiene: ['gluten'],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Leche o bebida vegetal sin azúcar', cantidad: 1250, unidad: 'ml', categoria: 'Lácteos y alternativas' },
+      { nombre: 'Avena', cantidad: 150, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Plátano', cantidad: 5, unidad: 'unidad', categoria: 'Verduras y frutas' },
+    ],
+    pasos: ['Cada once: licúa un vaso grande de leche o bebida vegetal (250 ml) con 3 cucharadas de avena (30 g) y un plátano. Se toma al momento.'],
+    conservacion: 'No se prepara con anticipación: la leche y los plátanos se guardan como siempre y el batido se hace cada tarde.',
+    nota: NOTA_AVENA,
+  },
 ];
 
 export const componentePorId = (id: string) => COMPONENTES.find((c) => c.id === id);

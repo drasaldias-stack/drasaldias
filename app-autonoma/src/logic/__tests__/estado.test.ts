@@ -31,6 +31,8 @@ const estadoValido = (): EstadoApp => ({
 
     pauta: null,
     rutina: null,
+    objetivo: null,
+    datos: null,
   },
   clasesVistas: { c01: '2026-09-02' },
   sesionesHechas: { '1-A': '2026-09-03' },

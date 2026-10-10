@@ -1,18 +1,24 @@
 import { COMPONENTES } from '../content/componentes';
 import { PROGRAMAS } from '../content/ejercicios';
 import { menuVigente, type Menu } from './menu';
+import { datosValidos, objetivoValido } from './objetivo';
 import { normalizarPauta, normalizarRutina } from './propio';
 import {
+  ACTIVIDADES,
   EQUIPOS,
   EXCLUSIONES,
   MATERIALES,
   MINUTOS_COCINA,
   MINUTOS_EJERCICIO,
+  ORIGENES_OBJETIVO,
   PATRONES,
+  SEXOS,
+  type DatosCalculo,
   type EstadoAcceso,
   type MotivoAlimentacion,
   type MotivoBloqueo,
   type MotivoEjercicio,
+  type Objetivo,
   type PautaPropia,
   type PreferenciasCocina,
   type PreferenciasEjercicio,
@@ -35,6 +41,10 @@ export type Perfil = {
   pauta: PautaPropia | null;
   /** Rutina de ejercicio cargada por la persona, además del programa de la app. */
   rutina: RutinaPropia | null;
+  /** Objetivo diario de energía y proteína con que se dimensiona la minuta; null si no se ha definido. */
+  objetivo: Objetivo | null;
+  /** Datos corporales usados para calcular la sugerencia; null si nunca se ingresaron. */
+  datos: DatosCalculo | null;
 };
 
 export type EstadoApp = {
@@ -100,6 +110,17 @@ export function normalizarEjercicio(e: unknown): PreferenciasEjercicio {
   };
 }
 
+export function normalizarObjetivo(o: unknown): Objetivo | null {
+  if (!esObjeto(o) || !objetivoValido(o.kcal, o.proteina)) return null;
+  return { kcal: Math.round(o.kcal as number), proteina: Math.round(o.proteina as number), origen: uno(o.origen, ORIGENES_OBJETIVO, 'profesional') };
+}
+
+export function normalizarDatos(d: unknown): DatosCalculo | null {
+  if (!esObjeto(d)) return null;
+  const candidato = { sexo: uno(d.sexo, SEXOS, 'mujer'), edad: d.edad, pesoKg: d.pesoKg, tallaCm: d.tallaCm, actividad: uno(d.actividad, ACTIVIDADES, 'baja') };
+  return datosValidos(candidato) ? candidato : null;
+}
+
 /**
  * Valida lo guardado antes de usarlo. Un perfil sin fecha de inicio o sin resultado de seguridad
  * vuelve al estado inicial; cualquier otro campo inválido vuelve a su valor inicial sin perder el resto.
@@ -137,6 +158,8 @@ export function normalizar(crudo: unknown): EstadoApp {
       ejercicio: normalizarEjercicio(p.ejercicio),
       pauta: normalizarPauta(p.pauta),
       rutina: normalizarRutina(p.rutina),
+      objetivo: normalizarObjetivo(p.objetivo),
+      datos: normalizarDatos(p.datos),
     };
   }
   const m = crudo.menu;

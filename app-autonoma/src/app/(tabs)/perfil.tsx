@@ -7,6 +7,7 @@ import { Spacing } from '@/constants/theme';
 import { usePaleta } from '@/hooks/use-paleta';
 import { textosConfirmacion } from '@/logic/seguridad';
 import { useApp } from '@/state/app-state';
+import { accesoMenu } from '@/state/derivados';
 import { EditorCocina, EditorEjercicio } from '@/ui/editores';
 import { Aviso, Boton, Etiqueta, FilaCheck, Pantalla, Pequeno, Separador, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
 import { EditorObjetivo } from '@/ui/objetivo';
@@ -75,7 +76,16 @@ export default function Perfil() {
         <>
           <Tarjeta>
             <Subtitulo>Objetivo diario de alimentación</Subtitulo>
-            <EditorObjetivo perfil={perfil} onCambio={actualizarPerfil} />
+            {accesoMenu(perfil) ? (
+              // La clave vuelve a montar el editor cuando el perfil cambia por fuera (por ejemplo, al restaurar un respaldo).
+              <EditorObjetivo
+                key={`${perfil.inicio}|${perfil.objetivo?.kcal ?? ''}|${perfil.objetivo?.proteina ?? ''}|${perfil.objetivo?.origen ?? ''}|${perfil.datos?.pesoKg ?? ''}|${perfil.datos?.edad ?? ''}`}
+                perfil={perfil}
+                onCambio={actualizarPerfil}
+              />
+            ) : (
+              <Texto>Se activa junto con el menú, cuando marques arriba que ya hablaste con tu médico.</Texto>
+            )}
           </Tarjeta>
           <Tarjeta>
             <Subtitulo>Cocina</Subtitulo>

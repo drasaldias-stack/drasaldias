@@ -9,7 +9,7 @@ import { usePaleta } from '@/hooks/use-paleta';
 import { cambiarComponente, MINUTOS_ORGANIZACION, ordenSesion } from '@/logic/menu';
 import { redondearKcal, redondearProteina } from '@/logic/nutricion';
 import { NOMBRE_COMIDA, objetivoPorComida } from '@/logic/objetivo';
-import { cantidadPrincipal, consumoSemanal, planDelDia, textoFactor } from '@/logic/porciones';
+import { avisosSemana, cantidadPrincipal, consumoSemanal, planDelDia, textoFactor } from '@/logic/porciones';
 import { textosConfirmacion } from '@/logic/seguridad';
 import { COMIDAS, type Rol } from '@/logic/tipos';
 import { useApp } from '@/state/app-state';
@@ -27,9 +27,6 @@ const NOMBRE_ROL: Record<Rol, string> = {
   once: 'Once',
 };
 const DIAS = ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5'];
-const AVISO_PROTEINA_CORTA =
-  'Esta comida queda corta de proteína para tu objetivo. Complétala con un huevo, yogur natural o queso fresco si los comes, o con tofu, o pide a tu equipo de salud que ajuste las cantidades.';
-const AVISO_ENERGIA_CORTA = 'Esta comida queda por debajo de la energía prevista: complétala con una fruta o una rebanada de pan integral.';
 
 export default function MenuSemana() {
   const { estado, menuActual, actualizarCocina, nuevaCombinacion, reemplazarMenu } = useApp();
@@ -77,15 +74,16 @@ export default function MenuSemana() {
     </Tarjeta>
   );
 
-  const tarjetaObjetivo = objetivo ? (
+  const metas = objetivo ? objetivoPorComida(objetivo) : null;
+  const tarjetaObjetivo = objetivo && metas ? (
     <Tarjeta>
       <Etiqueta>Tu objetivo diario</Etiqueta>
       <Subtitulo>
         {objetivo.kcal} kcal · {objetivo.proteina} g de proteína
       </Subtitulo>
       <Pequeno>
-        {objetivo.origen === 'profesional' ? 'Indicado por tu profesional' : 'Calculado con la app'} · repartido en{' '}
-        {COMIDAS.map((c) => `${NOMBRE_COMIDA[c].toLowerCase()} ${objetivoPorComida(objetivo)[c].kcal} kcal y ${objetivoPorComida(objetivo)[c].proteina} g`).join(', ')}. Las porciones de abajo están ajustadas a este objetivo.
+        {objetivo.origen === 'profesional' ? 'Indicado por tu profesional' : 'Calculado con la app como punto de partida, no una indicación médica'} · repartido en{' '}
+        {COMIDAS.map((c) => `${NOMBRE_COMIDA[c].toLowerCase()} ${metas[c].kcal} kcal y ${metas[c].proteina} g`).join(', ')}. Las porciones de abajo están ajustadas a este objetivo.
       </Pequeno>
       <Boton titulo="Cambiar en Perfil" variante="secundario" onPress={() => router.push('/perfil')} />
     </Tarjeta>
@@ -117,7 +115,9 @@ export default function MenuSemana() {
     }
   };
 
+  const plan = menuActual?.ok ? planDelDia(menuActual.menu, COMPONENTES, objetivo) : null;
   const consumo = menuActual?.ok ? consumoSemanal(menuActual.menu, COMPONENTES, objetivo) : null;
+  const avisos = plan ? avisosSemana(plan, COMPONENTES) : [];
   const nutricion = (n: { kcal: number; proteina: number }) => `≈ ${redondearKcal(n.kcal)} kcal · ${redondearProteina(n.proteina)} g de proteína`;
 
   return (
@@ -153,7 +153,7 @@ export default function MenuSemana() {
         )}
       </Tarjeta>
 
-      {!menuActual?.ok || !consumo ? (
+      {!menuActual?.ok || !plan || !consumo ? (
         <Aviso tipo="alerta">
           <Texto>
             Con tus filtros no hay recetas suficientes de {NOMBRE_ROL[menuActual?.ok === false ? menuActual.rolSinOpciones : 'proteina'].toLowerCase()}. Quita alguna exclusión o suma equipamiento.
@@ -209,34 +209,40 @@ export default function MenuSemana() {
           <Subtitulo>Tu semana</Subtitulo>
           <Pequeno>
             Cuatro comidas al día: desayuno, almuerzo, once y cena. El día 1 es el primer día que comes del menú: si cocinas el domingo, el día 1 es el lunes.
-            {objetivo ? ' Las cantidades son por persona y están en crudo, como se compran.' : ''}
+            {objetivo ? ' Las cantidades son por persona y en crudo, como se compran.' : ''}
           </Pequeno>
-          {planDelDia(menuActual.menu, COMPONENTES, objetivo).map((d) => (
+          {plan.map((d) => (
             <Tarjeta key={d.dia}>
               <Etiqueta tono="acento">{DIAS[d.dia - 1]}</Etiqueta>
-              {d.comidas.map((comida, i) => (
-                <View key={comida.comida} style={{ gap: Spacing.xs }}>
-                  {i > 0 ? <Separador /> : null}
-                  <Fila style={{ justifyContent: 'space-between' }}>
-                    <Texto style={{ fontWeight: '700' }}>{NOMBRE_COMIDA[comida.comida]}</Texto>
-                    {objetivo ? <Pequeno>{nutricion(comida.total)}</Pequeno> : null}
-                  </Fila>
-                  {comida.porciones.map((porcion) => {
-                    const c = componentePorId(porcion.id);
-                    if (!c) return null;
-                    const conCantidad = c.rol !== 'verdura' && c.rol !== 'salsa';
-                    const detalle = objetivo ? ` · ${textoFactor(porcion.factor)}${conCantidad ? ` (${cantidadPrincipal(c, porcion.factor)})` : ''}` : '';
-                    return (
-                      <Texto key={porcion.id}>
-                        {c.nombre}
-                        {detalle}
-                      </Texto>
-                    );
-                  })}
-                  {comida.proteinaCorta ? <Pequeno tono="alerta">{AVISO_PROTEINA_CORTA}</Pequeno> : null}
-                  {comida.energiaCorta ? <Pequeno tono="alerta">{AVISO_ENERGIA_CORTA}</Pequeno> : null}
-                </View>
-              ))}
+              {d.comidas.map((comida, i) => {
+                const corta = comida.proteinaCorta || comida.energiaCorta || comida.energiaExcede;
+                return (
+                  <View key={comida.comida} style={{ gap: Spacing.xs }}>
+                    {i > 0 ? <Separador /> : null}
+                    <Fila style={{ justifyContent: 'space-between' }}>
+                      <Texto style={{ fontWeight: '700' }}>{NOMBRE_COMIDA[comida.comida]}</Texto>
+                      {objetivo && comida.meta ? (
+                        <Pequeno tono={corta ? 'alerta' : 'suave'}>
+                          {nutricion(comida.total)}
+                          {corta ? ` (previstos ${comida.meta.kcal} · ${comida.meta.proteina})` : ''}
+                        </Pequeno>
+                      ) : null}
+                    </Fila>
+                    {comida.porciones.map((porcion) => {
+                      const c = componentePorId(porcion.id);
+                      if (!c) return null;
+                      const conCantidad = c.rol !== 'verdura' && c.rol !== 'salsa';
+                      const detalle = objetivo ? ` · ${textoFactor(porcion.factor)}${conCantidad ? ` (${cantidadPrincipal(c, porcion.factor)})` : ''}` : '';
+                      return (
+                        <Texto key={porcion.id}>
+                          {c.nombre}
+                          {detalle}
+                        </Texto>
+                      );
+                    })}
+                  </View>
+                );
+              })}
               {objetivo ? (
                 <>
                   <Separador />
@@ -255,9 +261,20 @@ export default function MenuSemana() {
               ) : null}
             </Tarjeta>
           ))}
+          {avisos.length > 0 ? (
+            <Aviso tipo="alerta">
+              <Texto style={{ fontWeight: '700' }}>Comidas que no cuadran con tu objetivo</Texto>
+              {avisos.map((a) => (
+                <Pequeno key={a.clave} tono="normal">
+                  {a.texto}
+                </Pequeno>
+              ))}
+              <Pequeno tono="normal">Si se repite semana a semana, pide a tu equipo de salud que ajuste las cantidades o cambia la receta con «Otra receta».</Pequeno>
+            </Aviso>
+          ) : null}
           <Pequeno>
             {objetivo
-              ? 'Las cantidades son aproximadas: los valores de energía y proteína de los alimentos son de referencia y las porciones se redondean a cuartos. La mitad del plato del almuerzo y de la cena sigue siendo verdura.'
+              ? 'Las cantidades son aproximadas: los valores de energía y proteína de los alimentos son de referencia, incluyen el aceite de cada receta, y las porciones se redondean a cuartos. La verdura no se dimensiona: sirve al menos la porción indicada y agrega más verdura si quieres llenar la mitad del plato.'
               : 'Arma el plato con la mitad de verduras, un cuarto de proteína y un cuarto de cereal, legumbre o tubérculo.'}
           </Pequeno>
           <Boton titulo="Ver lista de compras" icono="cart-outline" onPress={() => router.push('/compras')} />

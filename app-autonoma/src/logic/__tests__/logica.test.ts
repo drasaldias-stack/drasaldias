@@ -106,7 +106,11 @@ function existeReparto(a: typeof COMPONENTES[number], b: typeof COMPONENTES[numb
 
 test('menú: siempre arma una semana compatible con las preferencias', () => {
   const equipos: Equipo[][] = [[], ['horno'], ['microondas'], ['horno', 'olla', 'airfryer', 'microondas', 'licuadora']];
-  const exclusiones: Exclusion[][] = [[], ['gluten', 'lacteos'], ['huevo', 'cebolla'], ['pollo', 'vacuno', 'cerdo'], ['mostaza', 'sesamo', 'frutos_secos']];
+  const exclusiones: Exclusion[][] = [
+    [], ['gluten', 'lacteos'], ['huevo', 'cebolla'], ['pollo', 'vacuno', 'cerdo'], ['mostaza', 'sesamo', 'frutos_secos'],
+    // Alergias combinadas: celiaquía con intolerancia a la lactosa y alergia a frutos secos, con y sin huevo.
+    ['gluten', 'lacteos', 'frutos_secos'], ['gluten', 'lacteos', 'frutos_secos', 'huevo'],
+  ];
   const patrones: Patron[] = ['omnivoro', 'vegetariano'];
   let combinaciones = 0;
   let exceden60 = 0;

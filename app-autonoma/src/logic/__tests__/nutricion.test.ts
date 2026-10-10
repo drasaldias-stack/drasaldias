@@ -7,8 +7,8 @@ import { listaCompras } from '../compras';
 import { normalizarDatos, normalizarObjetivo } from '../estado';
 import { comidasDelDia, generarMenu, ROLES_PLATO } from '../menu';
 import { ingredientesSinValor, nutricionIngrediente, nutricionPorPorcion, type Nutricion } from '../nutricion';
-import { datosValidos, gastoReposo, objetivoPorComida, objetivoValido, pesoReferencia, REPARTO_KCAL, REPARTO_PROTEINA, sugerirObjetivo } from '../objetivo';
-import { cantidadPrincipal, consumoSemanal, dimensionarPlato, dimensionarSimple, planDelDia, textoFactor } from '../porciones';
+import { datosValidos, gastoReposo, objetivoPorComida, objetivoValido, pesoReferencia, REPARTO_KCAL, REPARTO_PROTEINA, sugerenciaUsable, sugerirObjetivo } from '../objetivo';
+import { avisosSemana, cantidadPrincipal, consumoSemanal, dimensionarPlato, dimensionarSimple, planDelDia, textoCantidad, textoFactor, textoUnidades } from '../porciones';
 import type { PreferenciasCocina, RolPlato } from '../tipos';
 
 test('alimentos: todos los ingredientes tienen valor y las porciones base son plausibles', () => {
@@ -32,26 +32,44 @@ test('objetivo: sugerencia con Mifflin-St Jeor, piso y peso de referencia; repar
   const mujer = { sexo: 'mujer' as const, edad: 45, pesoKg: 80, tallaCm: 160, actividad: 'baja' as const };
   assert.equal(gastoReposo(mujer), 1414);
   const s = sugerirObjetivo(mujer);
+  assert.equal(s.modo, 'deficit');
   assert.equal(s.total, 1697);
+  assert.equal(s.sinRedondear, 1197);
   assert.equal(s.kcal, 1200);
   assert.equal(s.enPiso, true);
   assert.equal(Math.round(pesoReferencia(mujer)), 68);
   assert.equal(s.proteinaMin, 80);
   assert.equal(s.proteinaMax, 110);
+  assert.equal(sugerenciaUsable(s), true);
   const hombre = sugerirObjetivo({ sexo: 'hombre', edad: 50, pesoKg: 95, tallaCm: 175, actividad: 'media' });
   assert.equal(hombre.kcal, 1950);
   assert.equal(hombre.enPiso, false);
   // Con IMC menor de 30 el peso de referencia es el real.
   assert.equal(pesoReferencia({ pesoKg: 70, tallaCm: 170 }), 70);
+  // Peso normal: se propone mantener, sin déficit. Bajo peso: no se propone nada.
+  const normal = sugerirObjetivo({ sexo: 'mujer', edad: 35, pesoKg: 58, tallaCm: 165, actividad: 'media' });
+  assert.equal(normal.modo, 'mantenimiento');
+  assert.equal(normal.imc, 21.3);
+  assert.equal(normal.kcal, 1750);
+  assert.equal(normal.sinRedondear, normal.total);
+  const bajo = sugerirObjetivo({ sexo: 'mujer', edad: 25, pesoKg: 45, tallaCm: 165, actividad: 'baja' });
+  assert.equal(bajo.modo, 'sin_sugerencia');
+  assert.equal(sugerenciaUsable(bajo), false);
+  // Datos extremos: la sugerencia queda acotada al rango que admite el objetivo y lo dice.
+  const extremo = sugerirObjetivo({ sexo: 'hombre', edad: 18, pesoKg: 300, tallaCm: 220, actividad: 'alta' });
+  assert.equal(extremo.kcal, 4000);
+  assert.equal(extremo.enTope, true);
+  assert.equal(sugerenciaUsable(extremo), true);
   assert.equal(objetivoValido(1500, 90), true);
   assert.equal(objetivoValido(500, 90), false);
   assert.equal(objetivoValido(1500, Number.NaN), false);
   assert.equal(datosValidos({ sexo: 'mujer', edad: 17, pesoKg: 60, tallaCm: 160, actividad: 'baja' }), false);
   assert.equal(datosValidos({ sexo: 'mujer', edad: 40, pesoKg: 60, tallaCm: 160, actividad: 'nada' }), false);
   const metas = objetivoPorComida({ kcal: 1500, proteina: 90, origen: 'profesional' });
-  assert.deepEqual(metas.almuerzo, { kcal: 525, proteina: 32 });
+  assert.deepEqual(metas.desayuno, { kcal: 375, proteina: 14 });
+  assert.deepEqual(metas.almuerzo, { kcal: 450, proteina: 34 });
   assert.deepEqual(metas.once, { kcal: 225, proteina: 9 });
-  assert.deepEqual(metas.cena, { kcal: 375, proteina: 32 });
+  assert.deepEqual(metas.cena, { kcal: 450, proteina: 34 });
   assert.equal(Math.round(Object.values(REPARTO_KCAL).reduce((a, b) => a + b, 0) * 100), 100);
   assert.equal(Math.round(Object.values(REPARTO_PROTEINA).reduce((a, b) => a + b, 0) * 100), 100);
 });
@@ -63,7 +81,7 @@ test('porciones: el plato se ajusta al objetivo y, si no alcanza, manda la energ
   const quinoa = nutricionPorPorcion(componentePorId('c_quinoa')!);
   const verdura = nutricionPorPorcion(componentePorId('v_asadas')!);
   const salsa = nutricionPorPorcion(componentePorId('s_vinagreta')!);
-  const meta = { kcal: 525, proteina: 32 };
+  const meta = { kcal: 450, proteina: 34 };
   const conPollo = { proteina: nutricionPorPorcion(componentePorId('p_pollo_horno')!), carbohidrato: quinoa, verdura, salsa };
   const f = dimensionarPlato(conPollo, meta);
   const t = totalPlato(conPollo, f);
@@ -72,13 +90,18 @@ test('porciones: el plato se ajusta al objetivo y, si no alcanza, manda la energ
   for (const r of ROLES_PLATO) assert.equal((f[r] * 4) % 1, 0, `${r}: ${f[r]} no es múltiplo de un cuarto`);
   assert.equal(f.verdura, 1);
   assert.equal(f.salsa, 1);
-  // Lentejas: no se llega a la proteína sin pasarse de energía; se acota el cereal y se respeta la energía.
+  // Lentejas: no se llega a la proteína sin pasarse de energía; el cereal baja a media porción y se respeta la energía (con tolerancia).
   const conLentejas = { proteina: nutricionPorPorcion(componentePorId('p_lentejas')!), carbohidrato: quinoa, verdura, salsa };
   const g = dimensionarPlato(conLentejas, meta);
   const tl = totalPlato(conLentejas, g);
-  assert.ok(tl.kcal <= meta.kcal * 1.12, `energía ${tl.kcal.toFixed(0)}`);
-  assert.equal(g.carbohidrato, 0.25);
+  assert.ok(tl.kcal <= meta.kcal * 1.2, `energía ${tl.kcal.toFixed(0)}`);
+  assert.equal(g.carbohidrato, 0.5);
   assert.ok(tl.proteina < meta.proteina, 'con lentejas la proteína queda corta');
+  // Comida pequeña: con el aliño entero no cabe ni el plato mínimo, así que el aliño baja a la mitad.
+  const chica = dimensionarPlato({ proteina: nutricionPorPorcion(componentePorId('p_porotos')!), carbohidrato: nutricionPorPorcion(componentePorId('c_pasta')!), verdura: nutricionPorPorcion(componentePorId('v_zapallo')!), salsa: nutricionPorPorcion(componentePorId('s_hummus')!) }, { kcal: 240, proteina: 18 });
+  assert.equal(chica.salsa, 0.5);
+  assert.equal(chica.proteina, 0.5);
+  assert.equal(chica.carbohidrato, 0.5);
   assert.deepEqual(dimensionarPlato(conPollo, null), { proteina: 1, carbohidrato: 1, verdura: 1, salsa: 1 });
   assert.equal(dimensionarSimple({ kcal: 240, proteina: 10 }, { kcal: 375, proteina: 22 }), 1.5);
   assert.equal(dimensionarSimple({ kcal: 240, proteina: 10 }, { kcal: 1000, proteina: 22 }), 1.5);
@@ -90,7 +113,16 @@ test('porciones: el plato se ajusta al objetivo y, si no alcanza, manda la energ
   assert.equal(textoFactor(1.25), '1¼ porciones');
   assert.equal(textoFactor(2), '2 porciones');
   assert.equal(cantidadPrincipal(componentePorId('p_pollo_horno')!, 0.75), '90 g de pechuga o trutro deshuesado de pollo');
-  assert.equal(cantidadPrincipal(componentePorId('p_huevos')!, 1), '2 unidades de huevo');
+  assert.equal(cantidadPrincipal(componentePorId('p_huevos')!, 1), '2 huevos');
+  assert.equal(cantidadPrincipal(componentePorId('p_frittata')!, 1.25), '2 huevos');
+  assert.equal(textoUnidades(0.4, 'Huevo'), 'medio huevo');
+  assert.equal(textoUnidades(1, 'Limón'), '1 limón');
+  assert.equal(textoUnidades(2.6, 'Limón'), '2½ limones');
+  assert.equal(textoUnidades(3, 'Plátano'), '3 plátanos');
+  assert.equal(textoCantidad(0.8, 'unidad'), '1 unidad');
+  assert.equal(textoCantidad(1.3, 'unidad'), '1½ unidades');
+  assert.equal(textoCantidad(0.4, 'diente'), '½ diente');
+  assert.equal(textoCantidad(123, 'g'), '125 g');
 });
 
 test('minuta: cuatro comidas por día, la cena alterna con el almuerzo y el consumo escala las compras', () => {
@@ -118,13 +150,19 @@ test('minuta: cuatro comidas por día, la cena alterna con el almuerzo y el cons
       assert.deepEqual(d.comidas.map((c) => c.comida), ['desayuno', 'almuerzo', 'once', 'cena']);
       assert.ok(Math.abs(d.total.kcal - objetivo.kcal) <= 0.2 * objetivo.kcal, `semilla ${semilla}, día ${d.dia}: ${d.total.kcal.toFixed(0)} kcal`);
       for (const c of d.comidas) {
-        for (const p of c.porciones) assert.ok(p.factor >= 0.25 && p.factor <= 2.5);
+        for (const p of c.porciones) assert.ok(p.factor >= 0.5 && p.factor <= 2.5, `${p.id} ×${p.factor}`);
         // Las banderas de aviso coinciden con los umbrales.
-        assert.equal(c.proteinaCorta, c.total.proteina < 0.85 * c.meta!.proteina);
+        assert.equal(c.proteinaCorta, c.meta!.proteina - c.total.proteina >= 5 && c.total.proteina < 0.85 * c.meta!.proteina);
         assert.equal(c.energiaCorta, c.total.kcal < 0.8 * c.meta!.kcal);
+        assert.equal(c.energiaExcede, c.total.kcal > 1.15 * c.meta!.kcal);
       }
     }
     for (const d of planDelDia(r.menu, COMPONENTES, null)) for (const c of d.comidas) for (const p of c.porciones) assert.equal(p.factor, 1);
+    // Los avisos se agrupan por comida y preparación: nunca más de uno por combinación.
+    const avisos = avisosSemana(plan, COMPONENTES);
+    assert.equal(new Set(avisos.map((a) => a.clave)).size, avisos.length);
+    for (const a of avisos) assert.ok(/^(Los|Las) (desayunos|almuerzos|onces|cenas) con /.test(a.texto), a.texto);
+    assert.deepEqual(avisosSemana(planDelDia(r.menu, COMPONENTES, null), COMPONENTES), []);
     // Sin objetivo, cada rol del plato se come en 10 comidas (5 almuerzos y 5 cenas) repartidas entre sus elegidos.
     const base = consumoSemanal(r.menu, COMPONENTES, null);
     for (const rol of ROLES_PLATO) assert.equal(r.menu.porRol[rol].elecciones.reduce((s, e) => s + (base.get(e.id) ?? 0), 0), 10, rol);

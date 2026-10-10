@@ -43,6 +43,7 @@ export const ALIMENTOS: Record<string, Alimento> = {
   'Choclo desgranado congelado': { kcal: 88, proteina: 3 },
   Avena: { kcal: 389, proteina: 16.9 },
   'Pan integral': { kcal: 250, proteina: 9 },
+  'Galletas de arroz': { kcal: 385, proteina: 8 },
 
   // Lácteos y alternativas
   'Tofu firme': { kcal: 120, proteina: 13 },

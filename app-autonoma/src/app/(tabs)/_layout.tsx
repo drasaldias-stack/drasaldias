@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/tabs';
 import { Platform, useWindowDimensions, type ColorValue } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { usePaleta } from '@/hooks/use-paleta';
 import { useApp } from '@/state/app-state';
@@ -16,6 +17,10 @@ export default function TabsLayout() {
   const { estado } = useApp();
   const p = usePaleta();
   const { width } = useWindowDimensions();
+  // En web la altura se fija a mano (objetivos táctiles de 44 pt); como eso anula la compensación automática
+  // del borde inferior, se suma el inset: en la app instalada en un iPhone con Face ID la barra quedaría bajo
+  // el indicador de inicio (viewport-fit=cover en public/index.html).
+  const insets = useSafeAreaInsets();
   if (!estado.perfil) return <Redirect href="/bienvenida" />;
   return (
     <Tabs
@@ -23,7 +28,11 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: p.accent,
         tabBarInactiveTintColor: p.ink2,
-        tabBarStyle: { backgroundColor: p.surface, borderTopColor: p.line, ...(Platform.OS === 'web' ? { height: 60, paddingBottom: 6 } : null) },
+        tabBarStyle: {
+          backgroundColor: p.surface,
+          borderTopColor: p.line,
+          ...(Platform.OS === 'web' ? { height: 60 + insets.bottom, paddingBottom: 6 + insets.bottom } : null),
+        },
         // A 320 px de ancho la etiqueta «Ejercicio» no cabe con 12 px.
         tabBarLabelStyle: { fontSize: width < 360 ? 11 : 12, lineHeight: 16, fontWeight: '600' },
       }}>

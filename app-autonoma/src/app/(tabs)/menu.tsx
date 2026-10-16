@@ -6,9 +6,12 @@ import { Pressable, View } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import { COMPONENTES, componentePorId } from '@/content/componentes';
 import { usePaleta } from '@/hooks/use-paleta';
-import { cambiarComponente, diasDelMenu, MINUTOS_ORGANIZACION, ordenSesion } from '@/logic/menu';
+import { cambiarComponente, MINUTOS_ORGANIZACION, ordenSesion } from '@/logic/menu';
+import { redondearKcal, redondearProteina } from '@/logic/nutricion';
+import { NOMBRE_COMIDA, objetivoPorComida } from '@/logic/objetivo';
+import { avisosSemana, cantidadPrincipal, consumoSemanal, planDelDia, textoFactor } from '@/logic/porciones';
 import { textosConfirmacion } from '@/logic/seguridad';
-import type { Rol } from '@/logic/tipos';
+import { COMIDAS, type Rol } from '@/logic/tipos';
 import { useApp } from '@/state/app-state';
 import { accesoMenu } from '@/state/derivados';
 import { EditorCocina, TEXTO_EQUIPO, TEXTO_EXCLUSION } from '@/ui/editores';
@@ -21,6 +24,7 @@ const NOMBRE_ROL: Record<Rol, string> = {
   verdura: 'Verduras',
   salsa: 'Aliño o salsa',
   desayuno: 'Desayuno',
+  once: 'Once',
 };
 const DIAS = ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5'];
 
@@ -31,6 +35,7 @@ export default function MenuSemana() {
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [sinAlternativa, setSinAlternativa] = useState<string | null>(null);
   const prefs = perfil.cocina;
+  const objetivo = perfil.objetivo;
 
   if (!accesoMenu(perfil)) {
     return (
@@ -69,6 +74,28 @@ export default function MenuSemana() {
     </Tarjeta>
   );
 
+  const metas = objetivo ? objetivoPorComida(objetivo) : null;
+  const tarjetaObjetivo = objetivo && metas ? (
+    <Tarjeta>
+      <Etiqueta>Tu objetivo diario</Etiqueta>
+      <Subtitulo>
+        {objetivo.kcal} kcal · {objetivo.proteina} g de proteína
+      </Subtitulo>
+      <Pequeno>
+        {objetivo.origen === 'profesional' ? 'Indicado por tu profesional' : 'Calculado con la app como punto de partida, no una indicación médica'} · repartido en{' '}
+        {COMIDAS.map((c) => `${NOMBRE_COMIDA[c].toLowerCase()} ${metas[c].kcal} kcal y ${metas[c].proteina} g`).join(', ')}. Las porciones de abajo están ajustadas a este objetivo.
+      </Pequeno>
+      <Boton titulo="Cambiar en Perfil" variante="secundario" onPress={() => router.push('/perfil')} />
+    </Tarjeta>
+  ) : (
+    <Aviso tipo="info">
+      <Texto>
+        Sin objetivo diario, el menú muestra porciones base iguales para todas las personas. Si tu médico o nutricionista te indicó cuántas calorías y cuánta proteína comer al día, o quieres que la app te sugiera un punto de partida, defínelo en Perfil.
+      </Texto>
+      <Boton titulo="Definir objetivo en Perfil" variante="secundario" onPress={() => router.push('/perfil')} />
+    </Aviso>
+  );
+
   const resumenFiltros = [
     `${prefs.minutos} min`,
     `${prefs.personas} ${prefs.personas === 1 ? 'persona' : 'personas'}`,
@@ -88,6 +115,11 @@ export default function MenuSemana() {
     }
   };
 
+  const plan = menuActual?.ok ? planDelDia(menuActual.menu, COMPONENTES, objetivo) : null;
+  const consumo = menuActual?.ok ? consumoSemanal(menuActual.menu, COMPONENTES, objetivo) : null;
+  const avisos = plan ? avisosSemana(plan, COMPONENTES, prefs.exclusiones) : [];
+  const nutricion = (n: { kcal: number; proteina: number }) => `≈ ${redondearKcal(n.kcal)} kcal · ${redondearProteina(n.proteina)} g de proteína`;
+
   return (
     <Pantalla>
       <View style={{ gap: Spacing.s }}>
@@ -95,6 +127,7 @@ export default function MenuSemana() {
         <Titulo>Menú de la semana</Titulo>
       </View>
 
+      {tarjetaObjetivo}
       {tarjetaPauta}
 
       <Tarjeta>
@@ -120,7 +153,7 @@ export default function MenuSemana() {
         )}
       </Tarjeta>
 
-      {!menuActual?.ok ? (
+      {!menuActual?.ok || !plan || !consumo ? (
         <Aviso tipo="alerta">
           <Texto>
             Con tus filtros no hay recetas suficientes de {NOMBRE_ROL[menuActual?.ok === false ? menuActual.rolSinOpciones : 'proteina'].toLowerCase()}. Quita alguna exclusión o suma equipamiento.
@@ -148,7 +181,7 @@ export default function MenuSemana() {
           </Tarjeta>
 
           <Subtitulo>Qué cocinar, en este orden</Subtitulo>
-          <Pequeno>Empieza por lo que pasa más tiempo solo en el horno o la olla.</Pequeno>
+          <Pequeno>Empieza por lo que pasa más tiempo solo en el horno o la olla. Las cantidades de cada receta ya están escaladas a lo que se come en la semana.</Pequeno>
           {ordenSesion(menuActual.menu, COMPONENTES).map(({ c, doble }, i) => (
             <Tarjeta key={c.id}>
               <Fila style={{ justifyContent: 'space-between' }}>
@@ -164,7 +197,7 @@ export default function MenuSemana() {
                 <Ionicons aria-hidden name="chevron-forward" size={22} color={p.ink2} />
               </Pressable>
               <Pequeno>
-                {doble ? 'Se prepara en cantidad doble para cubrir los 5 días. ' : ''}Dura {c.refrigeradorDias} días refrigerado{c.congelable ? ' y se puede congelar' : ''}.
+                {textoFactor(consumo.get(c.id) ?? c.porciones)} por persona esta semana. Dura {c.refrigeradorDias} días refrigerado{c.congelable ? ' y se puede congelar' : ''}.
               </Pequeno>
               {sinAlternativa === c.id ? <Pequeno tono="alerta">No hay otra receta que calce con tus filtros y tu tiempo. Quita alguna exclusión, suma equipamiento o elige más tiempo.</Pequeno> : null}
               <Fila>
@@ -174,31 +207,76 @@ export default function MenuSemana() {
           ))}
 
           <Subtitulo>Tu semana</Subtitulo>
-          <Pequeno>El día 1 es el primer día que comes del menú: si cocinas el domingo, el día 1 es el lunes.</Pequeno>
-          {diasDelMenu(menuActual.menu).map(({ dia, comida }) => {
-            const nombre = (id: string) => componentePorId(id)?.nombre ?? id;
-            const principal = (['proteina', 'carbohidrato', 'verdura', 'salsa'] as Rol[]).map((r) => comida[r]);
-            const congelados = [...principal, comida.desayuno].filter((a) => a.congelar);
-            return (
-              <Tarjeta key={dia}>
-                <Etiqueta tono="acento">{DIAS[dia - 1]}</Etiqueta>
-                <Texto style={{ fontWeight: '700' }}>Almuerzo o cena</Texto>
-                <Texto>{principal.map((a) => nombre(a.id)).join(' + ')}</Texto>
-                <Separador />
-                <Texto style={{ fontWeight: '700' }}>Desayuno</Texto>
-                <Texto>{nombre(comida.desayuno.id)}</Texto>
-                {congelados.length > 0 ? (
-                  <Fila style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
-                    <Ionicons aria-hidden name="snow-outline" size={18} color={p.accent} />
-                    <Pequeno style={{ flex: 1 }}>
-                      Congela el mismo día que cocinas y pásalo al refrigerador la noche anterior: {congelados.map((a) => nombre(a.id)).join(', ')}.
-                    </Pequeno>
-                  </Fila>
-                ) : null}
-              </Tarjeta>
-            );
-          })}
-          <Pequeno>Arma el plato con la mitad de verduras, un cuarto de proteína y un cuarto de cereal, legumbre o tubérculo.</Pequeno>
+          <Pequeno>
+            Cuatro comidas al día: desayuno, almuerzo, once y cena. El día 1 es el primer día que comes del menú: si cocinas el domingo, el día 1 es el lunes.
+            {objetivo ? ' Las cantidades son por persona y en crudo, como se compran.' : ''}
+          </Pequeno>
+          {plan.map((d) => (
+            <Tarjeta key={d.dia}>
+              <Etiqueta tono="acento">{DIAS[d.dia - 1]}</Etiqueta>
+              {d.comidas.map((comida, i) => {
+                const corta = comida.proteinaCorta || comida.energiaCorta || comida.energiaExcede;
+                return (
+                  <View key={comida.comida} style={{ gap: Spacing.xs }}>
+                    {i > 0 ? <Separador /> : null}
+                    <Fila style={{ justifyContent: 'space-between' }}>
+                      <Texto style={{ fontWeight: '700' }}>{NOMBRE_COMIDA[comida.comida]}</Texto>
+                      {objetivo && comida.meta ? (
+                        <Pequeno tono={corta ? 'alerta' : 'suave'}>
+                          {nutricion(comida.total)}
+                          {corta ? ` (previstos ${comida.meta.kcal} · ${comida.meta.proteina})` : ''}
+                        </Pequeno>
+                      ) : null}
+                    </Fila>
+                    {comida.porciones.map((porcion) => {
+                      const c = componentePorId(porcion.id);
+                      if (!c) return null;
+                      const conCantidad = c.rol !== 'verdura' && c.rol !== 'salsa';
+                      const detalle = objetivo ? ` · ${textoFactor(porcion.factor)}${conCantidad ? ` (${cantidadPrincipal(c, porcion.factor)})` : ''}` : '';
+                      return (
+                        <Texto key={porcion.id}>
+                          {c.nombre}
+                          {detalle}
+                        </Texto>
+                      );
+                    })}
+                  </View>
+                );
+              })}
+              {objetivo ? (
+                <>
+                  <Separador />
+                  <Pequeno tono="normal">
+                    Total del día {nutricion(d.total)} (objetivo {objetivo.kcal} kcal · {objetivo.proteina} g).
+                  </Pequeno>
+                </>
+              ) : null}
+              {d.congelados.length > 0 ? (
+                <Fila style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
+                  <Ionicons aria-hidden name="snow-outline" size={18} color={p.accent} />
+                  <Pequeno style={{ flex: 1 }}>
+                    Congela el mismo día que cocinas y pásalo al refrigerador la noche anterior: {d.congelados.map((id) => componentePorId(id)?.nombre ?? id).join(', ')}.
+                  </Pequeno>
+                </Fila>
+              ) : null}
+            </Tarjeta>
+          ))}
+          {avisos.length > 0 ? (
+            <Aviso tipo="alerta">
+              <Texto style={{ fontWeight: '700' }}>Comidas que no cuadran con tu objetivo</Texto>
+              {avisos.map((a) => (
+                <Pequeno key={a.clave} tono="normal">
+                  {a.texto}
+                </Pequeno>
+              ))}
+              <Pequeno tono="normal">Si se repite semana a semana, pide a tu equipo de salud que ajuste las cantidades o cambia la receta con «Otra receta».</Pequeno>
+            </Aviso>
+          ) : null}
+          <Pequeno>
+            {objetivo
+              ? 'Las cantidades son aproximadas: los valores de energía y proteína de los alimentos son de referencia, incluyen el aceite de cada receta, y las porciones se redondean a cuartos. La verdura no se dimensiona: sirve al menos la porción indicada y agrega más verdura si quieres llenar la mitad del plato.'
+              : 'Arma el plato con la mitad de verduras, un cuarto de proteína y un cuarto de cereal, legumbre o tubérculo.'}
+          </Pequeno>
           <Boton titulo="Ver lista de compras" icono="cart-outline" onPress={() => router.push('/compras')} />
         </>
       )}

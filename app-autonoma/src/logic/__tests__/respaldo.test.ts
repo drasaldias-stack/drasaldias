@@ -22,6 +22,8 @@ const estado = (): EstadoApp => {
       ejercicio: { ...EJERCICIO_INICIAL, programa: 'fuerza_casa', materiales: ['banda', 'pesas'] },
       pauta: { origen: 'profesional', titulo: 'Pauta de mi nutricionista', comidas: [{ nombre: 'Desayuno', detalle: 'Avena con fruta' }], notas: '', enlace: '' },
       rutina: { nombre: 'Gimnasio', sesiones: [{ id: 'A', clave: 'pier', nombre: 'Piernas', vueltas: 2, items: [{ nombre: 'Sentadilla', cantidad: 12, unidad: 'reps' }] }, { id: 'B', clave: 'braz', nombre: 'Brazos', vueltas: 1, items: [{ nombre: 'Plancha', cantidad: 40, unidad: 'seg' }] }], notas: 'Subir de a poco' },
+      objetivo: { kcal: 1500, proteina: 90, origen: 'profesional' },
+      datos: { sexo: 'mujer', edad: 45, pesoKg: 80, tallaCm: 160, actividad: 'baja' },
     },
     clasesVistas: { c01: '2026-09-16', c02: '2026-09-23' },
     sesionesHechas: { '1-A': '2026-09-16', '2-B': '2026-09-25' },

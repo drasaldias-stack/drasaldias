@@ -544,13 +544,14 @@ export const COMPONENTES: Componente[] = [
       { nombre: 'Espinaca', cantidad: 60, unidad: 'g', categoria: 'Verduras y frutas' },
       { nombre: 'Pimentón', cantidad: 0.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
       { nombre: 'Tomate', cantidad: 0.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
+      { nombre: 'Fruta de estación', cantidad: 750, unidad: 'g', categoria: 'Verduras y frutas' },
       SAL,
     ],
     pasos: [
       'Precalienta el horno a 180 °C.',
       'Bate los huevos con sal y mezcla con las verduras picadas.',
       'Reparte en moldes de muffin aceitados y hornea 20 a 25 minutos, hasta que cuajen en el centro.',
-      'Cada desayuno son 2 muffins; acompáñalos con una fruta o una rebanada de pan integral.',
+      'Una porción son 2 muffins con una fruta grande o dos chicas (unos 150 g). Sírvete lo que indica el menú.',
     ],
   },
   {
@@ -589,6 +590,115 @@ export const COMPONENTES: Componente[] = [
       'Congela los que comerás desde el cuarto día.',
     ],
     nota: NOTA_AVENA,
+  },
+
+  // ---------- Once ----------
+  // La cuarta comida: preparaciones simples que se arman al momento con lo que se dejó listo en la sesión.
+  {
+    id: 'o_tostadas_huevo', nombre: 'Tostadas integrales con huevo duro y tomate', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['cocinilla'], contiene: ['gluten', 'huevo'],
+    minutosActivos: 5, minutosTotales: 15, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Pan integral', cantidad: 300, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Huevo', cantidad: 5, unidad: 'unidad', categoria: 'Carnes, pescados y huevos' },
+      { nombre: 'Tomate', cantidad: 2.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
+      SAL,
+    ],
+    pasos: [
+      'En la sesión, cocina los huevos 10 minutos desde que hierve el agua, pásalos a agua fría y guárdalos con cáscara.',
+      'Una porción son 2 rebanadas de pan (unos 60 g) tostadas, un huevo pelado en rodajas y medio tomate con una pizca de sal. Sírvete lo que indica el menú.',
+    ],
+    conservacion: 'Los huevos duros con cáscara duran hasta 5 días refrigerados. El pan se guarda cerrado a temperatura ambiente, o congelado por rebanadas.',
+  },
+  {
+    id: 'o_yogur', nombre: 'Yogur natural con fruta y nueces', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: ['lacteos', 'frutos_secos'],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Yogur natural sin azúcar', cantidad: 850, unidad: 'g', categoria: 'Lácteos y alternativas' },
+      { nombre: 'Fruta de estación', cantidad: 500, unidad: 'g', categoria: 'Verduras y frutas' },
+      { nombre: 'Nueces', cantidad: 75, unidad: 'g', categoria: 'Despensa' },
+    ],
+    pasos: ['En la sesión, reparte las nueces en 5 bolsitas o frascos pequeños.', 'Una porción es un pote de yogur (170 g) con 100 g de fruta picada y una bolsita de nueces (15 g). Sírvete lo que indica el menú.'],
+    conservacion: 'El yogur y la fruta van refrigerados y se sirven al momento; las nueces, en frasco cerrado.',
+  },
+  {
+    id: 'o_palta_quesillo', nombre: 'Pan integral con palta y quesillo', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: ['gluten', 'lacteos'],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Pan integral', cantidad: 300, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Palta', cantidad: 250, unidad: 'g', categoria: 'Verduras y frutas' },
+      { nombre: 'Quesillo', cantidad: 300, unidad: 'g', categoria: 'Lácteos y alternativas' },
+      SAL,
+    ],
+    pasos: ['Una porción son 2 rebanadas de pan (unos 60 g) con un cuarto de palta (50 g) y una rebanada de quesillo (60 g). Sírvete lo que indica el menú.'],
+    conservacion: 'Compra las paltas en distintos puntos de madurez para que duren la semana. El quesillo, refrigerado y cerrado, hasta la fecha del envase.',
+  },
+  {
+    id: 'o_atun', nombre: 'Pan integral con atún y tomate', rol: 'once',
+    patrones: ['omnivoro'], equipos: ['sin_coccion'], contiene: ['gluten', 'pescado'],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Pan integral', cantidad: 300, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Atún o jurel en agua, en conserva', cantidad: 300, unidad: 'g', categoria: 'Despensa' },
+      { nombre: 'Tomate', cantidad: 2.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
+    ],
+    pasos: ['Una porción son 2 rebanadas de pan (unos 60 g) con 60 g de atún o jurel escurrido y medio tomate en rodajas. Sírvete lo que indica el menú.'],
+    conservacion: 'Una lata abierta, pasada a un recipiente cerrado, dura 3 días refrigerada: usa latas chicas o reparte una entre dos días seguidos.',
+  },
+  {
+    id: 'o_fruta_mani', nombre: 'Fruta con mantequilla de maní y chía', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: ['frutos_secos'],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Fruta de estación', cantidad: 750, unidad: 'g', categoria: 'Verduras y frutas' },
+      { nombre: 'Mantequilla de maní', cantidad: 100, unidad: 'g', categoria: 'Despensa' },
+      { nombre: 'Semillas de chía', cantidad: 25, unidad: 'g', categoria: 'Despensa' },
+    ],
+    pasos: ['Una porción es una fruta grande o dos chicas (unos 150 g) en trozos, con una cucharada colmada de mantequilla de maní (20 g) y una cucharadita de chía. Sírvete lo que indica el menú.'],
+    conservacion: 'La fruta entera se guarda refrigerada; la mantequilla de maní (sin azúcar añadida) y la chía, en la despensa.',
+    nota: 'El maní es una legumbre, pero por su alergia se agrupa con los frutos secos: esta once queda fuera si marcaste «Frutos secos».',
+  },
+  {
+    id: 'o_batido', nombre: 'Batido de leche, avena y plátano', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['licuadora'], contiene: ['gluten'],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Leche o bebida vegetal sin azúcar', cantidad: 1250, unidad: 'ml', categoria: 'Lácteos y alternativas' },
+      { nombre: 'Avena', cantidad: 150, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Plátano', cantidad: 5, unidad: 'unidad', categoria: 'Verduras y frutas' },
+    ],
+    pasos: ['Una porción es un vaso grande de leche o bebida vegetal (250 ml) licuado con 3 cucharadas de avena (30 g) y un plátano; se toma al momento. Sírvete lo que indica el menú.'],
+    conservacion: 'No se prepara con anticipación: la leche y los plátanos se guardan como siempre y el batido se hace cada tarde.',
+    nota: NOTA_AVENA,
+  },
+  {
+    id: 'o_huevo_fruta', nombre: 'Huevo duro con fruta', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['cocinilla'], contiene: ['huevo'],
+    minutosActivos: 5, minutosTotales: 15, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Huevo', cantidad: 5, unidad: 'unidad', categoria: 'Carnes, pescados y huevos' },
+      { nombre: 'Fruta de estación', cantidad: 750, unidad: 'g', categoria: 'Verduras y frutas' },
+    ],
+    pasos: [
+      'En la sesión, cocina los huevos 10 minutos desde que hierve el agua, pásalos a agua fría y guárdalos con cáscara.',
+      'Una porción es un huevo duro con una fruta grande o dos chicas (unos 150 g). Sírvete lo que indica el menú.',
+    ],
+    conservacion: 'Los huevos duros con cáscara duran hasta 5 días refrigerados; la fruta entera, refrigerada.',
+  },
+  {
+    id: 'o_galletas_arroz', nombre: 'Galletas de arroz con palta y tomate', rol: 'once',
+    patrones: ['omnivoro', 'vegetariano'], equipos: ['sin_coccion'], contiene: [],
+    minutosActivos: 5, minutosTotales: 5, refrigeradorDias: 5, congelable: false, frio: true, porciones: 5,
+    ingredientes: [
+      { nombre: 'Galletas de arroz', cantidad: 150, unidad: 'g', categoria: 'Despensa' },
+      { nombre: 'Palta', cantidad: 250, unidad: 'g', categoria: 'Verduras y frutas' },
+      { nombre: 'Tomate', cantidad: 2.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
+      SAL,
+    ],
+    pasos: ['Una porción son 3 galletas de arroz (unos 30 g) con un cuarto de palta (50 g) y medio tomate en rodajas, con una pizca de sal. Sírvete lo que indica el menú.'],
+    conservacion: 'Las galletas de arroz se guardan cerradas en la despensa; compra las paltas en distintos puntos de madurez para que duren la semana.',
   },
 ];
 

@@ -22,7 +22,7 @@ export const TEXTO_EXCLUSION: Record<Exclusion, string> = {
   vacuno: 'Vacuno',
   pollo: 'Pollo',
   soya: 'Soya',
-  frutos_secos: 'Frutos secos',
+  frutos_secos: 'Frutos secos y maní',
   mostaza: 'Mostaza',
   sesamo: 'Sésamo (tahini)',
   cebolla: 'Cebolla',

@@ -5,8 +5,11 @@ import type { Componente, EquipoReceta, PreferenciasCocina, Rol } from './tipos'
 
 export const DIAS = 5;
 export const MINUTOS_ORGANIZACION = 10;
-export const ORDEN_ROLES: Rol[] = ['proteina', 'carbohidrato', 'verdura', 'salsa', 'desayuno'];
+export const ORDEN_ROLES: Rol[] = ['proteina', 'carbohidrato', 'verdura', 'salsa', 'desayuno', 'once'];
 const ROLES_PAR: Rol[] = ['proteina', 'carbohidrato', 'verdura'];
+/** Los roles que forman el plato del almuerzo y de la cena. */
+export type RolPlato = 'proteina' | 'carbohidrato' | 'verdura' | 'salsa';
+export const ROLES_PLATO: RolPlato[] = ['proteina', 'carbohidrato', 'verdura', 'salsa'];
 
 export type Eleccion = { id: string; doble: boolean };
 export type Asignacion = { id: string; congelar: boolean };
@@ -243,6 +246,38 @@ export function diasDelMenu(menu: Menu): DiaMenu[] {
     const comida = {} as Record<Rol, Asignacion>;
     for (const rol of ORDEN_ROLES) comida[rol] = menu.porRol[rol].dias[i];
     return { dia: i + 1, comida };
+  });
+}
+
+export type DiaComidas = {
+  dia: number;
+  desayuno: Asignacion;
+  almuerzo: Record<RolPlato, Asignacion>;
+  once: Asignacion;
+  cena: Record<RolPlato, Asignacion>;
+};
+
+/**
+ * Las cuatro comidas de cada día. El almuerzo usa lo que el reparto asignó al día. La cena usa el otro componente
+ * elegido del mismo rol cuando ese día sigue apto (refrigerado o congelable), para no repetir el plato del almuerzo;
+ * si no hay otro, repite el del almuerzo. Las cantidades no entran aquí: las fija el objetivo (ver porciones.ts).
+ */
+export function comidasDelDia(menu: Menu, catalogo: Componente[]): DiaComidas[] {
+  const porId = new Map(catalogo.map((c) => [c.id, c]));
+  return Array.from({ length: DIAS }, (_, i) => {
+    const dia = i + 1;
+    const almuerzo = {} as Record<RolPlato, Asignacion>;
+    const cena = {} as Record<RolPlato, Asignacion>;
+    for (const rol of ROLES_PLATO) {
+      const op = menu.porRol[rol];
+      const a = op.dias[i];
+      almuerzo[rol] = a;
+      const otro = op.elecciones
+        .map((e) => porId.get(e.id))
+        .find((c) => c && c.id !== a.id && (c.refrigeradorDias >= dia || c.congelable));
+      cena[rol] = otro ? { id: otro.id, congelar: otro.refrigeradorDias < dia } : a;
+    }
+    return { dia, desayuno: menu.porRol.desayuno.dias[i], almuerzo, once: menu.porRol.once.dias[i], cena };
   });
 }
 

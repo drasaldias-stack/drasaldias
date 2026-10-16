@@ -77,12 +77,8 @@ export default function Perfil() {
           <Tarjeta>
             <Subtitulo>Objetivo diario de alimentación</Subtitulo>
             {accesoMenu(perfil) ? (
-              // La clave vuelve a montar el editor cuando el perfil cambia por fuera (por ejemplo, al restaurar un respaldo).
-              <EditorObjetivo
-                key={`${perfil.inicio}|${perfil.objetivo?.kcal ?? ''}|${perfil.objetivo?.proteina ?? ''}|${perfil.objetivo?.origen ?? ''}|${perfil.datos?.pesoKg ?? ''}|${perfil.datos?.edad ?? ''}`}
-                perfil={perfil}
-                onCambio={actualizarPerfil}
-              />
+              // El editor recarga sus campos solo cuando el perfil cambia por fuera (por ejemplo, al restaurar un respaldo).
+              <EditorObjetivo key={perfil.inicio} perfil={perfil} onCambio={actualizarPerfil} />
             ) : (
               <Texto>Se activa junto con el menú, cuando marques arriba que ya hablaste con tu médico.</Texto>
             )}

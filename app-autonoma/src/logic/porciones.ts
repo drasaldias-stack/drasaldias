@@ -2,7 +2,7 @@ import { formatearCantidad } from './compras';
 import { comidasDelDia, ROLES_PLATO, type Asignacion, type Menu, type RolPlato } from './menu';
 import { escalar, NADA, nutricionPorPorcion, sumar, type Nutricion } from './nutricion';
 import { NOMBRE_COMIDA_PLURAL, objetivoPorComida, type MetaComida } from './objetivo';
-import type { Comida, Componente, Ingrediente, Objetivo } from './tipos';
+import type { Comida, Componente, Exclusion, Ingrediente, Objetivo } from './tipos';
 
 // Dimensiona las porciones de cada comida para acercarse al objetivo del día. Las recetas no cambian: cambia cuántas
 // porciones base de cada componente se comen en cada comida, y de ahí salen las cantidades a cocinar y a comprar.
@@ -22,6 +22,13 @@ export const MINIMO_PROTEINA_CORTA_G = 5;
 /** Por debajo de esta fracción de la energía prevista se sugiere completar; por encima de la otra, se avisa el exceso. */
 export const UMBRAL_ENERGIA_CORTA = 0.8;
 export const UMBRAL_ENERGIA_EXCEDE = 1.15;
+/**
+ * Huevos crudos como máximo en las cuatro comidas de un día. Si el objetivo lleva a más (por ejemplo, huevos duros en
+ * almuerzo y cena), se recortan las preparaciones con huevo de la cena, la once, el desayuno y el almuerzo, en ese
+ * orden, de a un cuarto de porción, y lo que falte de proteína se avisa como en cualquier otra comida. Criterio
+ * revisable por el equipo de salud.
+ */
+export const MAX_HUEVOS_DIA = 4;
 
 export type Porcion = { id: string; factor: number; nutricion: Nutricion };
 export type ComidaPlan = {
@@ -44,13 +51,13 @@ const acotar = (x: number, [min, max]: readonly [number, number]) => Math.min(ma
  * ecuaciones (energía y proteína) para proteína y cereal; si la solución exacta no es practicable, el cereal se
  * acota y la proteína sube hasta donde alcance la energía más la tolerancia; la energía que sobre la ocupa el cereal.
  */
-export function dimensionarPlato(partes: Record<RolPlato, Nutricion>, meta: MetaComida | null): Record<RolPlato, number> {
+export function dimensionarPlato(partes: Record<RolPlato, Nutricion>, meta: MetaComida | null, topeProteina?: number): Record<RolPlato, number> {
   if (!meta) return { proteina: 1, carbohidrato: 1, verdura: 1, salsa: 1 };
   const kP = partes.proteina.kcal;
   const pP = partes.proteina.proteina;
   const kC = partes.carbohidrato.kcal;
   const pC = partes.carbohidrato.proteina;
-  const lp = LIMITES_FACTOR.proteina;
+  const lp = [LIMITES_FACTOR.proteina[0], Math.max(LIMITES_FACTOR.proteina[0], Math.min(LIMITES_FACTOR.proteina[1], topeProteina ?? Infinity))] as const;
   const lc = LIMITES_FACTOR.carbohidrato;
   const restante = (salsa: number) => ({
     K: meta.kcal - partes.verdura.kcal - salsa * partes.salsa.kcal,
@@ -75,13 +82,43 @@ export function dimensionarPlato(partes: Record<RolPlato, Nutricion>, meta: Meta
     x = acotar(Math.min(xProteina, xEnergia), lp);
     if (kC > 0) y = acotar((K - kP * x) / kC, lc);
   }
-  return { proteina: aCuartos(x), carbohidrato: aCuartos(y), verdura: 1, salsa };
+  const f = { proteina: aCuartos(x), carbohidrato: aCuartos(y), verdura: 1, salsa };
+  // El redondeo a cuartos (y la tolerancia) no deben dejar el plato por sobre el umbral de exceso: si pasa, se quita
+  // un cuarto de cereal, luego de proteína y por último medio aliño, hasta entrar en rango o llegar al plato mínimo.
+  const energia = () => ROLES_PLATO.reduce((t, r) => t + partes[r].kcal * f[r], 0);
+  while (energia() > UMBRAL_ENERGIA_EXCEDE * meta.kcal + 1e-9) {
+    if (f.carbohidrato - PASO_FACTOR >= lc[0] - 1e-9) f.carbohidrato -= PASO_FACTOR;
+    else if (f.proteina - PASO_FACTOR >= lp[0] - 1e-9) f.proteina -= PASO_FACTOR;
+    else if (f.salsa > 0.5) f.salsa = 0.5;
+    else break;
+  }
+  return { ...f, proteina: aCuartos(f.proteina), carbohidrato: aCuartos(f.carbohidrato) };
 }
 
 /** Factor de una comida de un solo componente (desayuno u once): se ajusta por energía. */
-export function dimensionarSimple(n: Nutricion, meta: MetaComida | null): number {
+export function dimensionarSimple(n: Nutricion, meta: MetaComida | null, tope?: number): number {
   if (!meta || n.kcal <= 0) return 1;
-  return aCuartos(acotar(meta.kcal / n.kcal, LIMITES_FACTOR.simple));
+  const limites = [LIMITES_FACTOR.simple[0], Math.max(LIMITES_FACTOR.simple[0], Math.min(LIMITES_FACTOR.simple[1], tope ?? Infinity))] as const;
+  let f = aCuartos(acotar(meta.kcal / n.kcal, limites));
+  // Si el redondeo deja la comida por sobre el umbral de exceso, se queda un cuarto más abajo.
+  while (f * n.kcal > UMBRAL_ENERGIA_EXCEDE * meta.kcal + 1e-9 && f - PASO_FACTOR >= limites[0] - 1e-9) f = aCuartos(f - PASO_FACTOR);
+  return f;
+}
+
+/** Huevos crudos que lleva una porción base de un componente. */
+export function huevosPorPorcion(c: Componente): number {
+  return c.ingredientes.filter((i) => i.nombre === 'Huevo' && i.unidad === 'unidad').reduce((s, i) => s + i.cantidad, 0) / c.porciones;
+}
+
+/** Si todos los factores de la comida están en su mínimo: no se puede servir menos sin salirse de las recetas. */
+export function platoMinimo(c: ComidaPlan): boolean {
+  if (c.porciones.length === 1) return c.porciones[0].factor <= LIMITES_FACTOR.simple[0];
+  return c.porciones.every((p, i) => {
+    const rol = ROLES_PLATO[i];
+    if (rol === 'verdura') return true;
+    if (rol === 'salsa') return p.factor <= 0.5;
+    return p.factor <= LIMITES_FACTOR[rol][0];
+  });
 }
 
 const proteinaCorta = (total: Nutricion, meta: MetaComida | null) =>
@@ -102,24 +139,49 @@ export function planDelDia(menu: Menu, catalogo: Componente[], objetivo: Objetiv
     const c = porId.get(id);
     return c ? nutricionPorPorcion(c) : NADA;
   };
-  const simple = (comida: Comida, a: Asignacion): ComidaPlan => {
+  const huevos = (id: string): number => {
+    const c = porId.get(id);
+    return c ? huevosPorPorcion(c) : 0;
+  };
+  const simple = (comida: Comida, a: Asignacion, tope?: number): ComidaPlan => {
     const meta = metas?.[comida] ?? null;
     const n = nut(a.id);
-    const factor = dimensionarSimple(n, meta);
+    const factor = dimensionarSimple(n, meta, tope);
     const total = escalar(n, factor);
     return { comida, porciones: [{ id: a.id, factor, nutricion: total }], total, meta, ...banderas(total, meta) };
   };
-  const plato = (comida: Comida, partes: Record<RolPlato, Asignacion>): ComidaPlan => {
+  const plato = (comida: Comida, partes: Record<RolPlato, Asignacion>, tope?: number): ComidaPlan => {
     const meta = metas?.[comida] ?? null;
     const nutr = {} as Record<RolPlato, Nutricion>;
     for (const r of ROLES_PLATO) nutr[r] = nut(partes[r].id);
-    const factores = dimensionarPlato(nutr, meta);
+    const factores = dimensionarPlato(nutr, meta, tope);
     const porciones = ROLES_PLATO.map((r) => ({ id: partes[r].id, factor: factores[r], nutricion: escalar(nutr[r], factores[r]) }));
     const total = sumar(...porciones.map((p) => p.nutricion));
     return { comida, porciones, total, meta, ...banderas(total, meta) };
   };
+  const huevosDelDia = (comidas: ComidaPlan[]) => comidas.reduce((s, c) => s + c.porciones.reduce((t, p) => t + p.factor * huevos(p.id), 0), 0);
   return comidasDelDia(menu, catalogo).map((d) => {
     const comidas = [simple('desayuno', d.desayuno), plato('almuerzo', d.almuerzo), simple('once', d.once), plato('cena', d.cena)];
+    // Tope de huevos por día: se recortan de a un cuarto las preparaciones con huevo, empezando por cena y once.
+    if (metas) {
+      const orden: { indice: number; principal: () => Porcion; rehacer: (tope: number) => ComidaPlan }[] = [
+        { indice: 3, principal: () => comidas[3].porciones[0], rehacer: (t) => plato('cena', d.cena, t) },
+        { indice: 2, principal: () => comidas[2].porciones[0], rehacer: (t) => simple('once', d.once, t) },
+        { indice: 0, principal: () => comidas[0].porciones[0], rehacer: (t) => simple('desayuno', d.desayuno, t) },
+        { indice: 1, principal: () => comidas[1].porciones[0], rehacer: (t) => plato('almuerzo', d.almuerzo, t) },
+      ];
+      let seguir = true;
+      while (seguir && huevosDelDia(comidas) > MAX_HUEVOS_DIA + 1e-9) {
+        seguir = false;
+        for (const o of orden) {
+          const p = o.principal();
+          if (huevos(p.id) <= 0 || p.factor - PASO_FACTOR < LIMITES_FACTOR.simple[0] - 1e-9) continue;
+          comidas[o.indice] = o.rehacer(p.factor - PASO_FACTOR);
+          seguir = true;
+          break;
+        }
+      }
+    }
     const asignaciones = [d.desayuno, d.once, ...ROLES_PLATO.map((r) => d.almuerzo[r]), ...ROLES_PLATO.map((r) => d.cena[r])];
     const congelados = [...new Set(asignaciones.filter((a) => a.congelar).map((a) => a.id))];
     return { dia: d.dia, comidas, total: sumar(...comidas.map((c) => c.total)), congelados };
@@ -150,18 +212,29 @@ export function porcionesEnMenu(menu: Menu, catalogo: Componente[], objetivo: Ob
 
 export type AvisoSemana = { clave: string; texto: string };
 
-const complementoProteina = (componentes: Componente[]): string => {
+/**
+ * Con qué completar la proteína: huevo, lácteos o tofu, sin repetir lo que ya trae el plato ni lo que la persona
+ * excluyó (alergia, intolerancia o preferencia). Si no queda nada, se remite al equipo de salud.
+ */
+export const complementoProteina = (componentes: Componente[], exclusiones: readonly Exclusion[] = []): string => {
   const contiene = new Set(componentes.flatMap((c) => c.contiene));
-  if (contiene.has('huevo')) return 'Súmales yogur natural o quesillo si los comes, o tofu.';
-  if (contiene.has('lacteos')) return 'Súmales un huevo o tofu.';
-  return 'Súmales un huevo, yogur natural o quesillo si los comes, o tofu.';
+  const fuera = (e: Exclusion) => contiene.has(e) || exclusiones.includes(e);
+  const opciones: string[] = [];
+  if (!fuera('huevo')) opciones.push('un huevo');
+  if (!fuera('lacteos')) opciones.push('un yogur natural o un trozo de quesillo');
+  if (!fuera('soya')) opciones.push('tofu');
+  if (opciones.length === 0) return 'Pide a tu equipo de salud una fuente de proteína que puedas comer para completarlas.';
+  const previas = opciones.slice(0, -1);
+  const ultima = opciones[opciones.length - 1];
+  const lista = previas.length === 0 ? ultima : `${previas.join(', ')}${previas.some((o) => o.includes(' o ')) ? ', o ' : ' o '}${ultima}`;
+  return `Súmales ${lista}.`;
 };
 
 /**
  * Avisos de la semana, uno por combinación de comida y preparaciones (no uno por día): qué comidas quedan cortas de
  * proteína o de energía, o se pasan, y con qué completarlas.
  */
-export function avisosSemana(plan: DiaPlan[], catalogo: Componente[]): AvisoSemana[] {
+export function avisosSemana(plan: DiaPlan[], catalogo: Componente[], exclusiones: readonly Exclusion[] = []): AvisoSemana[] {
   const porId = new Map(catalogo.map((c) => [c.id, c]));
   const vistos = new Set<string>();
   const out: AvisoSemana[] = [];
@@ -178,10 +251,20 @@ export function avisosSemana(plan: DiaPlan[], catalogo: Componente[]): AvisoSema
       vistos.add(clave);
       const sujeto = `${NOMBRE_COMIDA_PLURAL[c.comida]} con ${principal?.nombre ?? componentes[0]?.nombre ?? ids[0]}`;
       const frases: string[] = [];
+      const proteina = `unos ${Math.round(c.total.proteina)} g de proteína de los ${c.meta.proteina} previstos`;
       if (c.energiaExcede) {
-        frases.push(`${sujeto} superan lo previsto (≈ ${kcal(c.total)} kcal de ${c.meta.kcal}) porque el plato no se arma con menos; con un objetivo tan bajo conviene revisarlo con tu profesional.`);
+        const exceso = `superan lo previsto (≈ ${kcal(c.total)} kcal de ${c.meta.kcal})`;
+        if (platoMinimo(c)) {
+          // Ya es lo menos que se puede servir de estas recetas: no tiene sentido pedir que se agregue ni que se quite.
+          frases.push(
+            `${sujeto} ${exceso} aunque ya es el plato más chico que la app arma${c.proteinaCorta ? `, y aun así quedan en ${proteina}` : ''}; con un objetivo tan bajo conviene revisarlo con tu profesional.`,
+          );
+        } else {
+          frases.push(`${sujeto} ${exceso}; si prefieres ajustar la energía, sirve un cuarto de porción menos.`);
+          if (c.proteinaCorta) frases.push(`Además quedan en ${proteina}. ${complementoProteina(componentes, exclusiones)}`);
+        }
       } else {
-        if (c.proteinaCorta) frases.push(`${sujeto} quedan en unos ${Math.round(c.total.proteina)} g de proteína de los ${c.meta.proteina} previstos. ${complementoProteina(componentes)}`);
+        if (c.proteinaCorta) frases.push(`${sujeto} quedan en ${proteina}. ${complementoProteina(componentes, exclusiones)}`);
         if (c.energiaCorta) frases.push(`${c.proteinaCorta ? 'Además quedan' : `${sujeto} quedan`} en ≈ ${kcal(c.total)} kcal de ${c.meta.kcal}: agrega una fruta o una rebanada de pan integral (unas 80 kcal cada una) hasta completar.`);
       }
       out.push({ clave, texto: frases.join(' ') });

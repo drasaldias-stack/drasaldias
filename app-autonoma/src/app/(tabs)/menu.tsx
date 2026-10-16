@@ -117,7 +117,7 @@ export default function MenuSemana() {
 
   const plan = menuActual?.ok ? planDelDia(menuActual.menu, COMPONENTES, objetivo) : null;
   const consumo = menuActual?.ok ? consumoSemanal(menuActual.menu, COMPONENTES, objetivo) : null;
-  const avisos = plan ? avisosSemana(plan, COMPONENTES) : [];
+  const avisos = plan ? avisosSemana(plan, COMPONENTES, prefs.exclusiones) : [];
   const nutricion = (n: { kcal: number; proteina: number }) => `≈ ${redondearKcal(n.kcal)} kcal · ${redondearProteina(n.proteina)} g de proteína`;
 
   return (

@@ -105,8 +105,12 @@ export function sugerirObjetivo(d: DatosCalculo): Sugerencia {
   };
 }
 
-/** Si la sugerencia puede guardarse como objetivo. */
-export const sugerenciaUsable = (s: Sugerencia): boolean => s.modo !== 'sin_sugerencia' && objetivoValido(s.kcal, s.proteinaMin);
+/**
+ * Si la sugerencia puede guardarse como objetivo. En mantenimiento, un gasto estimado por debajo del piso no se
+ * sustituye por el piso (sería comer más de lo que se gasta): se pide acordar el plan con el profesional.
+ */
+export const sugerenciaUsable = (s: Sugerencia): boolean =>
+  s.modo !== 'sin_sugerencia' && !(s.modo === 'mantenimiento' && s.enPiso) && objetivoValido(s.kcal, s.proteinaMin);
 
 export type MetaComida = { kcal: number; proteina: number };
 

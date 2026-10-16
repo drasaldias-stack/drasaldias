@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -41,6 +41,10 @@ function explicacionEnergia(s: Sugerencia): string {
   return s.enTope ? `tu gasto estimado, acotado al máximo de ${s.kcal} que admite la app` : `tu gasto estimado, redondeado a ${s.kcal}`;
 }
 
+const mismoObjetivo = (a: Objetivo | null, b: Objetivo | null) => a === b || (a !== null && b !== null && a.kcal === b.kcal && a.proteina === b.proteina && a.origen === b.origen);
+const mismosDatos = (a: DatosCalculo | null, b: DatosCalculo | null) =>
+  a === b || (a !== null && b !== null && a.sexo === b.sexo && a.edad === b.edad && a.pesoKg === b.pesoKg && a.tallaCm === b.tallaCm && a.actividad === b.actividad);
+
 /** Objetivo diario de energía y proteína: ingreso directo (lo que indicó el profesional) o sugerencia calculada por la app. */
 export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio: (cambios: { objetivo?: Objetivo | null; datos?: DatosCalculo | null }) => void }) {
   const [kcal, setKcal] = useState(texto(perfil.objetivo?.kcal));
@@ -52,6 +56,21 @@ export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio:
   const [peso, setPeso] = useState(texto(perfil.datos?.pesoKg));
   const [talla, setTalla] = useState(texto(perfil.datos?.tallaCm));
   const [actividad, setActividad] = useState<Actividad>(perfil.datos?.actividad ?? 'baja');
+  // Lo último que este editor guardó. Si el perfil cambia por otra vía (por ejemplo, al restaurar un respaldo), los
+  // campos se vuelven a cargar; si cambia porque aquí se guardó, se conserva lo escrito y la calculadora abierta.
+  const guardado = useRef({ objetivo: perfil.objetivo, datos: perfil.datos });
+  useEffect(() => {
+    if (mismoObjetivo(perfil.objetivo, guardado.current.objetivo) && mismosDatos(perfil.datos, guardado.current.datos)) return;
+    guardado.current = { objetivo: perfil.objetivo, datos: perfil.datos };
+    setKcal(texto(perfil.objetivo?.kcal));
+    setProteina(texto(perfil.objetivo?.proteina));
+    setOrigen(perfil.objetivo?.origen ?? 'profesional');
+    setSexo(perfil.datos?.sexo ?? 'mujer');
+    setEdad(texto(perfil.datos?.edad));
+    setPeso(texto(perfil.datos?.pesoKg));
+    setTalla(texto(perfil.datos?.tallaCm));
+    setActividad(perfil.datos?.actividad ?? 'baja');
+  }, [perfil.objetivo, perfil.datos]);
 
   const k = numero(kcal);
   const pr = numero(proteina);
@@ -68,14 +87,24 @@ export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio:
   const guardar = () => {
     if (!valido) return;
     // Los datos corporales válidos se guardan también aquí, para no perderlos si se calculó y luego se escribió a mano.
-    onCambio({ objetivo: { kcal: Math.round(k), proteina: Math.round(pr), origen }, ...(datos ? { datos } : {}) });
+    const objetivo = { kcal: Math.round(k), proteina: Math.round(pr), origen };
+    guardado.current = { objetivo, datos: datos ?? perfil.datos };
+    onCambio({ objetivo, ...(datos ? { datos } : {}) });
   };
   const usarSugerencia = () => {
     if (!sugerencia || !datos || !usable) return;
     setKcal(String(sugerencia.kcal));
     setProteina(String(sugerencia.proteinaMin));
     setOrigen('calculado');
-    onCambio({ objetivo: { kcal: sugerencia.kcal, proteina: sugerencia.proteinaMin, origen: 'calculado' }, datos });
+    const objetivo = { kcal: sugerencia.kcal, proteina: sugerencia.proteinaMin, origen: 'calculado' as const };
+    guardado.current = { objetivo, datos };
+    onCambio({ objetivo, datos });
+  };
+  const quitar = () => {
+    guardado.current = { objetivo: null, datos: perfil.datos };
+    onCambio({ objetivo: null });
+    setKcal('');
+    setProteina('');
   };
 
   return (
@@ -106,15 +135,7 @@ export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio:
             Reparto en cuatro comidas: {COMIDAS.map((c) => `${NOMBRE_COMIDA[c].toLowerCase()} ${metas[c].kcal} kcal y ${metas[c].proteina} g`).join(' · ')}. El reparto es fijo en esta versión:{' '}
             {COMIDAS.map((c) => Math.round(REPARTO_KCAL[c] * 100)).join('/')} % de la energía y {COMIDAS.map((c) => Math.round(REPARTO_PROTEINA[c] * 1000) / 10).join('/')} % de la proteína, con más proteína en almuerzo y cena.
           </Pequeno>
-          <Boton
-            titulo="Quitar objetivo"
-            variante="secundario"
-            onPress={() => {
-              onCambio({ objetivo: null });
-              setKcal('');
-              setProteina('');
-            }}
-          />
+          <Boton titulo="Quitar objetivo" variante="secundario" onPress={quitar} />
         </>
       ) : null}
       <Separador />
@@ -122,7 +143,7 @@ export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio:
       {calculadora ? (
         <View style={{ gap: Spacing.m }}>
           <Pequeno>
-            La app estima el gasto en reposo con la ecuación de Mifflin-St Jeor y lo multiplica por un factor según tu actividad. Con IMC de {IMC_SOBREPESO} o más propone restar {DEFICIT_KCAL} kcal, sin bajar de {PISO_KCAL.mujer} kcal en mujeres ni de {PISO_KCAL.hombre} en hombres; con IMC entre {IMC_BAJO_PESO} y {IMC_SOBREPESO} propone mantener tu gasto; con IMC bajo {IMC_BAJO_PESO} no propone nada. La proteína se propone entre {PROTEINA_G_POR_KG[0]} y {PROTEINA_G_POR_KG[1]} g por kilo de peso de referencia (tu peso, o uno ajustado si el IMC es 30 o más). Es un punto de partida, no una indicación médica: lo que te indique tu profesional manda.
+            La app estima el gasto en reposo con la ecuación de Mifflin-St Jeor y lo multiplica por un factor según tu actividad. Con IMC de {IMC_SOBREPESO} o más propone restar {DEFICIT_KCAL} kcal, sin bajar de {PISO_KCAL.mujer} kcal en mujeres ni de {PISO_KCAL.hombre} en hombres; con IMC entre {IMC_BAJO_PESO} y {IMC_SOBREPESO} propone mantener tu gasto, y si ese gasto queda bajo esos mínimos no propone una cifra; con IMC bajo {IMC_BAJO_PESO} no propone nada. La proteína se propone entre {PROTEINA_G_POR_KG[0]} y {PROTEINA_G_POR_KG[1]} g por kilo de peso de referencia (tu peso, o uno ajustado si el IMC es 30 o más). Es un punto de partida, no una indicación médica: lo que te indique tu profesional manda.
           </Pequeno>
           {conInsulina ? <Pequeno tono="alerta">Como usas insulina o sulfonilureas, acuerda el objetivo con tu médico antes de usarlo: cambiar cuánto comes cambia tus dosis.</Pequeno> : null}
           <Opciones<Sexo>
@@ -155,7 +176,9 @@ export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio:
                   <Texto>
                     IMC {sugerencia.imc}. Gasto en reposo estimado: {sugerencia.reposo} kcal. Gasto total estimado con tu actividad: {sugerencia.total} kcal.{' '}
                     {sugerencia.modo === 'mantenimiento'
-                      ? `Con IMC entre ${IMC_BAJO_PESO} y ${IMC_SOBREPESO} la app no propone un déficit: la sugerencia es mantener, ${sugerencia.kcal} kcal al día (${explicacionEnergia(sugerencia)}).`
+                      ? sugerencia.enPiso
+                        ? `Con IMC entre ${IMC_BAJO_PESO} y ${IMC_SOBREPESO} la app no propone un déficit, y tu gasto estimado queda por debajo de los ${PISO_KCAL[sexo]} kcal mínimos con que la app trabaja, así que no propone una cifra: acuerda el plan con tu médico o nutricionista.`
+                        : `Con IMC entre ${IMC_BAJO_PESO} y ${IMC_SOBREPESO} la app no propone un déficit: la sugerencia es mantener, ${sugerencia.kcal} kcal al día (${explicacionEnergia(sugerencia)}).`
                       : `Sugerencia: ${sugerencia.kcal} kcal al día (${explicacionEnergia(sugerencia)}).`}{' '}
                     Proteína: entre {sugerencia.proteinaMin} y {sugerencia.proteinaMax} g al día (peso de referencia {sugerencia.pesoReferencia} kg).
                   </Texto>

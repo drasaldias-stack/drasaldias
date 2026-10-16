@@ -4,9 +4,10 @@ import assert from 'node:assert/strict';
 import { COMPONENTES, componentePorId } from '../../content/componentes';
 import { EJERCICIOS, PROGRAMAS } from '../../content/ejercicios';
 import { CLASES } from '../../content/clases';
+import { FORMATOS_VENTA, type FormatoVenta } from '../../content/formatos';
 import { evaluarSeguridad } from '../seguridad';
 import { cambiarComponente, diasDelMenu, esCompatible, generarMenu, opcionesRol, ORDEN_ROLES, planificarDias } from '../menu';
-import { formatearCantidad, listaCompras } from '../compras';
+import { formatearCantidad, listaCompras, sugerirEnvases, textoEnvases } from '../compras';
 import { consumoSemanal } from '../porciones';
 import { metaCaminata, resolverEjercicio, semanaDelPrograma, sesionesDeSemana } from '../programa';
 import type { Equipo, Exclusion, Material, Patron, PreferenciasCocina, RespuestasSeguridad } from '../tipos';
@@ -175,6 +176,60 @@ test('lista de compras: escala por personas y agrupa', () => {
   assert.ok(totalTres.cantidad >= totalUno.cantidad * 2.5);
   assert.equal(formatearCantidad(1350, 'g'), '1,4 kg');
   assert.equal(formatearCantidad(1, 'unidad'), '1 unidad');
+});
+
+test('lista de compras: envases sugeridos según formatos de venta', () => {
+  const bolsas: FormatoVenta[] = [
+    { envase: 'bolsa', tamano: 500, unidad: 'g' },
+    { envase: 'bolsa', tamano: 1000, unidad: 'g' },
+  ];
+  // Cubre la cantidad comprando lo menos posible, con cada envase adicional penalizado.
+  assert.deepEqual(sugerirEnvases(450, 'g', bolsas), [{ numero: 1, formato: bolsas[0] }]);
+  assert.deepEqual(sugerirEnvases(1000, 'g', bolsas), [{ numero: 1, formato: bolsas[1] }]);
+  assert.equal(textoEnvases(sugerirEnvases(1200, 'g', bolsas)!), '1 bolsa de 1 kg y 1 de 500 g');
+  assert.equal(textoEnvases(sugerirEnvases(2500, 'g', bolsas)!), '2 bolsas de 1 kg y 1 de 500 g');
+  assert.equal(sugerirEnvases(450, 'ml', bolsas), null);
+  assert.equal(sugerirEnvases(450, 'g', []), null);
+  assert.equal(sugerirEnvases(0, 'g', bolsas), null);
+  // Yogur: un pote grande y uno chico antes que seis chicos.
+  const potes: FormatoVenta[] = [120, 150, 800].map((tamano) => ({ envase: 'pote', tamano, unidad: 'g' }));
+  assert.equal(textoEnvases(sugerirEnvases(850, 'g', potes)!), '1 pote de 800 g y 1 de 120 g');
+  assert.equal(textoEnvases(sugerirEnvases(300, 'g', potes)!), '2 potes de 150 g');
+  // Huevos: caja de 20 antes que dos de 12.
+  const cajas: FormatoVenta[] = [12, 20, 30].map((tamano) => ({ envase: 'caja', tamano, unidad: 'unidad' }));
+  assert.equal(textoEnvases(sugerirEnvases(13, 'unidad', cajas)!), '1 caja de 20 unidades');
+  assert.equal(textoEnvases(sugerirEnvases(12, 'unidad', cajas)!), '1 caja de 12 unidades');
+  assert.equal(textoEnvases(sugerirEnvases(25, 'unidad', cajas)!), '1 caja de 30 unidades');
+  // Cucharadas: 2 cda de salsa son 30 ml, cabe en la botella chica; una cantidad en gramos no usa formatos en ml.
+  const botellas: FormatoVenta[] = [{ envase: 'botella', tamano: 165, unidad: 'ml' }];
+  assert.equal(textoEnvases(sugerirEnvases(2, 'cda', botellas)!), '1 botella de 165 ml');
+  assert.equal(sugerirEnvases(30, 'g', botellas), null);
+  assert.equal(textoEnvases([{ numero: 2, formato: { envase: 'caja o lata', tamano: 230, unidad: 'g' } }]), '2 cajas o latas de 230 g');
+  assert.equal(textoEnvases([{ numero: 2, formato: { envase: 'caja', tamano: 1000, unidad: 'ml' } }]), '2 cajas de 1 l');
+  // En la lista real, los productos con formato conocido llevan envases y los demás no.
+  const prefs: PreferenciasCocina = { personas: 1, minutos: 120, equipos: ['horno'], patron: 'omnivoro', exclusiones: [] };
+  const r = generarMenu(prefs, COMPONENTES, 4);
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  const lista = listaCompras(r.menu, COMPONENTES, 1, consumoSemanal(r.menu, COMPONENTES, null), FORMATOS_VENTA);
+  const items = lista.categorias.flatMap((c) => c.items);
+  const huevos = items.find((i) => i.nombre === 'Huevo');
+  if (huevos) assert.ok(huevos.envases && huevos.envases[0].formato.envase === 'caja');
+  for (const i of items) {
+    if (i.envases) {
+      assert.ok(FORMATOS_VENTA[i.nombre], `${i.nombre} tiene envases sin formato`);
+      assert.ok(i.envases.length >= 1 && i.envases.every((e) => e.numero >= 1));
+      // Los envases cubren la cantidad.
+      const total = i.envases.reduce((s, e) => s + e.numero * e.formato.tamano, 0);
+      const pedida = i.unidad === 'cda' ? i.cantidad * 15 : i.unidad === 'cdta' ? i.cantidad * 5 : i.cantidad;
+      assert.ok(total >= pedida - 1e-9, `${i.nombre}: ${total} < ${pedida}`);
+    } else {
+      assert.ok(!FORMATOS_VENTA[i.nombre] || i.unidad === 'diente', `${i.nombre} tiene formato pero no envases`);
+    }
+  }
+  // Los formatos declarados corresponden a ingredientes que existen en el catálogo.
+  const nombres = new Set(COMPONENTES.flatMap((c) => c.ingredientes.map((i) => i.nombre)));
+  for (const nombre of Object.keys(FORMATOS_VENTA)) assert.ok(nombres.has(nombre), `formato sin ingrediente: ${nombre}`);
 });
 
 test('programa: semanas, bloques y alternativas por material', () => {

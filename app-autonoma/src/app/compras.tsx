@@ -4,7 +4,8 @@ import { View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { COMPONENTES } from '@/content/componentes';
-import { formatearCantidad, listaCompras } from '@/logic/compras';
+import { FORMATOS_VENTA } from '@/content/formatos';
+import { formatearCantidad, listaCompras, textoEnvases } from '@/logic/compras';
 import { consumoSemanal } from '@/logic/porciones';
 import { useApp } from '@/state/app-state';
 import { accesoMenu } from '@/state/derivados';
@@ -22,7 +23,14 @@ export default function Compras() {
       </Pantalla>
     );
   }
-  const lista = listaCompras(menuActual.menu, COMPONENTES, perfil.cocina.personas, consumoSemanal(menuActual.menu, COMPONENTES, perfil.objetivo));
+  const lista = listaCompras(
+    menuActual.menu,
+    COMPONENTES,
+    perfil.cocina.personas,
+    consumoSemanal(menuActual.menu, COMPONENTES, perfil.objetivo),
+    FORMATOS_VENTA,
+  );
+  const conEnvases = lista.categorias.some((c) => c.items.some((i) => i.envases));
   const total = lista.categorias.reduce((s, c) => s + c.items.length, 0);
   const marcados = lista.categorias.flatMap((c) => c.items).filter((i) => estado.compras[`${semana}|${i.clave}`]).length;
   return (
@@ -36,6 +44,10 @@ export default function Compras() {
           {marcados} de {total} productos marcados. Las cantidades están redondeadas hacia arriba
           {perfil.objetivo ? ' y escaladas a tu objetivo diario' : ''}.
         </Texto>
+        <Pequeno>
+          Todo está en crudo, tal como se compra: legumbres y cereales secos, carnes y pescados sin cocinar. En las conservas es el
+          peso escurrido.{conEnvases ? ' Los envases que se sugieren son formatos habituales en supermercados chilenos y pueden variar según la marca y la tienda.' : ''}
+        </Pequeno>
       </View>
       {lista.categorias.map((g) => (
         <Tarjeta key={g.categoria}>
@@ -45,7 +57,7 @@ export default function Compras() {
               <FilaCheck
                 key={i.clave}
                 texto={i.nombre}
-                detalle={formatearCantidad(i.cantidad, i.unidad)}
+                detalle={formatearCantidad(i.cantidad, i.unidad) + (i.envases ? ` · ≈ ${textoEnvases(i.envases)}` : '')}
                 marcado={Boolean(estado.compras[`${semana}|${i.clave}`])}
                 onPress={() => alternarCompra(`${semana}|${i.clave}`)}
               />

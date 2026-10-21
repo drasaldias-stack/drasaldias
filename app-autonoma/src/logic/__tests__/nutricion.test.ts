@@ -5,12 +5,13 @@ import { ALIMENTOS } from '../../content/alimentos';
 import { COMPONENTES, componentePorId } from '../../content/componentes';
 import { listaCompras } from '../compras';
 import { normalizarDatos, normalizarObjetivo } from '../estado';
-import { comidasDelDia, generarMenu, ROLES_PLATO } from '../menu';
+import { comidasDelDia, generarMenu, MAX_PREPARACIONES_HUEVO, ORDEN_ROLES, ROLES_PLATO } from '../menu';
 import { ingredientesSinValor, nutricionIngrediente, nutricionPorPorcion, type Nutricion } from '../nutricion';
-import { datosValidos, gastoReposo, objetivoPorComida, objetivoValido, pesoReferencia, REPARTO_KCAL, REPARTO_PROTEINA, sugerenciaUsable, sugerirObjetivo } from '../objetivo';
+import { datosValidos, gastoReposo, objetivoPorComida, objetivoValido, pesoReferencia, pisoSobreGasto, REPARTO_KCAL, REPARTO_PROTEINA, sugerenciaUsable, sugerirObjetivo } from '../objetivo';
+import { esDeHuevo } from '../nutricion';
 import {
-  avisosSemana, cantidadPrincipal, complementoProteina, consumoSemanal, dimensionarPlato, dimensionarSimple, huevosPorPorcion, MAX_HUEVOS_DIA, planDelDia, platoMinimo,
-  textoCantidad, textoFactor, textoUnidades,
+  avisosSemana, cantidadPrincipal, complementoProteina, consumoSemanal, dimensionarPlato, dimensionarSimple, enumerar, EXTRA_CEREAL_POR_HUEVOS, huevosPorPorcion,
+  MAX_HUEVOS_DIA, planDelDia, platoMinimo, textoCantidad, textoFactor, textoUnidades,
 } from '../porciones';
 import type { PreferenciasCocina, RolPlato } from '../tipos';
 
@@ -63,7 +64,24 @@ test('objetivo: sugerencia con Mifflin-St Jeor, piso y peso de referencia; repar
   assert.equal(mayor.modo, 'mantenimiento');
   assert.equal(mayor.total, 1065);
   assert.equal(mayor.enPiso, true);
+  assert.equal(pisoSobreGasto(mayor), true);
   assert.equal(sugerenciaUsable(mayor), false);
+  // Déficit con el piso por encima del gasto: tampoco se propone (sería un superávit presentado como déficit).
+  const mayorConSobrepeso = sugerirObjetivo({ sexo: 'mujer', edad: 85, pesoKg: 56, tallaCm: 148, actividad: 'baja' });
+  assert.equal(mayorConSobrepeso.modo, 'deficit');
+  assert.ok(mayorConSobrepeso.total < 1200, String(mayorConSobrepeso.total));
+  assert.equal(mayorConSobrepeso.kcal, 1200);
+  assert.equal(pisoSobreGasto(mayorConSobrepeso), true);
+  assert.equal(sugerenciaUsable(mayorConSobrepeso), false);
+  // Déficit con piso por debajo del gasto: sí se propone, y lo dice.
+  assert.equal(pisoSobreGasto(s), false);
+  // enPiso se decide con el valor redondeado que se muestra: 1199,7 se presenta como 1200 y no queda «bajo 1200».
+  const borde = sugerirObjetivo({ sexo: 'mujer', edad: 60, pesoKg: 49.2, tallaCm: 155, actividad: 'baja' });
+  assert.equal(borde.modo, 'mantenimiento');
+  assert.equal(borde.total, 1200);
+  assert.equal(borde.enPiso, false);
+  assert.equal(borde.kcal, 1200);
+  assert.equal(sugerenciaUsable(borde), true);
   // Datos extremos: la sugerencia queda acotada al rango que admite el objetivo y lo dice.
   const extremo = sugerirObjetivo({ sexo: 'hombre', edad: 18, pesoKg: 300, tallaCm: 220, actividad: 'alta' });
   assert.equal(extremo.kcal, 4000);
@@ -120,9 +138,12 @@ test('porciones: el plato se ajusta al objetivo y, si no alcanza, manda la energ
   assert.equal(dimensionarSimple({ kcal: 240, proteina: 10 }, { kcal: 151, proteina: 10 }), 0.5);
   assert.equal(dimensionarSimple({ kcal: 240, proteina: 10 }, { kcal: 375, proteina: 22 }, 1), 1);
   // Con tope de proteína el plato no lo supera y el cereal ocupa la energía que sobra.
-  const topado = dimensionarPlato(conPollo, meta, 0.5);
+  const topado = dimensionarPlato(conPollo, meta, { proteina: 0.5 });
   assert.equal(topado.proteina, 0.5);
   assert.ok(topado.carbohidrato > f.carbohidrato);
+  // Con tope de cereal además, el cereal no sube más allá de él.
+  const topadoCereal = dimensionarPlato(conPollo, meta, { proteina: 0.5, carbohidrato: f.carbohidrato + 0.5 });
+  assert.ok(topadoCereal.carbohidrato <= f.carbohidrato + 0.5 + 1e-9);
   assert.equal(textoFactor(1), '1 porción');
   assert.equal(textoFactor(0.5), 'media porción');
   assert.equal(textoFactor(0.75), '¾ de porción');
@@ -144,6 +165,9 @@ test('porciones: el plato se ajusta al objetivo y, si no alcanza, manda la energ
 test('minuta: el exceso de energía solo queda en el plato mínimo, los huevos del día tienen tope y el complemento respeta exclusiones', () => {
   assert.equal(huevosPorPorcion(componentePorId('p_huevos')!), 2);
   assert.equal(huevosPorPorcion(componentePorId('c_quinoa')!), 0);
+  assert.equal(esDeHuevo(componentePorId('p_huevos')!), true);
+  assert.equal(esDeHuevo(componentePorId('p_albondigas')!), false);
+  assert.equal(esDeHuevo(componentePorId('o_huevo_fruta')!), true);
   const escenarios: PreferenciasCocina[] = [
     { personas: 1, minutos: 60, equipos: [], patron: 'omnivoro', exclusiones: [] },
     { personas: 1, minutos: 120, equipos: ['horno', 'olla', 'microondas', 'airfryer', 'licuadora'], patron: 'omnivoro', exclusiones: [] },
@@ -153,6 +177,7 @@ test('minuta: el exceso de energía solo queda en el plato mínimo, los huevos d
   ];
   let excesos = 0;
   let recortes = 0;
+  let conHuevoDeMas = 0;
   for (const prefs of escenarios)
     for (const kcal of [1200, 1500, 1800, 2200, 2500])
       for (const semilla of [1, 2, 3, 4]) {
@@ -161,7 +186,15 @@ test('minuta: el exceso de energía solo queda en el plato mínimo, los huevos d
         if (!r.ok) continue;
         const objetivo = { kcal, proteina: Math.round(kcal / 16), origen: 'profesional' as const };
         const plan = planDelDia(r.menu, COMPONENTES, objetivo);
+        const sinTope = planDelDia(r.menu, COMPONENTES, objetivo).length; // mismo tamaño, solo para legibilidad
+        assert.equal(sinTope, 5);
+        // A lo más una preparación de huevo entre proteínas, desayuno y once (salvo que no haya otra forma de armar el menú).
+        const deHuevo = ORDEN_ROLES.filter((rol) => rol === 'proteina' || rol === 'desayuno' || rol === 'once')
+          .flatMap((rol) => r.menu.porRol[rol].elecciones.map((e) => componentePorId(e.id)!))
+          .filter(esDeHuevo).length;
+        if (deHuevo > MAX_PREPARACIONES_HUEVO) conHuevoDeMas++;
         for (const d of plan) {
+          assert.ok(Math.abs(d.huevos - d.comidas.reduce((s, c) => s + c.porciones.reduce((t, p) => t + p.factor * huevosPorPorcion(componentePorId(p.id)!), 0), 0)) < 1e-9);
           // Exceso solo cuando ya no se puede servir menos.
           for (const c of d.comidas) {
             if (c.energiaExcede) {
@@ -171,28 +204,67 @@ test('minuta: el exceso de energía solo queda en el plato mínimo, los huevos d
           }
           // Tope de huevos por día, salvo que todo lo que lleva huevo ya esté en el mínimo.
           const huevos = d.comidas.reduce((s, c) => s + c.porciones.reduce((t, p) => t + p.factor * huevosPorPorcion(componentePorId(p.id)!), 0), 0);
-          const todoAlMinimo = d.comidas.every((c) => c.porciones.every((p) => huevosPorPorcion(componentePorId(p.id)!) === 0 || p.factor <= 0.5));
+          const todoAlMinimo = d.comidas.every((c) => !esDeHuevo(componentePorId(c.porciones[0].id)!) || c.porciones[0].factor <= 0.5);
           if (huevos > MAX_HUEVOS_DIA + 1e-9) assert.ok(todoAlMinimo, `${prefs.patron} ${kcal} s${semilla} d${d.dia}: ${huevos.toFixed(1)} huevos`);
-          if (d.comidas.some((c) => c.porciones.some((p) => huevosPorPorcion(componentePorId(p.id)!) > 0 && p.factor < 1))) recortes++;
+          for (const c of d.comidas) {
+            if (c.porHuevos) recortes++;
+            // Nada que no sea una preparación de huevo se recorta por el tope; un plato recortado no es «un huevo con medio kilo de arroz».
+            if (c.porHuevos) assert.ok(esDeHuevo(componentePorId(c.porciones[0].id)!), `${c.porciones[0].id} recortado sin ser de huevo`);
+            if (c.porHuevos && c.porciones.length > 1) {
+              const libre = planDelDia(r.menu, COMPONENTES, objetivo); // referencia: el mismo plan
+              assert.ok(libre.length === 5);
+              assert.ok(c.porciones[1].factor <= 2.5);
+            }
+            // Desayuno u once de huevo no bajan de una porción mientras un plato de huevo siga por sobre media.
+            if (c.porciones.length === 1 && c.porHuevos && c.porciones[0].factor < 1) {
+              const platosArriba = d.comidas.filter((x) => x.porciones.length > 1 && esDeHuevo(componentePorId(x.porciones[0].id)!) && x.porciones[0].factor > 0.5);
+              assert.equal(platosArriba.length, 0, `${prefs.patron} ${kcal} s${semilla} d${d.dia}: ${c.comida} bajo 1 con platos recortables`);
+            }
+          }
         }
-        // Ningún aviso nombra un alimento excluido.
-        for (const a of avisosSemana(plan, COMPONENTES, prefs.exclusiones)) {
+        // Ningún aviso nombra un alimento excluido, ni pide un huevo en un día que ya está en el tope.
+        const avisos = avisosSemana(plan, COMPONENTES, prefs);
+        for (const a of avisos) {
           if (prefs.exclusiones.includes('huevo')) assert.ok(!/un huevo/.test(a.texto), a.texto);
           if (prefs.exclusiones.includes('lacteos')) assert.ok(!/yogur|quesillo/.test(a.texto), a.texto);
           if (prefs.exclusiones.includes('soya')) assert.ok(!/tofu/.test(a.texto), a.texto);
+          if (prefs.patron === 'vegetariano') assert.ok(!/atún|pollo/.test(a.texto), a.texto);
           if (a.texto.includes('más chico que la app arma')) assert.ok(!/Súmales/.test(a.texto), a.texto);
+          const [comida, principal] = a.clave.split('|');
+          const diasDelAviso = plan.filter((d) => d.comidas.some((c) => c.comida === comida && c.porciones[0].id === principal && (c.proteinaCorta || c.energiaCorta || c.energiaExcede)));
+          if (/un huevo/.test(a.texto)) for (const d of diasDelAviso) assert.ok(d.huevos + 1 <= MAX_HUEVOS_DIA + 1e-9, `${a.texto} (día ${d.dia}: ${d.huevos} huevos)`);
+          // Si no son todos los días, el aviso los nombra; toda comida corta de proteína de la clave está reflejada.
+          const todasLasDeLaClave = plan.filter((d) => d.comidas.some((c) => c.comida === comida && c.porciones[0].id === principal));
+          if (diasDelAviso.length < todasLasDeLaClave.length) assert.ok(/ de los días /.test(a.texto), a.texto);
+          const cortas = diasDelAviso.flatMap((d) => d.comidas.filter((c) => c.comida === comida && c.porciones[0].id === principal && c.proteinaCorta));
+          if (cortas.length > 0) {
+            const minimo = Math.round(Math.min(...cortas.map((c) => c.total.proteina)));
+            assert.ok(a.texto.includes(`unos ${minimo} g de proteína`), `${a.texto} (mínimo ${minimo})`);
+          }
+          if (cortas.some((c) => c.porHuevos)) assert.ok(a.texto.includes('por el máximo de'), a.texto);
         }
       }
   assert.ok(excesos < 20, `demasiados excesos: ${excesos}`);
   assert.ok(recortes > 0, 'nunca hizo falta recortar huevos');
+  assert.ok(conHuevoDeMas <= 4, `menús con más de una preparación de huevo: ${conHuevoDeMas}`);
+  // El tope no toca preparaciones donde el huevo es ligante (albóndigas: ⅙ de huevo por porción).
+  const albondigas = { proteina: nutricionPorPorcion(componentePorId('p_albondigas')!), carbohidrato: nutricionPorPorcion(componentePorId('c_arroz')!), verdura: nutricionPorPorcion(componentePorId('v_asadas')!), salsa: nutricionPorPorcion(componentePorId('s_vinagreta')!) };
+  assert.equal(dimensionarPlato(albondigas, { kcal: 450, proteina: 34 }).proteina, dimensionarPlato(albondigas, { kcal: 450, proteina: 34 }, {}).proteina);
+  assert.ok(EXTRA_CEREAL_POR_HUEVOS <= 1);
   // Complemento: sin repetir lo que trae el plato ni lo excluido.
   const huevosDuros = [componentePorId('p_huevos')!];
   assert.equal(complementoProteina(huevosDuros), 'Súmales un yogur natural o un trozo de quesillo, o tofu.');
-  assert.equal(complementoProteina(huevosDuros, ['lacteos']), 'Súmales tofu.');
-  assert.equal(complementoProteina([componentePorId('p_lentejas')!], ['soya']), 'Súmales un huevo o un yogur natural o un trozo de quesillo.');
+  assert.equal(complementoProteina(huevosDuros, { exclusiones: ['lacteos'] }), 'Súmales tofu.');
+  assert.equal(complementoProteina([componentePorId('p_lentejas')!], { exclusiones: ['soya'] }), 'Súmales un huevo, o un yogur natural o un trozo de quesillo.');
   assert.equal(complementoProteina([componentePorId('p_lentejas')!]), 'Súmales un huevo, un yogur natural o un trozo de quesillo, o tofu.');
-  assert.equal(complementoProteina([componentePorId('p_tofu')!], ['lacteos']), 'Súmales un huevo.');
-  assert.equal(complementoProteina(huevosDuros, ['lacteos', 'soya']), 'Pide a tu equipo de salud una fuente de proteína que puedas comer para completarlas.');
+  assert.equal(complementoProteina([componentePorId('p_tofu')!], { exclusiones: ['lacteos'] }), 'Súmales un huevo.');
+  assert.equal(complementoProteina([componentePorId('p_lentejas')!], {}, true), 'Súmales un yogur natural o un trozo de quesillo, o tofu.');
+  assert.equal(complementoProteina(huevosDuros, { patron: 'vegetariano', exclusiones: ['lacteos', 'soya'] }), 'Pide a tu equipo de salud una fuente de proteína que puedas comer para completarlas.');
+  assert.equal(complementoProteina(huevosDuros, { patron: 'omnivoro', exclusiones: ['lacteos', 'soya'] }), 'Súmales una lata chica de atún en agua o un trozo de pollo cocido.');
+  assert.equal(complementoProteina(huevosDuros, { patron: 'omnivoro', exclusiones: ['lacteos', 'soya', 'pescado'] }), 'Súmales un trozo de pollo cocido.');
+  assert.equal(enumerar(['3', '4', '5']), '3, 4 y 5');
+  assert.equal(enumerar(['4']), '4');
+  assert.equal(enumerar(['a', 'b'], 'o'), 'a o b');
 });
 
 test('minuta: cuatro comidas por día, la cena alterna con el almuerzo y el consumo escala las compras', () => {

@@ -99,10 +99,10 @@ function enUnidadDeVenta(cantidad: number, unidad: Ingrediente['unidad']): { can
 }
 
 /**
- * Elige con qué envases cubrir la cantidad: se comparan cada formato por sí solo y una combinación (los grandes
- * primero y el resto con el envase más chico que lo cubra), y gana la de menor contenido total, con cada envase
- * adicional penalizado para no proponer seis potes chicos donde cabe uno grande y uno chico.
- * Las cucharadas se convierten a gramos (15 g la cucharada, 5 g la cucharadita); para líquidos valen como mililitros.
+ * Elige con qué envases cubrir la cantidad: se prueban todas las combinaciones de los formatos del producto que la
+ * cubren y gana la de menor contenido total, con cada envase adicional penalizado para no proponer seis potes chicos
+ * donde caben uno grande y uno chico. Las cucharadas se convierten a gramos (15 g la cucharada, 5 g la cucharadita);
+ * para líquidos valen como mililitros.
  */
 export function sugerirEnvases(cantidad: number, unidad: Ingrediente['unidad'], formatos?: FormatoVenta[]): Envases | null {
   if (!formatos?.length || cantidad <= 0) return null;
@@ -112,40 +112,39 @@ export function sugerirEnvases(cantidad: number, unidad: Ingrediente['unidad'], 
   // Una cucharada vale lo mismo en gramos que en mililitros para este fin.
   const utiles = formatos.filter((f) => f.unidad === venta.unidad || (cucharadas && f.unidad === 'ml')).sort((a, b) => b.tamano - a.tamano);
   if (utiles.length === 0) return null;
-  const candidatos: Envases[] = utiles.map((formato) => [{ numero: Math.ceil(venta.cantidad / formato.tamano - 1e-9), formato }]);
-  const mezcla: Envases = [];
-  let resto = venta.cantidad;
-  for (const formato of utiles) {
-    const numero = Math.floor(resto / formato.tamano + 1e-9);
-    if (numero > 0) {
-      mezcla.push({ numero, formato });
-      resto -= numero * formato.tamano;
-    }
-  }
-  if (resto > 1e-9) {
-    const chico = [...utiles].reverse().find((f) => f.tamano >= resto - 1e-9) ?? utiles[utiles.length - 1];
-    const previo = mezcla.find((e) => e.formato === chico);
-    if (previo) previo.numero += 1;
-    else mezcla.push({ numero: 1, formato: chico });
-    mezcla.sort((a, b) => b.formato.tamano - a.formato.tamano);
-  }
-  candidatos.push(mezcla);
   const costo = (e: Envases) => {
     const total = e.reduce((s, x) => s + x.numero * x.formato.tamano, 0);
     const envases = e.reduce((s, x) => s + x.numero, 0);
     return total * (1 + PENALIZACION_ENVASE * (envases - 1));
   };
-  return candidatos.reduce((mejor, e) => (costo(e) < costo(mejor) - 1e-9 ? e : mejor));
+  let mejor: Envases | null = null;
+  // Recorre todas las combinaciones: por producto hay pocos formatos y pocos envases posibles de cada uno.
+  const recorrer = (i: number, resto: number, actual: Envases) => {
+    if (resto <= 1e-9) {
+      if (actual.length > 0 && (mejor === null || costo(actual) < costo(mejor) - 1e-9)) mejor = actual.map((x) => ({ ...x }));
+      return;
+    }
+    if (i >= utiles.length) return;
+    const formato = utiles[i];
+    const maximo = Math.ceil(resto / formato.tamano - 1e-9);
+    for (let numero = maximo; numero >= 0; numero--) {
+      if (numero > 0) actual.push({ numero, formato });
+      recorrer(i + 1, resto - numero * formato.tamano, actual);
+      if (numero > 0) actual.pop();
+    }
+  };
+  recorrer(0, venta.cantidad, []);
+  return mejor;
 }
 
 export function textoEnvases(envases: Envases): string {
-  return envases
-    .map(({ numero, formato }, i) => {
-      const n = numero.toLocaleString('es');
-      const envase = numero === 1 ? formato.envase : plural(formato.envase);
-      return `${n} ${i === 0 ? envase : ''}${i === 0 ? ' ' : ''}de ${formatearCantidad(formato.tamano, formato.unidad)}`;
-    })
-    .join(' y ');
+  const partes = envases.map(({ numero, formato }, i) => {
+    const n = numero.toLocaleString('es');
+    const envase = numero === 1 ? formato.envase : plural(formato.envase);
+    return `${n} ${i === 0 ? `${envase} ` : ''}de ${formatearCantidad(formato.tamano, formato.unidad)}`;
+  });
+  if (partes.length <= 1) return partes[0] ?? '';
+  return `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`;
 }
 
 function plural(envase: string): string {

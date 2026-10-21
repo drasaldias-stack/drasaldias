@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import {
   datosValidos, DEFICIT_KCAL, IMC_BAJO_PESO, IMC_SOBREPESO, LIMITES_DATOS, LIMITES_OBJETIVO, NOMBRE_COMIDA, objetivoPorComida, objetivoValido, PISO_KCAL,
-  PROTEINA_G_POR_KG, REPARTO_KCAL, REPARTO_PROTEINA, sugerenciaUsable, sugerirObjetivo, type Sugerencia,
+  pisoSobreGasto, PROTEINA_G_POR_KG, REPARTO_KCAL, REPARTO_PROTEINA, sugerenciaUsable, sugerirObjetivo, type Sugerencia,
 } from '@/logic/objetivo';
 import { COMIDAS, type Actividad, type DatosCalculo, type Objetivo, type OrigenObjetivo, type Sexo } from '@/logic/tipos';
 import type { Perfil } from '@/state/app-state';
@@ -143,7 +143,7 @@ export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio:
       {calculadora ? (
         <View style={{ gap: Spacing.m }}>
           <Pequeno>
-            La app estima el gasto en reposo con la ecuación de Mifflin-St Jeor y lo multiplica por un factor según tu actividad. Con IMC de {IMC_SOBREPESO} o más propone restar {DEFICIT_KCAL} kcal, sin bajar de {PISO_KCAL.mujer} kcal en mujeres ni de {PISO_KCAL.hombre} en hombres; con IMC entre {IMC_BAJO_PESO} y {IMC_SOBREPESO} propone mantener tu gasto, y si ese gasto queda bajo esos mínimos no propone una cifra; con IMC bajo {IMC_BAJO_PESO} no propone nada. La proteína se propone entre {PROTEINA_G_POR_KG[0]} y {PROTEINA_G_POR_KG[1]} g por kilo de peso de referencia (tu peso, o uno ajustado si el IMC es 30 o más). Es un punto de partida, no una indicación médica: lo que te indique tu profesional manda.
+            La app estima el gasto en reposo con la ecuación de Mifflin-St Jeor y lo multiplica por un factor según tu actividad. Con IMC de {IMC_SOBREPESO} o más propone restar {DEFICIT_KCAL} kcal, sin bajar de {PISO_KCAL.mujer} kcal en mujeres ni de {PISO_KCAL.hombre} en hombres; con IMC entre {IMC_BAJO_PESO} y {IMC_SOBREPESO} propone mantener tu gasto; si el gasto estimado no supera esos mínimos, en ningún caso propone una cifra; con IMC bajo {IMC_BAJO_PESO} no propone nada. La proteína se propone entre {PROTEINA_G_POR_KG[0]} y {PROTEINA_G_POR_KG[1]} g por kilo de peso de referencia (tu peso, o uno ajustado si el IMC es 30 o más). Es un punto de partida, no una indicación médica: lo que te indique tu profesional manda.
           </Pequeno>
           {conInsulina ? <Pequeno tono="alerta">Como usas insulina o sulfonilureas, acuerda el objetivo con tu médico antes de usarlo: cambiar cuánto comes cambia tus dosis.</Pequeno> : null}
           <Opciones<Sexo>
@@ -175,16 +175,16 @@ export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio:
                 <Aviso tipo="info">
                   <Texto>
                     IMC {sugerencia.imc}. Gasto en reposo estimado: {sugerencia.reposo} kcal. Gasto total estimado con tu actividad: {sugerencia.total} kcal.{' '}
-                    {sugerencia.modo === 'mantenimiento'
-                      ? sugerencia.enPiso
-                        ? `Con IMC entre ${IMC_BAJO_PESO} y ${IMC_SOBREPESO} la app no propone un déficit, y tu gasto estimado queda por debajo de los ${PISO_KCAL[sexo]} kcal mínimos con que la app trabaja, así que no propone una cifra: acuerda el plan con tu médico o nutricionista.`
-                        : `Con IMC entre ${IMC_BAJO_PESO} y ${IMC_SOBREPESO} la app no propone un déficit: la sugerencia es mantener, ${sugerencia.kcal} kcal al día (${explicacionEnergia(sugerencia)}).`
-                      : `Sugerencia: ${sugerencia.kcal} kcal al día (${explicacionEnergia(sugerencia)}).`}{' '}
+                    {pisoSobreGasto(sugerencia)
+                      ? `${sugerencia.modo === 'mantenimiento' ? `Con IMC entre ${IMC_BAJO_PESO} y ${IMC_SOBREPESO} la app no propone un déficit, y tu` : `Restar ${DEFICIT_KCAL} kcal daría ${sugerencia.sinRedondear}, pero tu`} gasto estimado no supera los ${PISO_KCAL[sexo]} kcal mínimos que la app sugiere por sí sola, así que no propone una cifra: acuerda el plan con tu médico o nutricionista.`
+                      : sugerencia.modo === 'mantenimiento'
+                        ? `Con IMC entre ${IMC_BAJO_PESO} y ${IMC_SOBREPESO} la app no propone un déficit: la sugerencia es mantener, ${sugerencia.kcal} kcal al día (${explicacionEnergia(sugerencia)}).`
+                        : `Sugerencia: ${sugerencia.kcal} kcal al día (${explicacionEnergia(sugerencia)}).`}{' '}
                     Proteína: entre {sugerencia.proteinaMin} y {sugerencia.proteinaMax} g al día (peso de referencia {sugerencia.pesoReferencia} kg).
                   </Texto>
-                  <Pequeno tono="normal">Al usar la sugerencia se guarda la proteína mínima del rango; puedes cambiarla arriba.</Pequeno>
+                  {usable ? <Pequeno tono="normal">Al usar la sugerencia se guarda la proteína mínima del rango; puedes cambiarla arriba.</Pequeno> : null}
                 </Aviso>
-                <Boton titulo="Usar esta sugerencia" onPress={usarSugerencia} deshabilitado={!usable} />
+                {usable ? <Boton titulo="Usar esta sugerencia" onPress={usarSugerencia} /> : null}
               </>
             )
           ) : (

@@ -1,3 +1,4 @@
+import { esDeHuevo } from './nutricion';
 import type { Componente, EquipoReceta, PreferenciasCocina, Rol } from './tipos';
 
 // Arma el menú semanal a partir de componentes aprobados. No genera recetas nuevas:
@@ -151,6 +152,18 @@ export function opcionesPorRol(prefs: PreferenciasCocina, catalogo: Componente[]
   return res;
 }
 
+/**
+ * Preparaciones de huevo como máximo entre las proteínas del plato, el desayuno y la once (`MAX_PREPARACIONES_HUEVO`):
+ * así un menú no lleva huevo en todas las comidas. Si con esa regla no se arma ningún menú, se arma sin ella y el tope
+ * diario de huevos (porciones.ts) queda como última barrera.
+ */
+export const MAX_PREPARACIONES_HUEVO = 1;
+const preparacionesDeHuevo = (o: OpcionRol, catalogo: Componente[]): number =>
+  o.elecciones.filter((e) => {
+    const c = catalogo.find((x) => x.id === e.id);
+    return c !== undefined && esDeHuevo(c);
+  }).length;
+
 export function generarMenu(prefs: PreferenciasCocina, catalogo: Componente[], semilla: number): ResultadoMenu {
   const opciones = opcionesPorRol(prefs, catalogo, semilla);
   for (const rol of ORDEN_ROLES) if (opciones[rol].length === 0) return { ok: false, rolSinOpciones: rol };
@@ -158,23 +171,26 @@ export function generarMenu(prefs: PreferenciasCocina, catalogo: Componente[], s
   const presupuesto = prefs.minutos - MINUTOS_ORGANIZACION;
   const minimos = ORDEN_ROLES.map((rol) => Math.min(...opciones[rol].map((o) => o.minutos)));
   const restoMinimo = ORDEN_ROLES.map((_, i) => minimos.slice(i).reduce((s, m) => s + m, 0));
+  const huevosDe = ORDEN_ROLES.map((rol) => new Map(opciones[rol].map((o) => [o, preparacionesDeHuevo(o, catalogo)])));
 
   const elegidas: OpcionRol[] = [];
   let pasos = 0;
-  const buscar = (i: number, acumulado: number): boolean => {
+  const buscar = (i: number, acumulado: number, huevos: number, limitarHuevo: boolean): boolean => {
     if (i === ORDEN_ROLES.length) return true;
     for (const op of opciones[ORDEN_ROLES[i]]) {
       if (++pasos > 50000) return false;
       const resto = i + 1 < ORDEN_ROLES.length ? restoMinimo[i + 1] : 0;
       if (acumulado + op.minutos + resto > presupuesto) continue;
+      const conHuevo = huevos + (huevosDe[i].get(op) ?? 0);
+      if (limitarHuevo && conHuevo > MAX_PREPARACIONES_HUEVO) continue;
       elegidas[i] = op;
-      if (buscar(i + 1, acumulado + op.minutos)) return true;
+      if (buscar(i + 1, acumulado + op.minutos, conHuevo, limitarHuevo)) return true;
     }
     return false;
   };
 
   let seleccion: OpcionRol[];
-  if (buscar(0, 0)) {
+  if (buscar(0, 0, 0, true) || ((pasos = 0), buscar(0, 0, 0, false))) {
     seleccion = elegidas;
   } else {
     // No cabe en el tiempo elegido: se entrega el menú más rápido posible y se informa el exceso.

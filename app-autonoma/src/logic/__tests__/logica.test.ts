@@ -188,6 +188,11 @@ test('lista de compras: envases sugeridos según formatos de venta', () => {
   assert.deepEqual(sugerirEnvases(1000, 'g', bolsas), [{ numero: 1, formato: bolsas[1] }]);
   assert.equal(textoEnvases(sugerirEnvases(1200, 'g', bolsas)!), '1 bolsa de 1 kg y 1 de 500 g');
   assert.equal(textoEnvases(sugerirEnvases(2500, 'g', bolsas)!), '2 bolsas de 1 kg y 1 de 500 g');
+  // Combinaciones que la mezcla «grandes primero» no encontraba.
+  const envases = (tamanos: number[], envase = 'envase'): FormatoVenta[] => tamanos.map((tamano) => ({ envase, tamano, unidad: 'g' }));
+  assert.equal(textoEnvases(sugerirEnvases(800, 'g', envases([200, 350, 500]))!), '1 envase de 500 g y 1 de 350 g');
+  assert.equal(textoEnvases(sugerirEnvases(600, 'g', envases([250, 350, 400], 'bolsa'))!), '1 bolsa de 350 g y 1 de 250 g');
+  assert.equal(textoEnvases(sugerirEnvases(1070, 'g', envases([120, 150, 800], 'pote'))!), '1 pote de 800 g, 1 de 150 g y 1 de 120 g');
   assert.equal(sugerirEnvases(450, 'ml', bolsas), null);
   assert.equal(sugerirEnvases(450, 'g', []), null);
   assert.equal(sugerirEnvases(0, 'g', bolsas), null);
@@ -200,6 +205,7 @@ test('lista de compras: envases sugeridos según formatos de venta', () => {
   assert.equal(textoEnvases(sugerirEnvases(13, 'unidad', cajas)!), '1 caja de 20 unidades');
   assert.equal(textoEnvases(sugerirEnvases(12, 'unidad', cajas)!), '1 caja de 12 unidades');
   assert.equal(textoEnvases(sugerirEnvases(25, 'unidad', cajas)!), '1 caja de 30 unidades');
+  assert.equal(textoEnvases(sugerirEnvases(32, 'unidad', cajas)!), '1 caja de 20 unidades y 1 de 12 unidades');
   // Cucharadas: 2 cda de salsa son 30 ml, cabe en la botella chica; una cantidad en gramos no usa formatos en ml.
   const botellas: FormatoVenta[] = [{ envase: 'botella', tamano: 165, unidad: 'ml' }];
   assert.equal(textoEnvases(sugerirEnvases(2, 'cda', botellas)!), '1 botella de 165 ml');

@@ -21,18 +21,21 @@ const un = (envase: string, ...tamanos: number[]): FormatoVenta[] => tamanos.map
 
 export const FORMATOS_VENTA: Record<string, FormatoVenta[]> = {
   // Legumbres y cereales secos.
-  'Lentejas secas': g('bolsa', 500),
+  'Lentejas secas': g('bolsa', 500, 1000),
   'Porotos negros secos': g('bolsa', 1000),
   Quinoa: g('bolsa', 250, 350, 400),
   'Arroz integral': g('bolsa', 1000),
   'Pasta integral corta': g('bolsa', 400, 500),
-  'Cuscús integral': g('bolsa', 250, 500),
-  Avena: g('caja', 700, 800),
+  // Solo se encontró cuscús integral de 500 g (los de 250 g son cuscús común).
+  'Cuscús integral': g('bolsa', 500),
+  Avena: g('bolsa o caja', 400, 700, 800),
   'Pan integral': g('bolsa', 400, 500),
+  'Choclo desgranado congelado': g('bolsa', 500, 1000),
   'Galletas de arroz': g('paquete', 110, 150),
   // Conservas: peso escurrido.
-  'Atún o jurel en agua, en conserva': g('lata', 90, 220),
-  'Garbanzos cocidos, de frasco o lata': g('caja o lata', 230),
+  // Atún de 140, 160 y 340 g netos (90, 104 y 240 g escurridos) y jurel de 425 g netos (300 g escurridos).
+  'Atún o jurel en agua, en conserva': g('lata', 90, 104, 220, 240, 300),
+  'Garbanzos cocidos, en caja o lata': [...g('caja', 230), ...g('lata', 138)],
   'Tomate en cubos, en conserva o fresco': g('caja o lata', 380),
   // Carnes y pescados.
   'Pechuga de pollo': g('bandeja', 780, 850, 1000),
@@ -51,7 +54,6 @@ export const FORMATOS_VENTA: Record<string, FormatoVenta[]> = {
   Nueces: g('bolsa', 100, 200),
   'Nueces o almendras': g('bolsa', 100, 200),
   'Mantequilla de maní': g('frasco', 350, 400, 500),
-  'Tahini o aceite de oliva': g('frasco', 225, 330),
   Mostaza: g('frasco', 210, 250),
   'Salsa de soya baja en sodio': ml('botella', 165, 500),
 };

@@ -250,6 +250,9 @@ test('minuta: el exceso de energía solo queda en el plato mínimo, los huevos d
           if (prefs.exclusiones.includes('soya')) assert.ok(!/tofu/.test(a.texto), a.texto);
           if (prefs.patron === 'vegetariano') assert.ok(!/atún|pollo/.test(a.texto), a.texto);
           if (a.texto.includes('más chico que la app arma')) assert.ok(!/Súmales/.test(a.texto), a.texto);
+          // El pronombre de «Además …» concuerda con el género de la comida.
+          if (/^Los /.test(a.texto)) assert.ok(!/Además las? d/.test(a.texto), a.texto);
+          if (/^Las /.test(a.texto)) assert.ok(!/Además (el|los) d/.test(a.texto), a.texto);
           const [comida, principal] = a.clave.split('|');
           const diasDelAviso = plan.filter((d) => d.comidas.some((c) => c.comida === comida && c.porciones[0].id === principal && (c.proteinaCorta || c.energiaCorta || c.energiaExcede)));
           if (/un huevo/.test(a.texto)) for (const d of diasDelAviso) assert.ok(d.huevos + 1 <= MAX_HUEVOS_DIA + 1e-9, `${a.texto} (día ${d.dia}: ${d.huevos} huevos)`);
@@ -351,6 +354,10 @@ test('minuta: el exceso de energía solo queda en el plato mínimo, los huevos d
     if (r.ok) {
       assert.ok(r.menu.excede > 0);
       assert.equal(r.menu.excedePorHuevo, true);
+      // «Otra receta» en un rol ajeno al huevo conserva la causa del exceso.
+      const prefs60: PreferenciasCocina = { personas: 1, minutos: 60, equipos: [], patron: 'omnivoro', exclusiones: [] };
+      const otro = cambiarComponente(r.menu, prefs60, COMPONENTES, 'carbohidrato', r.menu.porRol.carbohidrato.elecciones[0].id);
+      if (otro && otro.excede > 0) assert.equal(otro.excedePorHuevo, true);
     }
     const holgado = generarMenu({ personas: 1, minutos: 120, equipos: ['horno', 'olla', 'microondas', 'airfryer', 'licuadora'], patron: 'omnivoro', exclusiones: [] }, COMPONENTES, 1);
     assert.ok(holgado.ok && holgado.menu.excede === 0 && !holgado.menu.excedePorHuevo);

@@ -277,7 +277,8 @@ export function cambiarComponente(
   const pos = opciones.findIndex((o) => claveOpcion(o) === claveOpcion(actual));
   const siguiente = candidatas.find((o) => opciones.indexOf(o) > pos) ?? candidatas[0];
   const nuevas = ORDEN_ROLES.map((r) => (r === rol ? siguiente : menu.porRol[r]));
-  return armar(nuevas, menu.semilla, prefs.minutos);
+  // Si el menú excedía por la regla del huevo y la alternativa la sigue cumpliendo, la causa se conserva.
+  return armar(nuevas, menu.semilla, prefs.minutos, menu.excedePorHuevo === true && conRegla.includes(siguiente));
 }
 
 /** Menú válido para el catálogo actual (los ids siguen existiendo). */

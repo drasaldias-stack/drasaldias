@@ -292,8 +292,10 @@ export function avisosSemana(plan: DiaPlan[], catalogo: Componente[], prefs: Pre
     const nombrar = (lista: Marcada[]) => (lista.length === 1 ? `el día ${lista[0].dia}` : `los días ${enumerar(lista.map((m) => String(m.dia)))}`);
     const dias = (lista: Marcada[]) => (lista.length >= g.total ? '' : ` de${nombrar(lista).replace(/^el /, 'l ').replace(/^los /, ' los ')}`);
     const sujeto = (lista: Marcada[]) => `${NOMBRE_COMIDA_PLURAL[g.comida]} con ${g.nombre}${dias(lista)}`;
+    // El pronombre concuerda con la comida: «Además el del día 5 queda» (almuerzos), «Además las de los días 1 y 2 quedan» (cenas).
+    const [uno, varios] = NOMBRE_COMIDA_PLURAL[g.comida].startsWith('Los') ? ['el', 'los'] : ['la', 'las'];
     const ademas = (lista: Marcada[]) =>
-      lista.length >= g.total ? 'Además quedan' : `Además ${lista.length === 1 ? `la${dias(lista)} queda` : `las${dias(lista)} quedan`}`;
+      lista.length >= g.total ? 'Además quedan' : `Además ${lista.length === 1 ? `${uno}${dias(lista)} queda` : `${varios}${dias(lista)} quedan`}`;
     const cortas = g.marcadas.filter((m) => m.c.proteinaCorta);
     const proteinaCorta = cortas.length > 0;
     const sinHuevo = g.marcadas.some((m) => m.huevos + 1 > MAX_HUEVOS_DIA + 1e-9);

@@ -287,14 +287,25 @@ export function avisosSemana(plan: DiaPlan[], catalogo: Componente[], prefs: Pre
   for (const [clave, g] of grupos) {
     if (g.marcadas.length === 0) continue;
     const meta = g.marcadas[0].c.meta!;
-    const dias = g.marcadas.length < g.total ? ` de los días ${enumerar(g.marcadas.map((m) => String(m.dia)))}` : '';
-    const sujeto = `${NOMBRE_COMIDA_PLURAL[g.comida]} con ${g.nombre}${dias}`;
+    type Marcada = (typeof g.marcadas)[number];
+    // «el día 5», «los días 4 y 5»; «del día 5», «de los días 4 y 5», o nada si son todos los días de esa comida.
+    const nombrar = (lista: Marcada[]) => (lista.length === 1 ? `el día ${lista[0].dia}` : `los días ${enumerar(lista.map((m) => String(m.dia)))}`);
+    const dias = (lista: Marcada[]) => (lista.length >= g.total ? '' : ` de${nombrar(lista).replace(/^el /, 'l ').replace(/^los /, ' los ')}`);
+    const sujeto = (lista: Marcada[]) => `${NOMBRE_COMIDA_PLURAL[g.comida]} con ${g.nombre}${dias(lista)}`;
+    const ademas = (lista: Marcada[]) =>
+      lista.length >= g.total ? 'Además quedan' : `Además ${lista.length === 1 ? `la${dias(lista)} queda` : `las${dias(lista)} quedan`}`;
     const cortas = g.marcadas.filter((m) => m.c.proteinaCorta);
     const proteinaCorta = cortas.length > 0;
-    const porHuevos = cortas.some((m) => m.c.porHuevos);
     const sinHuevo = g.marcadas.some((m) => m.huevos + 1 > MAX_HUEVOS_DIA + 1e-9);
-    const minProteina = Math.round(Math.min(...cortas.map((m) => m.c.total.proteina)));
-    const proteina = `unos ${minProteina} g de proteína de los ${meta.proteina} previstos${porHuevos ? `, por el máximo de ${MAX_HUEVOS_DIA} huevos al día` : ''}`;
+    const peor = cortas.reduce<Marcada | null>((p, m) => (p === null || m.c.total.proteina < p.c.total.proteina ? m : p), null);
+    const recortadas = cortas.filter((m) => m.c.porHuevos);
+    // La causa del tope se atribuye solo al día de la cifra; si el peor día no fue recortado, se nombran aparte los que sí.
+    const causa = peor?.c.porHuevos
+      ? `, por el máximo de ${MAX_HUEVOS_DIA} huevos al día`
+      : recortadas.length > 0
+        ? ` (${nombrar(recortadas)} además por el máximo de ${MAX_HUEVOS_DIA} huevos al día)`
+        : '';
+    const proteina = `unos ${Math.round(peor?.c.total.proteina ?? 0)} g de proteína de los ${meta.proteina} previstos${causa}`;
     const complemento = complementoProteina(g.componentes, prefs, sinHuevo);
     const excedidas = g.marcadas.filter((m) => m.c.energiaExcede);
     const frases: string[] = [];
@@ -303,17 +314,17 @@ export function avisosSemana(plan: DiaPlan[], catalogo: Componente[], prefs: Pre
       const exceso = `superan lo previsto (≈ ${maxKcal} kcal de ${meta.kcal})`;
       if (excedidas.every((m) => platoMinimo(m.c))) {
         // Ya es lo menos que se puede servir de estas recetas: no tiene sentido pedir que se agregue ni que se quite.
-        frases.push(`${sujeto} ${exceso} aunque ya es el plato más chico que la app arma${proteinaCorta ? `, y aun así quedan en ${proteina}` : ''}; con un objetivo tan bajo conviene revisarlo con tu profesional.`);
+        frases.push(`${sujeto(excedidas)} ${exceso} aunque ya es el plato más chico que la app arma${proteinaCorta ? `, y aun así quedan en ${proteina}` : ''}; con un objetivo tan bajo conviene revisarlo con tu profesional.`);
       } else {
-        frases.push(`${sujeto} ${exceso}; si prefieres ajustar la energía, sirve un cuarto de porción menos.`);
-        if (proteinaCorta) frases.push(`Además quedan en ${proteina}. ${complemento}`);
+        frases.push(`${sujeto(excedidas)} ${exceso}; si prefieres ajustar la energía, sirve un cuarto de porción menos.`);
+        if (proteinaCorta) frases.push(`${ademas(cortas)} en ${proteina}. ${complemento}`);
       }
     } else {
-      if (proteinaCorta) frases.push(`${sujeto} quedan en ${proteina}. ${complemento}`);
+      if (proteinaCorta) frases.push(`${sujeto(cortas)} quedan en ${proteina}. ${complemento}`);
       const bajas = g.marcadas.filter((m) => m.c.energiaCorta);
       if (bajas.length > 0) {
         const minKcal = kcal(Math.min(...bajas.map((m) => m.c.total.kcal)));
-        frases.push(`${proteinaCorta ? 'Además quedan' : `${sujeto} quedan`} en ≈ ${minKcal} kcal de ${meta.kcal}: agrega una fruta o una rebanada de pan integral (unas 80 kcal cada una) hasta completar.`);
+        frases.push(`${proteinaCorta ? ademas(bajas) : `${sujeto(bajas)} quedan`} en ≈ ${minKcal} kcal de ${meta.kcal}: agrega una fruta o una rebanada de pan integral (unas 80 kcal cada una) hasta completar.`);
       }
     }
     out.push({ clave, texto: frases.join(' ') });

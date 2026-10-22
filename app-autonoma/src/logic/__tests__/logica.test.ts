@@ -211,6 +211,10 @@ test('lista de compras: envases sugeridos según formatos de venta', () => {
   assert.equal(textoEnvases(sugerirEnvases(2, 'cda', botellas)!), '1 botella de 165 ml');
   assert.equal(sugerirEnvases(30, 'g', botellas), null);
   assert.equal(textoEnvases([{ numero: 2, formato: { envase: 'caja o lata', tamano: 230, unidad: 'g' } }]), '2 cajas o latas de 230 g');
+  // Envases distintos dentro del mismo producto se nombran cada uno.
+  const garbanzos: FormatoVenta[] = [{ envase: 'caja', tamano: 230, unidad: 'g' }, { envase: 'lata', tamano: 138, unidad: 'g' }];
+  assert.equal(textoEnvases(sugerirEnvases(480, 'g', garbanzos)!), '1 caja de 230 g y 2 latas de 138 g');
+  assert.equal(textoEnvases(sugerirEnvases(230, 'g', garbanzos)!), '1 caja de 230 g');
   assert.equal(textoEnvases([{ numero: 2, formato: { envase: 'caja', tamano: 1000, unidad: 'ml' } }]), '2 cajas de 1 l');
   // En la lista real, los productos con formato conocido llevan envases y los demás no.
   const prefs: PreferenciasCocina = { personas: 1, minutos: 120, equipos: ['horno'], patron: 'omnivoro', exclusiones: [] };

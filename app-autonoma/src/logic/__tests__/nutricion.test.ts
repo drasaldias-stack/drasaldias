@@ -5,9 +5,9 @@ import { ALIMENTOS } from '../../content/alimentos';
 import { COMPONENTES, componentePorId } from '../../content/componentes';
 import { listaCompras } from '../compras';
 import { normalizarDatos, normalizarObjetivo } from '../estado';
-import { comidasDelDia, generarMenu, MAX_PREPARACIONES_HUEVO, ORDEN_ROLES, ROLES_PLATO } from '../menu';
+import { cambiarComponente, comidasDelDia, generarMenu, MAX_PREPARACIONES_HUEVO, ORDEN_ROLES, preparacionesDeHuevo, ROLES_PLATO } from '../menu';
 import { ingredientesSinValor, nutricionIngrediente, nutricionPorPorcion, type Nutricion } from '../nutricion';
-import { datosValidos, gastoReposo, objetivoPorComida, objetivoValido, pesoReferencia, pisoSobreGasto, REPARTO_KCAL, REPARTO_PROTEINA, sugerenciaUsable, sugerirObjetivo } from '../objetivo';
+import { datosValidos, deficitReal, gastoReposo, objetivoPorComida, objetivoValido, pesoReferencia, pisoSobreGasto, REPARTO_KCAL, REPARTO_PROTEINA, sugerenciaUsable, sugerirObjetivo } from '../objetivo';
 import { esDeHuevo } from '../nutricion';
 import {
   avisosSemana, cantidadPrincipal, complementoProteina, consumoSemanal, dimensionarPlato, dimensionarSimple, enumerar, EXTRA_CEREAL_POR_HUEVOS, huevosPorPorcion,
@@ -75,6 +75,14 @@ test('objetivo: sugerencia con Mifflin-St Jeor, piso y peso de referencia; repar
   assert.equal(sugerenciaUsable(mayorConSobrepeso), false);
   // Déficit con piso por debajo del gasto: sí se propone, y lo dice.
   assert.equal(pisoSobreGasto(s), false);
+  assert.equal(deficitReal(s), 497);
+  // Piso con un déficit real ínfimo (gasto 1202, sugerencia 1200): tampoco se propone.
+  const deficitChico = sugerirObjetivo({ sexo: 'mujer', edad: 75, pesoKg: 60, tallaCm: 150, actividad: 'baja' });
+  assert.equal(deficitChico.modo, 'deficit');
+  assert.equal(deficitChico.total, 1202);
+  assert.equal(deficitReal(deficitChico), 2);
+  assert.equal(pisoSobreGasto(deficitChico), true);
+  assert.equal(sugerenciaUsable(deficitChico), false);
   // enPiso se decide con el valor redondeado que se muestra: 1199,7 se presenta como 1200 y no queda «bajo 1200».
   const borde = sugerirObjetivo({ sexo: 'mujer', edad: 60, pesoKg: 49.2, tallaCm: 155, actividad: 'baja' });
   assert.equal(borde.modo, 'mantenimiento');
@@ -186,13 +194,17 @@ test('minuta: el exceso de energía solo queda en el plato mínimo, los huevos d
         if (!r.ok) continue;
         const objetivo = { kcal, proteina: Math.round(kcal / 16), origen: 'profesional' as const };
         const plan = planDelDia(r.menu, COMPONENTES, objetivo);
-        const sinTope = planDelDia(r.menu, COMPONENTES, objetivo).length; // mismo tamaño, solo para legibilidad
-        assert.equal(sinTope, 5);
-        // A lo más una preparación de huevo entre proteínas, desayuno y once (salvo que no haya otra forma de armar el menú).
-        const deHuevo = ORDEN_ROLES.filter((rol) => rol === 'proteina' || rol === 'desayuno' || rol === 'once')
-          .flatMap((rol) => r.menu.porRol[rol].elecciones.map((e) => componentePorId(e.id)!))
-          .filter(esDeHuevo).length;
-        if (deHuevo > MAX_PREPARACIONES_HUEVO) conHuevoDeMas++;
+        // Sin objetivo no hay recorte por huevos.
+        for (const d of planDelDia(r.menu, COMPONENTES, null)) for (const c of d.comidas) assert.equal(c.porHuevos, false);
+        // A lo más una preparación de huevo entre proteínas, desayuno y once (contando como dos un par que repite huevo
+        // en almuerzo y cena), salvo que no haya otra forma de armar el menú.
+        const deHuevo = ORDEN_ROLES.filter((rol) => rol === 'proteina' || rol === 'desayuno' || rol === 'once').reduce((t, rol) => t + preparacionesDeHuevo(r.menu.porRol[rol], COMPONENTES), 0);
+        if (deHuevo > MAX_PREPARACIONES_HUEVO) {
+          conHuevoDeMas++;
+          // Solo se admite cuando el menú no cabe ni con exceso en el tiempo: debe estar informando exceso.
+          assert.ok(r.menu.excede > 0, `${prefs.patron} ${prefs.minutos} ${JSON.stringify(prefs.exclusiones)} s${semilla}: dos preparaciones de huevo sin exceder el tiempo`);
+        }
+        const comidasDia = comidasDelDia(r.menu, COMPONENTES);
         for (const d of plan) {
           assert.ok(Math.abs(d.huevos - d.comidas.reduce((s, c) => s + c.porciones.reduce((t, p) => t + p.factor * huevosPorPorcion(componentePorId(p.id)!), 0), 0)) < 1e-9);
           // Exceso solo cuando ya no se puede servir menos.
@@ -211,9 +223,13 @@ test('minuta: el exceso de energía solo queda en el plato mínimo, los huevos d
             // Nada que no sea una preparación de huevo se recorta por el tope; un plato recortado no es «un huevo con medio kilo de arroz».
             if (c.porHuevos) assert.ok(esDeHuevo(componentePorId(c.porciones[0].id)!), `${c.porciones[0].id} recortado sin ser de huevo`);
             if (c.porHuevos && c.porciones.length > 1) {
-              const libre = planDelDia(r.menu, COMPONENTES, objetivo); // referencia: el mismo plan
-              assert.ok(libre.length === 5);
-              assert.ok(c.porciones[1].factor <= 2.5);
+              // El cereal del plato recortado no sube más de EXTRA_CEREAL_POR_HUEVOS sobre lo que tenía sin recorte.
+              const partes = comidasDia[d.dia - 1][c.comida === 'almuerzo' ? 'almuerzo' : 'cena'];
+              const nutr = {} as Record<RolPlato, Nutricion>;
+              for (const rol of ROLES_PLATO) nutr[rol] = nutricionPorPorcion(componentePorId(partes[rol].id)!);
+              const inicial = dimensionarPlato(nutr, c.meta);
+              assert.ok(c.porciones[1].factor <= inicial.carbohidrato + EXTRA_CEREAL_POR_HUEVOS + 1e-9, `${c.comida} d${d.dia}: cereal ${c.porciones[1].factor} > ${inicial.carbohidrato} + ${EXTRA_CEREAL_POR_HUEVOS}`);
+              assert.ok(c.porciones[0].factor < inicial.proteina, 'un plato recortado tiene menos proteína que sin recorte');
             }
             // Desayuno u once de huevo no bajan de una porción mientras un plato de huevo siga por sobre media.
             if (c.porciones.length === 1 && c.porHuevos && c.porciones[0].factor < 1) {
@@ -235,21 +251,108 @@ test('minuta: el exceso de energía solo queda en el plato mínimo, los huevos d
           if (/un huevo/.test(a.texto)) for (const d of diasDelAviso) assert.ok(d.huevos + 1 <= MAX_HUEVOS_DIA + 1e-9, `${a.texto} (día ${d.dia}: ${d.huevos} huevos)`);
           // Si no son todos los días, el aviso los nombra; toda comida corta de proteína de la clave está reflejada.
           const todasLasDeLaClave = plan.filter((d) => d.comidas.some((c) => c.comida === comida && c.porciones[0].id === principal));
-          if (diasDelAviso.length < todasLasDeLaClave.length) assert.ok(/ de los días /.test(a.texto), a.texto);
+          if (diasDelAviso.length < todasLasDeLaClave.length) {
+            assert.ok(/ del día \d+ | de los días /.test(a.texto), a.texto);
+            assert.ok(!/ de los días \d+(?! y |,)/.test(a.texto), `un solo día en plural: ${a.texto}`);
+            // Los días nombrados en cada frase existen y están marcados.
+            for (const m of a.texto.matchAll(/d(?:el día|e los días) ([\d, y]+)/g)) {
+              const nombrados = m[1].split(/,| y /).map((x) => Number(x.trim())).filter((x) => x > 0);
+              for (const n of nombrados) assert.ok(diasDelAviso.some((d) => d.dia === n), `día ${n} no marcado: ${a.texto}`);
+            }
+          }
           const cortas = diasDelAviso.flatMap((d) => d.comidas.filter((c) => c.comida === comida && c.porciones[0].id === principal && c.proteinaCorta));
           if (cortas.length > 0) {
             const minimo = Math.round(Math.min(...cortas.map((c) => c.total.proteina)));
             assert.ok(a.texto.includes(`unos ${minimo} g de proteína`), `${a.texto} (mínimo ${minimo})`);
           }
           if (cortas.some((c) => c.porHuevos)) assert.ok(a.texto.includes('por el máximo de'), a.texto);
+          // La causa del tope se atribuye a la cifra solo si el peor día fue recortado.
+          if (cortas.length > 0) {
+            const peor = cortas.reduce((p, c) => (c.total.proteina < p.total.proteina ? c : p));
+            assert.equal(/previstos, por el máximo de/.test(a.texto), peor.porHuevos, a.texto);
+          }
         }
       }
   assert.ok(excesos < 20, `demasiados excesos: ${excesos}`);
-  assert.ok(recortes > 0, 'nunca hizo falta recortar huevos');
+  // Con la regla al armar el menú, el tope diario rara vez actúa en los escenarios; se ejercita abajo con un menú forzado.
+  assert.ok(recortes >= 0);
   assert.ok(conHuevoDeMas <= 4, `menús con más de una preparación de huevo: ${conHuevoDeMas}`);
-  // El tope no toca preparaciones donde el huevo es ligante (albóndigas: ⅙ de huevo por porción).
-  const albondigas = { proteina: nutricionPorPorcion(componentePorId('p_albondigas')!), carbohidrato: nutricionPorPorcion(componentePorId('c_arroz')!), verdura: nutricionPorPorcion(componentePorId('v_asadas')!), salsa: nutricionPorPorcion(componentePorId('s_vinagreta')!) };
-  assert.equal(dimensionarPlato(albondigas, { kcal: 450, proteina: 34 }).proteina, dimensionarPlato(albondigas, { kcal: 450, proteina: 34 }, {}).proteina);
+  // Respaldo cuando no cabe en el tiempo: vegetariano con 60 minutos y sin equipos no cabe en 50 minutos, y aun así el
+  // menú no lleva dos preparaciones de huevo porque hay onces sin huevo de los mismos minutos.
+  for (const semilla of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const r = generarMenu({ personas: 1, minutos: 60, equipos: [], patron: 'vegetariano', exclusiones: [] }, COMPONENTES, semilla);
+    assert.ok(r.ok);
+    if (!r.ok) continue;
+    assert.ok(r.menu.excede > 0, 'el escenario debe exceder el tiempo para probar el respaldo');
+    const deHuevo = (['proteina', 'desayuno', 'once'] as const).reduce((t, rol) => t + preparacionesDeHuevo(r.menu.porRol[rol], COMPONENTES), 0);
+    assert.ok(deHuevo <= MAX_PREPARACIONES_HUEVO, `semilla ${semilla}: ${ORDEN_ROLES.map((rol) => r.menu.porRol[rol].elecciones.map((e) => e.id).join('+')).join(' | ')}`);
+  }
+  // «Otra receta» aplica la misma regla: rotando cada rol varias veces nunca aparecen dos preparaciones de huevo.
+  {
+    const prefs: PreferenciasCocina = { personas: 1, minutos: 120, equipos: ['horno', 'olla', 'microondas', 'airfryer', 'licuadora'], patron: 'omnivoro', exclusiones: [] };
+    for (const semilla of [1, 2, 3]) {
+      const r = generarMenu(prefs, COMPONENTES, semilla);
+      assert.ok(r.ok);
+      if (!r.ok) continue;
+      let menu = r.menu;
+      for (let vuelta = 0; vuelta < 6; vuelta++)
+        for (const rol of ['proteina', 'desayuno', 'once'] as const) {
+          const nuevo = cambiarComponente(menu, prefs, COMPONENTES, rol, menu.porRol[rol].elecciones[0].id);
+          if (!nuevo) continue;
+          menu = nuevo;
+          const deHuevo = (['proteina', 'desayuno', 'once'] as const).reduce((t, x) => t + preparacionesDeHuevo(menu.porRol[x], COMPONENTES), 0);
+          assert.ok(deHuevo <= MAX_PREPARACIONES_HUEVO, `otra receta (${rol}) dejó ${deHuevo} preparaciones de huevo`);
+        }
+    }
+  }
+  // El tope no toca preparaciones donde el huevo es ligante (albóndigas: ⅙ de huevo por porción): un día con albóndigas
+  // en el plato y muffins de huevo al desayuno recorta los muffins, no las albóndigas.
+  {
+    const prefs: PreferenciasCocina = { personas: 1, minutos: 120, equipos: ['horno', 'olla', 'microondas', 'airfryer', 'licuadora'], patron: 'omnivoro', exclusiones: [] };
+    const r = generarMenu(prefs, COMPONENTES, 1);
+    assert.ok(r.ok);
+    if (r.ok) {
+      const forzado = {
+        ...r.menu,
+        porRol: {
+          ...r.menu.porRol,
+          proteina: { elecciones: [{ id: 'p_albondigas', doble: true }], minutos: 25, dias: Array.from({ length: 5 }, (_, i) => ({ id: 'p_albondigas', congelar: i >= 4 })) },
+          desayuno: { elecciones: [{ id: 'd_muffins', doble: false }], minutos: 15, dias: Array.from({ length: 5 }, () => ({ id: 'd_muffins', congelar: false })) },
+          once: { elecciones: [{ id: 'o_huevo_fruta', doble: false }], minutos: 5, dias: Array.from({ length: 5 }, () => ({ id: 'o_huevo_fruta', congelar: false })) },
+        },
+      };
+      const plan = planDelDia(forzado, COMPONENTES, { kcal: 2200, proteina: 140, origen: 'profesional' });
+      let recortadas = 0;
+      for (const d of plan) {
+        for (const c of d.comidas) {
+          if (c.porciones[0].id === 'p_albondigas') assert.equal(c.porHuevos, false, 'albóndigas recortadas por el tope');
+          if (c.porHuevos) recortadas++;
+        }
+        assert.ok(d.huevos <= MAX_HUEVOS_DIA + 1e-9 || d.comidas.every((c) => !esDeHuevo(componentePorId(c.porciones[0].id)!) || c.porciones[0].factor <= 0.5));
+      }
+      assert.ok(recortadas > 0, 'con muffins y huevo en la once a 2200 kcal el tope debe actuar');
+      // Huevos duros en almuerzo y cena (una sola receta duplicada): el tope deja 2 y 2, nombra la causa y no pide huevo.
+      const dobles = {
+        ...forzado,
+        porRol: {
+          ...forzado.porRol,
+          proteina: { elecciones: [{ id: 'p_huevos', doble: true }], minutos: 10, dias: Array.from({ length: 5 }, () => ({ id: 'p_huevos', congelar: false })) },
+          desayuno: { elecciones: [{ id: 'd_chia', doble: false }], minutos: 10, dias: Array.from({ length: 5 }, () => ({ id: 'd_chia', congelar: false })) },
+          once: { elecciones: [{ id: 'o_fruta_mani', doble: false }], minutos: 5, dias: Array.from({ length: 5 }, () => ({ id: 'o_fruta_mani', congelar: false })) },
+        },
+      };
+      const planDobles = planDelDia(dobles, COMPONENTES, { kcal: 1800, proteina: 110, origen: 'profesional' });
+      for (const d of planDobles) {
+        assert.ok(Math.abs(d.huevos - MAX_HUEVOS_DIA) < 1e-9, `día ${d.dia}: ${d.huevos} huevos`);
+        assert.equal(d.comidas[1].porciones[0].factor, 1);
+        assert.equal(d.comidas[3].porciones[0].factor, 1);
+        assert.ok(d.comidas[1].porHuevos && d.comidas[3].porHuevos);
+      }
+      const avisosDobles = avisosSemana(planDobles, COMPONENTES, { patron: 'omnivoro', exclusiones: [] });
+      assert.ok(avisosDobles.some((a) => /por el máximo de 4 huevos al día/.test(a.texto)), avisosDobles.map((a) => a.texto).join('\n'));
+      for (const a of avisosDobles) assert.ok(!/un huevo/.test(a.texto), a.texto);
+    }
+  }
   assert.ok(EXTRA_CEREAL_POR_HUEVOS <= 1);
   // Complemento: sin repetir lo que trae el plato ni lo excluido.
   const huevosDuros = [componentePorId('p_huevos')!];

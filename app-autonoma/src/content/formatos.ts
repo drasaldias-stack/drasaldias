@@ -3,7 +3,7 @@ import type { Ingrediente } from '../logic/tipos';
 /**
  * Formatos de venta habituales de los productos envasados en supermercados chilenos, para orientar la compra.
  * Son referencias, no una lista exhaustiva: cada tienda y marca tiene sus propios tamaños y cambian con el tiempo.
- * Consultados el 16 de octubre de 2026 en lider.cl y jumbo.cl (fichas de producto de marcas propias y de terceros).
+ * Consultados el 16 y el 21 de octubre de 2026 en lider.cl y jumbo.cl (fichas de producto de marcas propias y de terceros).
  * Las verduras, frutas y lo que se vende a granel o por unidad no llevan formato: la lista ya está en unidades o gramos.
  * En conservas el tamaño es el peso escurrido, que es como están las cantidades de las recetas.
  */
@@ -33,7 +33,7 @@ export const FORMATOS_VENTA: Record<string, FormatoVenta[]> = {
   'Choclo desgranado congelado': g('bolsa', 500, 1000),
   'Galletas de arroz': g('paquete', 110, 150),
   // Conservas: peso escurrido.
-  // Atún de 140, 160 y 340 g netos (90, 104 y 240 g escurridos) y jurel de 425 g netos (300 g escurridos).
+  // Atún de 140, 160 y 340 g netos (90, 104 y, según la marca, 220 o 240 g escurridos) y jurel de 425 g netos (300 g escurridos).
   'Atún o jurel en agua, en conserva': g('lata', 90, 104, 220, 240, 300),
   'Garbanzos cocidos, en caja o lata': [...g('caja', 230), ...g('lata', 138)],
   'Tomate en cubos, en conserva o fresco': g('caja o lata', 380),

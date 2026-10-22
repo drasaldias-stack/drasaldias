@@ -106,11 +106,15 @@ export function sugerirObjetivo(d: DatosCalculo): Sugerencia {
 }
 
 /**
- * Si la sugerencia puede guardarse como objetivo. Un piso por encima del gasto estimado no se propone: en
- * mantenimiento sería comer más de lo que se gasta, y en déficit sería un superávit presentado como plan para bajar
- * de peso. En ambos casos se pide acordar la cifra con el profesional (`pisoSobreGasto`).
+ * Si la sugerencia puede guardarse como objetivo. Un piso que no deja un déficit real de al menos
+ * `DEFICIT_MINIMO_KCAL` no se propone: en mantenimiento sería comer más de lo que se gasta, y en déficit sería un
+ * plan «para bajar de peso» con un déficit menor que el error de la propia estimación. En ambos casos se pide acordar
+ * la cifra con el profesional (`pisoSobreGasto`).
  */
-export const pisoSobreGasto = (s: Sugerencia): boolean => s.enPiso && (s.modo === 'mantenimiento' || s.kcal >= s.total);
+export const DEFICIT_MINIMO_KCAL = 200;
+/** Déficit real respecto del gasto estimado cuando se usa la sugerencia (en déficit); negativo si se come más de lo que se gasta. */
+export const deficitReal = (s: Sugerencia): number => s.total - s.kcal;
+export const pisoSobreGasto = (s: Sugerencia): boolean => s.enPiso && (s.modo === 'mantenimiento' || deficitReal(s) < DEFICIT_MINIMO_KCAL);
 export const sugerenciaUsable = (s: Sugerencia): boolean => s.modo !== 'sin_sugerencia' && !pisoSobreGasto(s) && objetivoValido(s.kcal, s.proteinaMin);
 
 export type MetaComida = { kcal: number; proteina: number };

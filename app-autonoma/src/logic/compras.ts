@@ -141,7 +141,9 @@ export function textoEnvases(envases: Envases): string {
   const partes = envases.map(({ numero, formato }, i) => {
     const n = numero.toLocaleString('es');
     const envase = numero === 1 ? formato.envase : plural(formato.envase);
-    return `${n} ${i === 0 ? `${envase} ` : ''}de ${formatearCantidad(formato.tamano, formato.unidad)}`;
+    // El envase se repite solo cuando cambia: «1 pote de 800 g y 1 de 120 g», «1 caja de 230 g y 2 latas de 138 g».
+    const mostrar = i === 0 || envases[i - 1].formato.envase !== formato.envase;
+    return `${n} ${mostrar ? `${envase} ` : ''}de ${formatearCantidad(formato.tamano, formato.unidad)}`;
   });
   if (partes.length <= 1) return partes[0] ?? '';
   return `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`;

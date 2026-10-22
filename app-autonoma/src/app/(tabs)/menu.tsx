@@ -173,7 +173,9 @@ export default function MenuSemana() {
             {menuActual.menu.excede > 0 ? (
               <Aviso tipo="alerta">
                 <Pequeno tono="normal">
-                  Con tu equipamiento y exclusiones, el menú más rápido toma {menuActual.menu.excede} minutos más de lo que elegiste.
+                  {menuActual.menu.excedePorHuevo
+                    ? `Para no repetir huevo en varias comidas del día, este menú toma ${menuActual.menu.excede} minutos más de lo que elegiste; con «Otra combinación» puedes buscar otro.`
+                    : `Con tu equipamiento y exclusiones, el menú más rápido toma ${menuActual.menu.excede} minutos más de lo que elegiste.`}
                 </Pequeno>
               </Aviso>
             ) : null}

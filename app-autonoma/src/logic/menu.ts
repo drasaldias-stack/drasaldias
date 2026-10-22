@@ -22,6 +22,8 @@ export type Menu = {
   minutos: number;
   /** Minutos por sobre el tiempo elegido; 0 si cabe. */
   excede: number;
+  /** El exceso viene de respetar la regla del huevo: había un menú más rápido que la incumplía. */
+  excedePorHuevo?: boolean;
 };
 export type ResultadoMenu = { ok: true; menu: Menu } | { ok: false; rolSinOpciones: Rol };
 
@@ -170,7 +172,9 @@ export function preparacionesDeHuevo(o: OpcionRol, catalogo: Componente[]): numb
     return c !== undefined && esDeHuevo(c);
   }).length;
   if (deHuevo === 0) return 0;
-  const repite = o.dias.some((a, i) => {
+  // Solo en la proteína del plato (par o receta duplicada): desayuno y once se sirven una vez al día.
+  const esPlato = o.elecciones.length > 1 || o.elecciones.some((e) => e.doble);
+  const repite = esPlato && o.dias.some((a, i) => {
     const c = porId.get(a.id);
     if (!c || !esDeHuevo(c)) return false;
     const dia = i + 1;
@@ -214,20 +218,30 @@ export function generarMenu(prefs: PreferenciasCocina, catalogo: Componente[], s
   let encontrado = intentar(true, presupuesto);
   // No cabe en el tiempo con la regla del huevo: se busca el menú que menos se pase, y solo después se cede la regla.
   const minimoPosible = Math.max(presupuesto, restoMinimo[0]);
-  for (let tope = minimoPosible; !encontrado && tope <= minimoPosible + EXCESO_MAXIMO_POR_HUEVO; tope += 5) encontrado = intentar(true, tope);
+  let porHuevo = false;
+  for (let tope = minimoPosible; !encontrado && tope <= minimoPosible + EXCESO_MAXIMO_POR_HUEVO; tope += 5) {
+    encontrado = intentar(true, tope);
+    // Si sin la regla sí cabría en el tiempo, el exceso se debe a la regla.
+    if (encontrado && tope > presupuesto) {
+      const seleccionConRegla = [...elegidas];
+      porHuevo = intentar(false, presupuesto);
+      elegidas.splice(0, elegidas.length, ...seleccionConRegla);
+    }
+  }
   if (!encontrado) encontrado = intentar(false, presupuesto) || intentar(false, restoMinimo[0]);
   const seleccion = encontrado
     ? [...elegidas]
     : // Último recurso: la opción más rápida de cada rol, y se informa el exceso.
       ORDEN_ROLES.map((rol) => opciones[rol].reduce((m, o) => (o.minutos < m.minutos ? o : m)));
-  return { ok: true, menu: armar(seleccion, semilla, prefs.minutos) };
+  return { ok: true, menu: armar(seleccion, semilla, prefs.minutos, porHuevo) };
 }
 
-function armar(seleccion: OpcionRol[], semilla: number, minutosElegidos: number): Menu {
+function armar(seleccion: OpcionRol[], semilla: number, minutosElegidos: number, excedePorHuevo = false): Menu {
   const porRol = {} as Record<Rol, OpcionRol>;
   ORDEN_ROLES.forEach((rol, i) => { porRol[rol] = seleccion[i]; });
   const minutos = seleccion.reduce((s, o) => s + o.minutos, 0) + MINUTOS_ORGANIZACION;
-  return { semilla, porRol, minutos, excede: Math.max(0, minutos - minutosElegidos) };
+  const excede = Math.max(0, minutos - minutosElegidos);
+  return { semilla, porRol, minutos, excede, ...(excede > 0 && excedePorHuevo ? { excedePorHuevo: true } : {}) };
 }
 
 /**
@@ -253,10 +267,12 @@ export function cambiarComponente(
     return sinRol + o.minutos <= limite;
   });
   if (posibles.length === 0) return null;
-  // La misma regla del huevo que al generar el menú; si ninguna alternativa la cumple, se cede como al generar.
+  // La misma regla del huevo que al generar el menú; si ninguna alternativa la cumple, al menos no se suma más huevo,
+  // y solo si tampoco hay de esas se cede del todo.
   const huevosOtros = ORDEN_ROLES.filter((r) => r !== rol).reduce((s, r) => s + preparacionesDeHuevo(menu.porRol[r], catalogo), 0);
   const conRegla = posibles.filter((o) => huevosOtros + preparacionesDeHuevo(o, catalogo) <= MAX_PREPARACIONES_HUEVO);
-  const candidatas = conRegla.length > 0 ? conRegla : posibles;
+  const sinHuevoPropio = posibles.filter((o) => preparacionesDeHuevo(o, catalogo) === 0);
+  const candidatas = conRegla.length > 0 ? conRegla : sinHuevoPropio.length > 0 ? sinHuevoPropio : posibles;
   // Rota entre alternativas: toma la primera que viene después de la actual en el orden de la semana.
   const pos = opciones.findIndex((o) => claveOpcion(o) === claveOpcion(actual));
   const siguiente = candidatas.find((o) => opciones.indexOf(o) > pos) ?? candidatas[0];

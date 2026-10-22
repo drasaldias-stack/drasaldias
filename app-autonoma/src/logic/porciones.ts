@@ -314,7 +314,8 @@ export function avisosSemana(plan: DiaPlan[], catalogo: Componente[], prefs: Pre
       const exceso = `superan lo previsto (≈ ${maxKcal} kcal de ${meta.kcal})`;
       if (excedidas.every((m) => platoMinimo(m.c))) {
         // Ya es lo menos que se puede servir de estas recetas: no tiene sentido pedir que se agregue ni que se quite.
-        frases.push(`${sujeto(excedidas)} ${exceso} aunque ya es el plato más chico que la app arma${proteinaCorta ? `, y aun así quedan en ${proteina}` : ''}; con un objetivo tan bajo conviene revisarlo con tu profesional.`);
+        frases.push(`${sujeto(excedidas)} ${exceso} aunque ya es el plato más chico que la app arma; con un objetivo tan bajo conviene revisarlo con tu profesional.`);
+        if (proteinaCorta) frases.push(`${ademas(cortas)} en ${proteina}.`);
       } else {
         frases.push(`${sujeto(excedidas)} ${exceso}; si prefieres ajustar la energía, sirve un cuarto de porción menos.`);
         if (proteinaCorta) frases.push(`${ademas(cortas)} en ${proteina}. ${complemento}`);

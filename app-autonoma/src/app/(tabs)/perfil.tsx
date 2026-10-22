@@ -6,6 +6,7 @@ import { URL_CONDICIONES, URL_PRIVACIDAD } from '@/constants/enlaces';
 import { Spacing } from '@/constants/theme';
 import { usePaleta } from '@/hooks/use-paleta';
 import { textosConfirmacion } from '@/logic/seguridad';
+import { INFO_VERSION, textoVersion } from '@/logic/version';
 import { useApp } from '@/state/app-state';
 import { accesoMenu } from '@/state/derivados';
 import { EditorCocina, EditorEjercicio } from '@/ui/editores';
@@ -162,6 +163,9 @@ export default function Perfil() {
 
       <Pequeno>
         Ruta 90 entrega educación general sobre alimentación y actividad física. No diagnostica ni trata enfermedades y no reemplaza la atención de un profesional de la salud.
+      </Pequeno>
+      <Pequeno>
+        {textoVersion(INFO_VERSION)} Si te indicaron una versión más nueva y aquí aparece otra, cierra la app del todo y vuelve a abrirla.
       </Pequeno>
     </Pantalla>
   );

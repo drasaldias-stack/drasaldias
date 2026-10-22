@@ -45,7 +45,7 @@ export default function Compras() {
           {perfil.objetivo ? ' y escaladas a tu objetivo diario' : ''}.
         </Texto>
         <Pequeno>
-          Todo está en crudo, tal como se compra: legumbres y cereales secos, carnes y pescados sin cocinar. En las conservas es el
+          Las cantidades son tal como se compran: legumbres y cereales en seco, carnes y pescados sin cocinar y, en las conservas, el
           peso escurrido.{conEnvases ? ' Los envases que se sugieren son formatos habituales en supermercados chilenos y pueden variar según la marca y la tienda.' : ''}
         </Pequeno>
       </View>

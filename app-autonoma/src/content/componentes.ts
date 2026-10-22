@@ -212,7 +212,7 @@ export const COMPONENTES: Componente[] = [
     patrones: ['omnivoro', 'vegetariano'], equipos: ['horno', 'airfryer'], contiene: [],
     minutosActivos: 10, minutosTotales: 40, refrigeradorDias: 4, congelable: false, porciones: 3,
     ingredientes: [
-      { nombre: 'Garbanzos cocidos, de frasco o lata', cantidad: 360, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Garbanzos cocidos, en caja o lata', cantidad: 360, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
       { nombre: 'Comino y páprika', cantidad: 1, unidad: 'cdta', categoria: 'Despensa', basico: true },
       ACEITE, SAL,
     ],
@@ -246,7 +246,7 @@ export const COMPONENTES: Componente[] = [
     patrones: ['omnivoro', 'vegetariano'], equipos: ['cocinilla'], contiene: [],
     minutosActivos: 15, minutosTotales: 15, refrigeradorDias: 4, congelable: false, porciones: 3,
     ingredientes: [
-      { nombre: 'Garbanzos cocidos, de frasco o lata', cantidad: 360, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Garbanzos cocidos, en caja o lata', cantidad: 360, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
       { nombre: 'Espinaca', cantidad: 150, unidad: 'g', categoria: 'Verduras y frutas' },
       { nombre: 'Ajo', cantidad: 1, unidad: 'diente', categoria: 'Verduras y frutas' },
       { nombre: 'Comino', cantidad: 1, unidad: 'cdta', categoria: 'Despensa', basico: true },
@@ -501,7 +501,7 @@ export const COMPONENTES: Componente[] = [
     patrones: ['omnivoro', 'vegetariano'], equipos: ['licuadora'], contiene: ['sesamo'],
     minutosActivos: 10, minutosTotales: 10, refrigeradorDias: 4, congelable: true, frio: true, porciones: 5,
     ingredientes: [
-      { nombre: 'Garbanzos cocidos, de frasco o lata', cantidad: 200, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
+      { nombre: 'Garbanzos cocidos, en caja o lata', cantidad: 200, unidad: 'g', categoria: 'Legumbres, cereales y tubérculos' },
       { nombre: 'Limón', cantidad: 0.5, unidad: 'unidad', categoria: 'Verduras y frutas' },
       { nombre: 'Tahini o aceite de oliva', cantidad: 1, unidad: 'cda', categoria: 'Despensa' },
       { nombre: 'Ajo', cantidad: 1, unidad: 'diente', categoria: 'Verduras y frutas' },

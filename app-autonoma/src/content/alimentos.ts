@@ -33,7 +33,7 @@ export const ALIMENTOS: Record<string, Alimento> = {
   // Legumbres, cereales y tubérculos
   'Lentejas secas': { kcal: 352, proteina: 24.6 },
   'Porotos negros secos': { kcal: 341, proteina: 21.6 },
-  'Garbanzos cocidos, de frasco o lata': { kcal: 164, proteina: 8.9 },
+  'Garbanzos cocidos, en caja o lata': { kcal: 164, proteina: 8.9 },
   'Arroz integral': { kcal: 365, proteina: 7.5 },
   Quinoa: { kcal: 368, proteina: 14 },
   'Papa o camote': { kcal: 80, proteina: 2 },

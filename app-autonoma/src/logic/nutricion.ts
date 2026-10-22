@@ -7,6 +7,14 @@ import type { Alimento, Componente, Ingrediente } from './tipos';
 export type Nutricion = { kcal: number; proteina: number };
 export const NADA: Nutricion = { kcal: 0, proteina: 0 };
 
+/** Huevos crudos que lleva una porción base de un componente. */
+export function huevosPorPorcion(c: Componente): number {
+  return c.ingredientes.filter((i) => i.nombre === 'Huevo' && i.unidad === 'unidad').reduce((s, i) => s + i.cantidad, 0) / c.porciones;
+}
+/** Desde esta cantidad de huevo por porción, el huevo es la proteína de la preparación y no un ligante (albóndigas). */
+export const HUEVO_COMO_PROTEINA = 0.5;
+export const esDeHuevo = (c: Componente): boolean => huevosPorPorcion(c) >= HUEVO_COMO_PROTEINA;
+
 const GRAMOS_CDA = 15;
 const GRAMOS_CDTA = 5;
 

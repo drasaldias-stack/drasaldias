@@ -25,6 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Historia completa: el sello de versión que muestra Perfil toma la fecha y el commit de la última
+          # confirmación que tocó app-autonoma (ver scripts/publicar-pages.js); con un checkout superficial sería
+          # el commit de fusión y el paquete no coincidiría con el exportado en local.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22

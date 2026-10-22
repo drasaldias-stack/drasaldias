@@ -33,9 +33,40 @@ if (soloCopiar) {
   exportar();
 }
 
+/**
+ * Versión (app.json) y fecha y commit de la última confirmación que tocó app-autonoma, que Perfil muestra para saber
+ * qué versión está instalada en un teléfono. Se toman del último commit y no del reloj para que exportar dos veces el
+ * mismo código dé el mismo paquete (así el flujo de Actions no vuelve a publicar nada tras cada fusión). Por eso
+ * conviene confirmar primero los cambios de app-autonoma y exportar después, en una confirmación aparte: si hay
+ * cambios sin confirmar, el sello es «local» con la fecha de hoy y el paquete cambia en cada exportación.
+ */
+function selloPublicacion() {
+  const version = JSON.parse(fs.readFileSync(path.join(raiz, 'app.json'), 'utf8')).expo.version;
+  const sello = { EXPO_PUBLIC_VERSION: String(version) };
+  try {
+    const git = (args) => execSync(`git ${args}`, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    if (git('status --porcelain -- app-autonoma') !== '') {
+      console.warn('Aviso: app-autonoma tiene cambios sin confirmar; el sello de publicación será «local» con la fecha de hoy. Confirma el código y vuelve a exportar para un sello definitivo.');
+      sello.EXPO_PUBLIC_FECHA_PUBLICACION = new Date().toISOString().slice(0, 10);
+      sello.EXPO_PUBLIC_COMMIT = 'local';
+    } else {
+      const [commit, fecha] = git('log -1 --format=%h%n%cs -- app-autonoma').split('\n');
+      if (commit && fecha) {
+        sello.EXPO_PUBLIC_COMMIT = commit;
+        sello.EXPO_PUBLIC_FECHA_PUBLICACION = fecha;
+      }
+    }
+  } catch {
+    console.warn('Aviso: no se pudo leer git; la app mostrará la versión sin fecha de publicación.');
+  }
+  return sello;
+}
+
 function exportar() {
   fs.rmSync(dist, { recursive: true, force: true });
-  execSync('npx expo export --platform web', { cwd: raiz, stdio: 'inherit', env: { ...process.env, CI: '1', EXPO_BASE_URL: BASE } });
+  const sello = selloPublicacion();
+  console.log(`Sello de publicación: versión ${sello.EXPO_PUBLIC_VERSION}, fecha ${sello.EXPO_PUBLIC_FECHA_PUBLICACION ?? '(sin fecha)'}, commit ${sello.EXPO_PUBLIC_COMMIT ?? '(sin commit)'}`);
+  execSync('npx expo export --platform web', { cwd: raiz, stdio: 'inherit', env: { ...process.env, CI: '1', EXPO_BASE_URL: BASE, ...sello } });
 
   // Lo que viene de public/ (manifiesto e íconos) no lo reescribe Expo: se le antepone la base a mano.
   // El favicon lo genera Expo desde app.json y ya sale con la base.

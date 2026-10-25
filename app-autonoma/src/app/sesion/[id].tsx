@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type ScrollView } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ScrollView } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { AVISO_HIPOGLUCEMIA, CALENTAMIENTO, CONSEJOS_SESION, PROGRAMAS, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
@@ -12,7 +12,7 @@ import { catalogoCompleto, CUIDADO_PROPIO, esSesionPropia, letraSesionPropia, se
 import { useApp } from '@/state/app-state';
 import { accesoEjercicio } from '@/state/derivados';
 import { Cronometro } from '@/ui/cronometro';
-import { Aviso, Boton, Chip, Etiqueta, Fila, MARGEN_SUPERIOR_PANTALLA, Opciones, Pantalla, Pequeno, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { Aviso, Boton, Chip, Etiqueta, Fila, Opciones, Pantalla, Pequeno, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
 import { MantenerPantalla } from '@/ui/mantener-pantalla';
 
 export default function DetalleSesion() {
@@ -21,17 +21,21 @@ export default function DetalleSesion() {
   const p = usePaleta();
   const [vuelta, setVuelta] = useState(1);
   const [hechos, setHechos] = useState<Record<string, boolean>>({});
-  // Para desplazar la pantalla al siguiente ejercicio al marcar uno como hecho: posición de cada bloque en la columna.
+  // Para desplazar la pantalla al siguiente ejercicio al marcar uno como hecho: cada bloque se mide en el momento de
+  // desplazarse (no al montarse), porque marcar un ejercicio cambia la altura de su tarjeta y corre las siguientes.
   const scrollRef = useRef<ScrollView>(null);
-  const posiciones = useRef<Record<string, number>>({});
-  const registrar = (clave: string) => (e: LayoutChangeEvent) => {
-    posiciones.current[clave] = e.nativeEvent.layout.y;
+  const bloques = useRef<Record<string, View | null>>({});
+  const registrar = (clave: string) => (nodo: View | null) => {
+    bloques.current[clave] = nodo;
   };
   const irA = (clave: string) => {
-    // Un instante después, para que la posición ya refleje el estado nuevo (chip «Hecho», vuelta siguiente).
+    // Un instante después, para que el estado nuevo (chip «Hecho», vuelta siguiente) ya esté pintado.
     setTimeout(() => {
-      const y = posiciones.current[clave];
-      if (y !== undefined) scrollRef.current?.scrollTo({ y: Math.max(0, y + MARGEN_SUPERIOR_PANTALLA - Spacing.s), animated: true });
+      const nodo = bloques.current[clave];
+      const scroll = scrollRef.current;
+      if (!nodo || !scroll) return;
+      const contenido = scroll.getInnerViewNode?.() ?? scroll;
+      nodo.measureLayout(contenido, (_x, y) => scroll.scrollTo({ y: Math.max(0, y - Spacing.s), animated: true }), () => undefined);
     }, 60);
   };
   if (!estado.perfil) return <Redirect href="/bienvenida" />;
@@ -101,7 +105,7 @@ export default function DetalleSesion() {
         </Aviso>
       ) : null}
 
-      <View onLayout={registrar('vueltas')}>
+      <View ref={registrar('vueltas')}>
         {vueltas > 1 ? (
           <Opciones<number>
             etiqueta={`Vuelta ${vuelta} de ${vueltas}`}
@@ -121,7 +125,7 @@ export default function DetalleSesion() {
         const cambiado = ej.id !== item.ejercicio;
         const listo = Boolean(hechos[claveItem(i)]);
         return (
-          <View key={`${item.ejercicio}-${i}`} onLayout={registrar(`ejercicio-${i}`)}>
+          <View key={`${item.ejercicio}-${i}`} ref={registrar(`ejercicio-${i}`)}>
             <Tarjeta style={listo ? { opacity: 0.8 } : undefined}>
               <Fila style={{ justifyContent: 'space-between' }}>
                 <Etiqueta>Ejercicio {i + 1} de {sesion.items.length}</Etiqueta>
@@ -160,7 +164,7 @@ export default function DetalleSesion() {
         <Boton titulo={`Pasar a la vuelta ${vuelta + 1}`} onPress={() => { setVuelta(vuelta + 1); irA('vueltas'); }} />
       ) : null}
 
-      <View onLayout={registrar('calma')}>
+      <View ref={registrar('calma')}>
         <Tarjeta>
           <Etiqueta>Vuelta a la calma</Etiqueta>
           <Texto>{VUELTA_CALMA}</Texto>

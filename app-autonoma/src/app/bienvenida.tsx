@@ -91,8 +91,10 @@ export default function Bienvenida() {
       ejercicio,
       pauta: null,
       rutina: null,
-      objetivo: seg.alimentacion !== 'bloqueado' ? objetivo : null,
-      datos: seg.alimentacion !== 'bloqueado' ? datos : null,
+      // El objetivo solo se guarda si los menús quedan activos: si falta la confirmación médica (insulina o
+      // sulfonilureas), se define después en Perfil, igual que el resto de esa sección.
+      objetivo: seg.alimentacion === 'ok' ? objetivo : null,
+      datos: seg.alimentacion === 'ok' ? datos : null,
     });
     router.replace('/');
   };
@@ -104,9 +106,16 @@ export default function Bienvenida() {
     return terminar(seg);
   };
 
-  // Pasos: seguridad, y luego cocina y objetivo (si la alimentación no está bloqueada) y ejercicio (si no está bloqueado).
-  const totalPasos = resultado ? 1 + (resultado.alimentacion !== 'bloqueado' ? 2 : 0) + (resultado.ejercicio !== 'bloqueado' ? 1 : 0) : 4;
+  // Pasos: seguridad; cocina (si la alimentación no está bloqueada); objetivo (solo si los menús quedan activos sin
+  // confirmación pendiente); ejercicio (si no está bloqueado).
+  const conObjetivo = resultado?.alimentacion === 'ok';
+  const totalPasos = resultado ? 1 + (resultado.alimentacion !== 'bloqueado' ? 1 : 0) + (conObjetivo ? 1 : 0) + (resultado.ejercicio !== 'bloqueado' ? 1 : 0) : 4;
   const pasoObjetivo = 3;
+  const trasCocina = () => {
+    if (conObjetivo) return setPaso('objetivo');
+    if (resultado && resultado.ejercicio !== 'bloqueado') return setPaso('ejercicio');
+    if (resultado) terminar(resultado);
+  };
 
   const campoNombre = (
     <View style={{ gap: Spacing.s }}>
@@ -256,7 +265,7 @@ export default function Bienvenida() {
         <Etiqueta>Paso 2 de {totalPasos}</Etiqueta>
         <Titulo>Tu cocina</Titulo>
         <EditorCocina valor={cocina} onCambio={setCocina} />
-        <Boton titulo="Continuar" onPress={() => setPaso('objetivo')} />
+        <Boton titulo={conObjetivo || (resultado && resultado.ejercicio !== 'bloqueado') ? 'Continuar' : 'Crear mi plan'} onPress={trasCocina} />
       </Pantalla>
     );
   }
@@ -268,12 +277,13 @@ export default function Bienvenida() {
       <Pantalla key={paso}>
         <Etiqueta>Paso {pasoObjetivo} de {totalPasos}</Etiqueta>
         <Titulo>Tu objetivo diario</Titulo>
-        <Pequeno>Opcional. Si tu médico o nutricionista te indicó cuántas calorías y cuánta proteína comer al día, escríbelas aquí; el menú ajustará las porciones. También puedes calcular una sugerencia con tus datos, o dejarlo para después: en Menú y en Perfil se puede definir en cualquier momento.</Pequeno>
+        <Pequeno>Opcional. Si tu médico o nutricionista te indicó cuántas calorías y cuánta proteína comer al día, escríbelas aquí; el menú ajustará las porciones de las cuatro comidas. También puedes calcular una sugerencia con tus datos, o dejarlo para después y definirlo en Menú o en Perfil.</Pequeno>
         <EditorObjetivo
           objetivo={objetivo}
           datos={datos}
           conInsulina={resultado?.motivos.alimentacion.includes('insulina') ?? false}
           autoguardar
+          sinIntroduccion
           onCambio={(c) => {
             if (c.objetivo !== undefined) setObjetivo(c.objetivo);
             if (c.datos !== undefined) setDatos(c.datos);

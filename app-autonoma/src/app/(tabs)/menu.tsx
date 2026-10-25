@@ -35,6 +35,7 @@ export default function MenuSemana() {
   const perfil = estado.perfil!;
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [editandoObjetivo, setEditandoObjetivo] = useState(false);
+  const [objetivoOmitido, setObjetivoOmitido] = useState(false);
   const [sinAlternativa, setSinAlternativa] = useState<string | null>(null);
   const prefs = perfil.cocina;
   const objetivo = perfil.objetivo;
@@ -84,9 +85,11 @@ export default function MenuSemana() {
       objetivo={perfil.objetivo}
       datos={perfil.datos}
       conInsulina={perfil.seguridad.motivos.alimentacion.includes('insulina')}
-      onCambio={(cambios) => {
+      sinIntroduccion
+      onCambio={(cambios, motivo) => {
         actualizarPerfil(cambios);
-        if (cambios.objetivo) setEditandoObjetivo(false);
+        // Se cierra solo al guardar; tras «Usar esta sugerencia» los campos siguen a la vista para ajustar la proteína.
+        if (motivo === 'guardar') setEditandoObjetivo(false);
       }}
     />
   );
@@ -111,6 +114,12 @@ export default function MenuSemana() {
         <Boton titulo="Cambiar objetivo" variante="secundario" icono="create-outline" onPress={() => setEditandoObjetivo(true)} />
       )}
     </Tarjeta>
+  ) : objetivoOmitido ? (
+    <Tarjeta>
+      <Etiqueta>Tu objetivo diario</Etiqueta>
+      <Texto>Sin objetivo, el menú muestra porciones base iguales para todas las personas.</Texto>
+      <Boton titulo="Definir objetivo" variante="secundario" icono="create-outline" onPress={() => setObjetivoOmitido(false)} />
+    </Tarjeta>
   ) : (
     <Tarjeta>
       <Etiqueta>Antes de armar tu semana</Etiqueta>
@@ -119,6 +128,7 @@ export default function MenuSemana() {
         Escribe cuántas calorías y cuánta proteína te indicó tu médico o nutricionista para el día, o calcula una sugerencia con tus datos. Con eso el menú ajusta las porciones de las cuatro comidas. Si lo dejas vacío, el menú muestra porciones base iguales para todas las personas.
       </Texto>
       {editorObjetivo}
+      <Boton titulo="Seguir sin objetivo por ahora" variante="secundario" onPress={() => setObjetivoOmitido(true)} />
     </Tarjeta>
   );
 

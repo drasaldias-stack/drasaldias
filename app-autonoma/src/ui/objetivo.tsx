@@ -47,6 +47,8 @@ const mismosDatos = (a: DatosCalculo | null, b: DatosCalculo | null) =>
   a === b || (a !== null && b !== null && a.sexo === b.sexo && a.edad === b.edad && a.pesoKg === b.pesoKg && a.tallaCm === b.tallaCm && a.actividad === b.actividad);
 
 export type CambioObjetivo = { objetivo?: Objetivo | null; datos?: DatosCalculo | null };
+/** Por qué cambió: botón de guardar, «Usar esta sugerencia», «Quitar objetivo» o autoguardado al escribir. */
+export type MotivoCambio = 'guardar' | 'sugerencia' | 'quitar' | 'auto';
 
 /**
  * Objetivo diario de energía y proteína: ingreso directo (lo que indicó el profesional) o sugerencia calculada por la
@@ -59,12 +61,15 @@ export function EditorObjetivo({
   conInsulina,
   onCambio,
   autoguardar = false,
+  sinIntroduccion = false,
 }: {
   objetivo: Objetivo | null;
   datos: DatosCalculo | null;
   conInsulina: boolean;
-  onCambio: (cambios: CambioObjetivo) => void;
+  onCambio: (cambios: CambioObjetivo, motivo: MotivoCambio) => void;
   autoguardar?: boolean;
+  /** La pantalla que lo envuelve ya explica para qué sirve el objetivo. */
+  sinIntroduccion?: boolean;
 }) {
   const perfil = { objetivo: objetivoActual, datos: datosActuales };
   const [kcal, setKcal] = useState(texto(perfil.objetivo?.kcal));
@@ -109,10 +114,10 @@ export function EditorObjetivo({
       const objetivo = { kcal: Math.round(k), proteina: Math.round(pr), origen };
       if (mismoObjetivo(objetivo, guardado.current.objetivo) && mismosDatos(datos ?? perfil.datos, guardado.current.datos)) return;
       guardado.current = { objetivo, datos: datos ?? perfil.datos };
-      onCambio({ objetivo, ...(datos ? { datos } : {}) });
+      onCambio({ objetivo, ...(datos ? { datos } : {}) }, 'auto');
     } else if (guardado.current.objetivo !== null) {
       guardado.current = { objetivo: null, datos: guardado.current.datos };
-      onCambio({ objetivo: null });
+      onCambio({ objetivo: null }, 'auto');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoguardar, valido, k, pr, origen, datos?.sexo, datos?.edad, datos?.pesoKg, datos?.tallaCm, datos?.actividad]);
@@ -122,7 +127,7 @@ export function EditorObjetivo({
     // Los datos corporales válidos se guardan también aquí, para no perderlos si se calculó y luego se escribió a mano.
     const objetivo = { kcal: Math.round(k), proteina: Math.round(pr), origen };
     guardado.current = { objetivo, datos: datos ?? perfil.datos };
-    onCambio({ objetivo, ...(datos ? { datos } : {}) });
+    onCambio({ objetivo, ...(datos ? { datos } : {}) }, 'guardar');
   };
   const usarSugerencia = () => {
     if (!sugerencia || !datos || !usable) return;
@@ -131,20 +136,22 @@ export function EditorObjetivo({
     setOrigen('calculado');
     const objetivo = { kcal: sugerencia.kcal, proteina: sugerencia.proteinaMin, origen: 'calculado' as const };
     guardado.current = { objetivo, datos };
-    onCambio({ objetivo, datos });
+    onCambio({ objetivo, datos }, 'sugerencia');
   };
   const quitar = () => {
     guardado.current = { objetivo: null, datos: perfil.datos };
-    onCambio({ objetivo: null });
+    onCambio({ objetivo: null }, 'quitar');
     setKcal('');
     setProteina('');
   };
 
   return (
     <View style={{ gap: Spacing.m }}>
-      <Texto>
-        Con un objetivo diario de energía y proteína, el menú reparte las cantidades en cuatro comidas (desayuno, almuerzo, once y cena) y ajusta las porciones de cada receta. Sin objetivo, el menú muestra porciones base iguales para todas las personas.
-      </Texto>
+      {!sinIntroduccion ? (
+        <Texto>
+          Con un objetivo diario de energía y proteína, el menú reparte las cantidades en cuatro comidas (desayuno, almuerzo, once y cena) y ajusta las porciones de cada receta. Sin objetivo, el menú muestra porciones base iguales para todas las personas.
+        </Texto>
+      ) : null}
       <Fila style={{ alignItems: 'flex-start' }}>
         <Campo><CampoTexto etiqueta="Calorías al día (kcal)" valor={kcal} onCambio={setKcal} numerico placeholder="Por ejemplo, 1500" /></Campo>
         <Campo><CampoTexto etiqueta="Proteína al día (g)" valor={proteina} onCambio={setProteina} numerico placeholder="Por ejemplo, 90" /></Campo>

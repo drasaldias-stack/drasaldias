@@ -8,9 +8,6 @@ import { usePaleta } from '@/hooks/use-paleta';
 
 export type NombreIcono = ComponentProps<typeof Ionicons>['name'];
 
-/** Separación entre el borde superior del contenido y la columna: lo que hay que sumar a la posición de un hijo para desplazarse hasta él. */
-export const MARGEN_SUPERIOR_PANTALLA = Spacing.l;
-
 export function Pantalla({ children, conBarra = true, scrollRef }: { children: ReactNode; conBarra?: boolean; scrollRef?: RefObject<ScrollView | null> }) {
   const p = usePaleta();
   const contenido = (

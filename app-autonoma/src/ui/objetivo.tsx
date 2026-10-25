@@ -7,7 +7,6 @@ import {
   objetivoValido, PISO_KCAL, pisoSobreGasto, PROTEINA_G_POR_KG, REPARTO_KCAL, REPARTO_PROTEINA, sugerenciaUsable, sugerirObjetivo, type Sugerencia,
 } from '@/logic/objetivo';
 import { COMIDAS, type Actividad, type DatosCalculo, type Objetivo, type OrigenObjetivo, type Sexo } from '@/logic/tipos';
-import type { Perfil } from '@/state/app-state';
 import { CampoTexto } from '@/ui/campos';
 import { Aviso, Boton, Fila, Opciones, Pequeno, Separador, Texto } from '@/ui/kit';
 
@@ -47,8 +46,27 @@ const mismoObjetivo = (a: Objetivo | null, b: Objetivo | null) => a === b || (a 
 const mismosDatos = (a: DatosCalculo | null, b: DatosCalculo | null) =>
   a === b || (a !== null && b !== null && a.sexo === b.sexo && a.edad === b.edad && a.pesoKg === b.pesoKg && a.tallaCm === b.tallaCm && a.actividad === b.actividad);
 
-/** Objetivo diario de energía y proteína: ingreso directo (lo que indicó el profesional) o sugerencia calculada por la app. */
-export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio: (cambios: { objetivo?: Objetivo | null; datos?: DatosCalculo | null }) => void }) {
+export type CambioObjetivo = { objetivo?: Objetivo | null; datos?: DatosCalculo | null };
+
+/**
+ * Objetivo diario de energía y proteína: ingreso directo (lo que indicó el profesional) o sugerencia calculada por la
+ * app. Se usa en Perfil, en Menú y en el registro inicial. Con `autoguardar`, no hay botón de guardar: cada valor
+ * válido se comunica al instante (y uno inválido, como objetivo nulo), para pantallas que guardan al continuar.
+ */
+export function EditorObjetivo({
+  objetivo: objetivoActual,
+  datos: datosActuales,
+  conInsulina,
+  onCambio,
+  autoguardar = false,
+}: {
+  objetivo: Objetivo | null;
+  datos: DatosCalculo | null;
+  conInsulina: boolean;
+  onCambio: (cambios: CambioObjetivo) => void;
+  autoguardar?: boolean;
+}) {
+  const perfil = { objetivo: objetivoActual, datos: datosActuales };
   const [kcal, setKcal] = useState(texto(perfil.objetivo?.kcal));
   const [proteina, setProteina] = useState(texto(perfil.objetivo?.proteina));
   const [origen, setOrigen] = useState<OrigenObjetivo>(perfil.objetivo?.origen ?? 'profesional');
@@ -84,7 +102,20 @@ export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio:
   const sugerencia = datos ? sugerirObjetivo(datos) : null;
   const usable = sugerencia !== null && sugerenciaUsable(sugerencia);
   const metas = perfil.objetivo ? objetivoPorComida(perfil.objetivo) : null;
-  const conInsulina = perfil.seguridad.motivos.alimentacion.includes('insulina');
+  // Autoguardado: cada cambio válido se comunica; si lo escrito deja de ser válido, el objetivo vuelve a nulo.
+  useEffect(() => {
+    if (!autoguardar) return;
+    if (valido) {
+      const objetivo = { kcal: Math.round(k), proteina: Math.round(pr), origen };
+      if (mismoObjetivo(objetivo, guardado.current.objetivo) && mismosDatos(datos ?? perfil.datos, guardado.current.datos)) return;
+      guardado.current = { objetivo, datos: datos ?? perfil.datos };
+      onCambio({ objetivo, ...(datos ? { datos } : {}) });
+    } else if (guardado.current.objetivo !== null) {
+      guardado.current = { objetivo: null, datos: guardado.current.datos };
+      onCambio({ objetivo: null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoguardar, valido, k, pr, origen, datos?.sexo, datos?.edad, datos?.pesoKg, datos?.tallaCm, datos?.actividad]);
 
   const guardar = () => {
     if (!valido) return;
@@ -129,15 +160,15 @@ export function EditorObjetivo({ perfil, onCambio }: { perfil: Perfil; onCambio:
           Revisa los valores: entre {LIMITES_OBJETIVO.kcal[0]} y {LIMITES_OBJETIVO.kcal[1]} kcal y entre {LIMITES_OBJETIVO.proteina[0]} y {LIMITES_OBJETIVO.proteina[1]} g de proteína al día.
         </Pequeno>
       ) : null}
-      <Boton titulo={perfil.objetivo ? 'Guardar cambios' : 'Guardar objetivo'} onPress={guardar} deshabilitado={!valido || sinCambios} />
-      {sinCambios ? <Pequeno tono="normal">Objetivo guardado. El menú ya usa estas cantidades.</Pequeno> : null}
+      {!autoguardar ? <Boton titulo={perfil.objetivo ? 'Guardar cambios' : 'Guardar objetivo'} onPress={guardar} deshabilitado={!valido || sinCambios} /> : null}
+      {!autoguardar && sinCambios ? <Pequeno tono="normal">Objetivo guardado. El menú ya usa estas cantidades.</Pequeno> : null}
       {perfil.objetivo && metas ? (
         <>
           <Pequeno>
             Reparto en cuatro comidas: {COMIDAS.map((c) => `${NOMBRE_COMIDA[c].toLowerCase()} ${metas[c].kcal} kcal y ${metas[c].proteina} g`).join(' · ')}. El reparto es fijo en esta versión:{' '}
             {COMIDAS.map((c) => Math.round(REPARTO_KCAL[c] * 100)).join('/')} % de la energía y {COMIDAS.map((c) => Math.round(REPARTO_PROTEINA[c] * 1000) / 10).join('/')} % de la proteína, con más proteína en almuerzo y cena.
           </Pequeno>
-          <Boton titulo="Quitar objetivo" variante="secundario" onPress={quitar} />
+          {!autoguardar ? <Boton titulo="Quitar objetivo" variante="secundario" onPress={quitar} /> : null}
         </>
       ) : null}
       <Separador />

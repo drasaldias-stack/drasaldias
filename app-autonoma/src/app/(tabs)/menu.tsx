@@ -16,6 +16,7 @@ import { useApp } from '@/state/app-state';
 import { accesoMenu } from '@/state/derivados';
 import { EditorCocina, TEXTO_EQUIPO, TEXTO_EXCLUSION } from '@/ui/editores';
 import { Aviso, Boton, Chip, Etiqueta, Fila, Pantalla, Pequeno, Separador, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
+import { EditorObjetivo } from '@/ui/objetivo';
 import { PRIORIDAD_PAUTA } from '@/ui/propio';
 
 const NOMBRE_ROL: Record<Rol, string> = {
@@ -29,10 +30,11 @@ const NOMBRE_ROL: Record<Rol, string> = {
 const DIAS = ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5'];
 
 export default function MenuSemana() {
-  const { estado, menuActual, actualizarCocina, nuevaCombinacion, reemplazarMenu } = useApp();
+  const { estado, menuActual, actualizarCocina, actualizarPerfil, nuevaCombinacion, reemplazarMenu } = useApp();
   const p = usePaleta();
   const perfil = estado.perfil!;
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  const [editandoObjetivo, setEditandoObjetivo] = useState(false);
   const [sinAlternativa, setSinAlternativa] = useState<string | null>(null);
   const prefs = perfil.cocina;
   const objetivo = perfil.objetivo;
@@ -70,11 +72,25 @@ export default function MenuSemana() {
     <Tarjeta>
       <Etiqueta>Además del menú</Etiqueta>
       <Texto>¿Tienes una pauta de tu nutricionista o una que armaste tú? Guárdala aquí para tenerla a mano junto con el menú.</Texto>
+      <Pequeno>Las calorías y la proteína del día no van aquí: se definen arriba, en «Tu objetivo diario».</Pequeno>
       <Boton titulo="Agregar mi pauta" variante="secundario" icono="create-outline" onPress={() => router.push('/pauta')} />
     </Tarjeta>
   );
 
   const metas = objetivo ? objetivoPorComida(objetivo) : null;
+  const editorObjetivo = (
+    <EditorObjetivo
+      key={perfil.inicio}
+      objetivo={perfil.objetivo}
+      datos={perfil.datos}
+      conInsulina={perfil.seguridad.motivos.alimentacion.includes('insulina')}
+      onCambio={(cambios) => {
+        actualizarPerfil(cambios);
+        if (cambios.objetivo) setEditandoObjetivo(false);
+      }}
+    />
+  );
+  // El objetivo se define aquí mismo, antes del menú: sin objetivo el editor va abierto; con objetivo, un resumen y «Cambiar».
   const tarjetaObjetivo = objetivo && metas ? (
     <Tarjeta>
       <Etiqueta>Tu objetivo diario</Etiqueta>
@@ -85,15 +101,25 @@ export default function MenuSemana() {
         {objetivo.origen === 'profesional' ? 'Indicado por tu profesional' : 'Calculado con la app como punto de partida, no una indicación médica'} · repartido en{' '}
         {COMIDAS.map((c) => `${NOMBRE_COMIDA[c].toLowerCase()} ${metas[c].kcal} kcal y ${metas[c].proteina} g`).join(', ')}. Las porciones de abajo están ajustadas a este objetivo.
       </Pequeno>
-      <Boton titulo="Cambiar en Perfil" variante="secundario" onPress={() => router.push('/perfil')} />
+      {editandoObjetivo ? (
+        <>
+          <Separador />
+          {editorObjetivo}
+          <Boton titulo="Cerrar" variante="secundario" onPress={() => setEditandoObjetivo(false)} />
+        </>
+      ) : (
+        <Boton titulo="Cambiar objetivo" variante="secundario" icono="create-outline" onPress={() => setEditandoObjetivo(true)} />
+      )}
     </Tarjeta>
   ) : (
-    <Aviso tipo="info">
+    <Tarjeta>
+      <Etiqueta>Antes de armar tu semana</Etiqueta>
+      <Subtitulo>Tu objetivo diario</Subtitulo>
       <Texto>
-        Sin objetivo diario, el menú muestra porciones base iguales para todas las personas. Si tu médico o nutricionista te indicó cuántas calorías y cuánta proteína comer al día, o quieres que la app te sugiera un punto de partida, defínelo en Perfil.
+        Escribe cuántas calorías y cuánta proteína te indicó tu médico o nutricionista para el día, o calcula una sugerencia con tus datos. Con eso el menú ajusta las porciones de las cuatro comidas. Si lo dejas vacío, el menú muestra porciones base iguales para todas las personas.
       </Texto>
-      <Boton titulo="Definir objetivo en Perfil" variante="secundario" onPress={() => router.push('/perfil')} />
-    </Aviso>
+      {editorObjetivo}
+    </Tarjeta>
   );
 
   const resumenFiltros = [

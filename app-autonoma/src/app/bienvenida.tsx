@@ -6,13 +6,14 @@ import { Spacing } from '@/constants/theme';
 import { usePaleta } from '@/hooks/use-paleta';
 import { hoyISO } from '@/logic/programa';
 import { evaluarSeguridad } from '@/logic/seguridad';
-import type { PreferenciasCocina, PreferenciasEjercicio, RespuestasSeguridad, ResultadoSeguridad } from '@/logic/tipos';
+import type { DatosCalculo, Objetivo, PreferenciasCocina, PreferenciasEjercicio, RespuestasSeguridad, ResultadoSeguridad } from '@/logic/tipos';
 import { COCINA_INICIAL, EJERCICIO_INICIAL, useApp } from '@/state/app-state';
 import { EditorCocina, EditorEjercicio } from '@/ui/editores';
+import { EditorObjetivo } from '@/ui/objetivo';
 import { Aviso, Boton, Cinta, Etiqueta, Pantalla, Pequeno, SiNo, Subtitulo, Tarjeta, Texto, Titulo } from '@/ui/kit';
 import { RestaurarRespaldo } from '@/ui/respaldo';
 
-type Paso = 'inicio' | 'restaurar' | 'seguridad' | 'resultado' | 'cocina' | 'ejercicio';
+type Paso = 'inicio' | 'restaurar' | 'seguridad' | 'resultado' | 'cocina' | 'objetivo' | 'ejercicio';
 
 const mismoConjunto = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
@@ -52,6 +53,9 @@ export default function Bienvenida() {
   const [nombre, setNombre] = useState(perfilActual?.nombre ?? '');
   const [cocina, setCocina] = useState<PreferenciasCocina>(perfilActual?.cocina ?? COCINA_INICIAL);
   const [ejercicio, setEjercicio] = useState<PreferenciasEjercicio>(perfilActual?.ejercicio ?? EJERCICIO_INICIAL);
+  // Objetivo diario (opcional) y datos corporales escritos en el registro; se guardan con el perfil al crear el plan.
+  const [objetivo, setObjetivo] = useState<Objetivo | null>(null);
+  const [datos, setDatos] = useState<DatosCalculo | null>(null);
 
   const recienGuardado = useRef(false);
 
@@ -87,8 +91,8 @@ export default function Bienvenida() {
       ejercicio,
       pauta: null,
       rutina: null,
-      objetivo: null,
-      datos: null,
+      objetivo: seg.alimentacion !== 'bloqueado' ? objetivo : null,
+      datos: seg.alimentacion !== 'bloqueado' ? datos : null,
     });
     router.replace('/');
   };
@@ -100,7 +104,9 @@ export default function Bienvenida() {
     return terminar(seg);
   };
 
-  const totalPasos = resultado ? 1 + (resultado.alimentacion !== 'bloqueado' ? 1 : 0) + (resultado.ejercicio !== 'bloqueado' ? 1 : 0) : 3;
+  // Pasos: seguridad, y luego cocina y objetivo (si la alimentación no está bloqueada) y ejercicio (si no está bloqueado).
+  const totalPasos = resultado ? 1 + (resultado.alimentacion !== 'bloqueado' ? 2 : 0) + (resultado.ejercicio !== 'bloqueado' ? 1 : 0) : 4;
+  const pasoObjetivo = 3;
 
   const campoNombre = (
     <View style={{ gap: Spacing.s }}>
@@ -250,10 +256,31 @@ export default function Bienvenida() {
         <Etiqueta>Paso 2 de {totalPasos}</Etiqueta>
         <Titulo>Tu cocina</Titulo>
         <EditorCocina valor={cocina} onCambio={setCocina} />
-        <Boton
-          titulo={resultado && resultado.ejercicio !== 'bloqueado' ? 'Continuar' : 'Crear mi plan'}
-          onPress={() => (resultado && resultado.ejercicio !== 'bloqueado' ? setPaso('ejercicio') : resultado && terminar(resultado))}
+        <Boton titulo="Continuar" onPress={() => setPaso('objetivo')} />
+      </Pantalla>
+    );
+  }
+
+  if (paso === 'objetivo') {
+    const ultimo = !(resultado && resultado.ejercicio !== 'bloqueado');
+    const seguir = () => (ultimo ? resultado && terminar(resultado) : setPaso('ejercicio'));
+    return (
+      <Pantalla key={paso}>
+        <Etiqueta>Paso {pasoObjetivo} de {totalPasos}</Etiqueta>
+        <Titulo>Tu objetivo diario</Titulo>
+        <Pequeno>Opcional. Si tu médico o nutricionista te indicó cuántas calorías y cuánta proteína comer al día, escríbelas aquí; el menú ajustará las porciones. También puedes calcular una sugerencia con tus datos, o dejarlo para después: en Menú y en Perfil se puede definir en cualquier momento.</Pequeno>
+        <EditorObjetivo
+          objetivo={objetivo}
+          datos={datos}
+          conInsulina={resultado?.motivos.alimentacion.includes('insulina') ?? false}
+          autoguardar
+          onCambio={(c) => {
+            if (c.objetivo !== undefined) setObjetivo(c.objetivo);
+            if (c.datos !== undefined) setDatos(c.datos);
+          }}
         />
+        <Boton titulo={objetivo ? (ultimo ? 'Crear mi plan' : 'Continuar') : ultimo ? 'Crear mi plan sin objetivo' : 'Continuar sin objetivo'} onPress={seguir} />
+        <Boton titulo="Volver a mi cocina" variante="secundario" onPress={() => setPaso('cocina')} />
       </Pantalla>
     );
   }

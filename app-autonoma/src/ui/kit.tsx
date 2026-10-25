@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps, ReactNode, RefObject } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,10 +8,13 @@ import { usePaleta } from '@/hooks/use-paleta';
 
 export type NombreIcono = ComponentProps<typeof Ionicons>['name'];
 
-export function Pantalla({ children, conBarra = true }: { children: ReactNode; conBarra?: boolean }) {
+/** Separación entre el borde superior del contenido y la columna: lo que hay que sumar a la posición de un hijo para desplazarse hasta él. */
+export const MARGEN_SUPERIOR_PANTALLA = Spacing.l;
+
+export function Pantalla({ children, conBarra = true, scrollRef }: { children: ReactNode; conBarra?: boolean; scrollRef?: RefObject<ScrollView | null> }) {
   const p = usePaleta();
   const contenido = (
-    <ScrollView style={{ backgroundColor: p.bg }} contentContainerStyle={estilos.scroll} keyboardShouldPersistTaps="handled">
+    <ScrollView ref={scrollRef} style={{ backgroundColor: p.bg }} contentContainerStyle={estilos.scroll} keyboardShouldPersistTaps="handled">
       <View style={estilos.columna}>{children}</View>
     </ScrollView>
   );

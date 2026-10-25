@@ -66,7 +66,9 @@ function exportar() {
   fs.rmSync(dist, { recursive: true, force: true });
   const sello = selloPublicacion();
   console.log(`Sello de publicación: versión ${sello.EXPO_PUBLIC_VERSION}, fecha ${sello.EXPO_PUBLIC_FECHA_PUBLICACION ?? '(sin fecha)'}, commit ${sello.EXPO_PUBLIC_COMMIT ?? '(sin commit)'}`);
-  execSync('npx expo export --platform web', { cwd: raiz, stdio: 'inherit', env: { ...process.env, CI: '1', EXPO_BASE_URL: BASE, ...sello } });
+  // --clear: la caché del empaquetador guarda los módulos ya transformados con las variables EXPO_PUBLIC_* de la
+  // exportación anterior; sin limpiarla, el sello de versión incrustado quedaba desactualizado.
+  execSync('npx expo export --platform web --clear', { cwd: raiz, stdio: 'inherit', env: { ...process.env, CI: '1', EXPO_BASE_URL: BASE, ...sello } });
 
   // Lo que viene de public/ (manifiesto e íconos) no lo reescribe Expo: se le antepone la base a mano.
   // El favicon lo genera Expo desde app.json y ya sale con la base.

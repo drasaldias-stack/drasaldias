@@ -79,7 +79,13 @@ export default function Perfil() {
             <Subtitulo>Objetivo diario de alimentación</Subtitulo>
             {accesoMenu(perfil) ? (
               // El editor recarga sus campos solo cuando el perfil cambia por fuera (por ejemplo, al restaurar un respaldo).
-              <EditorObjetivo key={perfil.inicio} perfil={perfil} onCambio={actualizarPerfil} />
+              <EditorObjetivo
+                key={perfil.inicio}
+                objetivo={perfil.objetivo}
+                datos={perfil.datos}
+                conInsulina={perfil.seguridad.motivos.alimentacion.includes('insulina')}
+                onCambio={actualizarPerfil}
+              />
             ) : (
               <Texto>Se activa junto con el menú, cuando marques arriba que ya hablaste con tu médico.</Texto>
             )}

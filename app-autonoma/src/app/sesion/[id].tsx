@@ -1,10 +1,12 @@
-import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router';
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, type ScrollView } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { AVISO_HIPOGLUCEMIA, CALENTAMIENTO, CONSEJOS_SESION, PROGRAMAS, SENALES_DETENERSE, VUELTA_CALMA } from '@/content/ejercicios';
 import { usePaleta } from '@/hooks/use-paleta';
+import { siguientePendiente } from '@/logic/avance';
 import { claveSesion, resolverEjercicio, semanaVigente, sesionesDeSemana, vueltasDeSesion } from '@/logic/programa';
 import { catalogoCompleto, CUIDADO_PROPIO, esSesionPropia, letraSesionPropia, sesionesPropias } from '@/logic/propio';
 import { useApp } from '@/state/app-state';
@@ -19,6 +21,23 @@ export default function DetalleSesion() {
   const p = usePaleta();
   const [vuelta, setVuelta] = useState(1);
   const [hechos, setHechos] = useState<Record<string, boolean>>({});
+  // Para desplazar la pantalla al siguiente ejercicio al marcar uno como hecho: cada bloque se mide en el momento de
+  // desplazarse (no al montarse), porque marcar un ejercicio cambia la altura de su tarjeta y corre las siguientes.
+  const scrollRef = useRef<ScrollView>(null);
+  const bloques = useRef<Record<string, View | null>>({});
+  const registrar = (clave: string) => (nodo: View | null) => {
+    bloques.current[clave] = nodo;
+  };
+  const irA = (clave: string) => {
+    // Un instante después, para que el estado nuevo (chip «Hecho», vuelta siguiente) ya esté pintado.
+    setTimeout(() => {
+      const nodo = bloques.current[clave];
+      const scroll = scrollRef.current;
+      if (!nodo || !scroll) return;
+      const contenido = scroll.getInnerViewNode?.() ?? scroll;
+      nodo.measureLayout(contenido, (_x, y) => scroll.scrollTo({ y: Math.max(0, y - Spacing.s), animated: true }), () => undefined);
+    }, 60);
+  };
   if (!estado.perfil) return <Redirect href="/bienvenida" />;
   const perfil = estado.perfil;
   const programa = PROGRAMAS[perfil.ejercicio.programa];
@@ -38,9 +57,29 @@ export default function DetalleSesion() {
   const hecha = Boolean(estado.sesionesHechas[clave]);
   const claveItem = (i: number) => `${vuelta}-${i}`;
   const completadosEstaVuelta = sesion.items.filter((_, i) => hechos[claveItem(i)]).length;
+  /** Marca o desmarca un ejercicio; al marcar, la pantalla pasa al siguiente pendiente, a la vuelta siguiente o a la vuelta a la calma. */
+  const marcar = (i: number, listo: boolean) => {
+    const nuevos = { ...hechos, [claveItem(i)]: !listo };
+    setHechos(nuevos);
+    if (listo) return;
+    const siguiente = siguientePendiente(sesion.items.map((_, j) => Boolean(nuevos[claveItem(j)])), i);
+    if (siguiente !== null) irA(`ejercicio-${siguiente}`);
+    else if (vuelta < vueltas) {
+      setVuelta(vuelta + 1);
+      irA('vueltas');
+    } else irA('calma');
+  };
+  const terminar = () => {
+    alternarSesion(clave);
+    // Al terminar, se vuelve a donde se abrió la sesión (Hoy o Ejercicio), que ya la muestra como hecha.
+    if (!hecha) {
+      if (router.canGoBack()) router.back();
+      else router.replace('/(tabs)/ejercicio');
+    }
+  };
 
   return (
-    <Pantalla conBarra={false}>
+    <Pantalla conBarra={false} scrollRef={scrollRef}>
       <Stack.Screen options={{ title: propia ? `Mi rutina · sesión ${letraSesionPropia(perfil.rutina, sesion.id) ?? ''}` : `Sesión ${sesion.id}` }} />
       {/* La pantalla se usa con las manos ocupadas durante 10 a 30 minutos: no debe apagarse sola. */}
       <MantenerPantalla />
@@ -66,17 +105,19 @@ export default function DetalleSesion() {
         </Aviso>
       ) : null}
 
-      {vueltas > 1 ? (
-        <Opciones<number>
-          etiqueta={`Vuelta ${vuelta} de ${vueltas}`}
-          ayuda="Haz los ejercicios en orden y repite la vuelta. Descansa 30 a 60 segundos entre ejercicios y 1 a 2 minutos entre vueltas."
-          opciones={Array.from({ length: vueltas }, (_, i) => ({ valor: i + 1, texto: `Vuelta ${i + 1}` }))}
-          valor={vuelta}
-          onCambio={(v) => setVuelta(v as number)}
-        />
-      ) : (
-        <Pequeno>Haz cada ejercicio una vez, en orden. Descansa 30 a 60 segundos entre ejercicios.</Pequeno>
-      )}
+      <View ref={registrar('vueltas')}>
+        {vueltas > 1 ? (
+          <Opciones<number>
+            etiqueta={`Vuelta ${vuelta} de ${vueltas}`}
+            ayuda="Haz los ejercicios en orden y repite la vuelta. Al marcar el último, la app pasa sola a la vuelta siguiente. Descansa 30 a 60 segundos entre ejercicios y 1 a 2 minutos entre vueltas."
+            opciones={Array.from({ length: vueltas }, (_, i) => ({ valor: i + 1, texto: `Vuelta ${i + 1}` }))}
+            valor={vuelta}
+            onCambio={(v) => setVuelta(v as number)}
+          />
+        ) : (
+          <Pequeno>Haz cada ejercicio una vez, en orden. Al marcar uno como hecho, la pantalla pasa al siguiente. Descansa 30 a 60 segundos entre ejercicios.</Pequeno>
+        )}
+      </View>
 
       {sesion.items.map((item, i) => {
         const ej = resolverEjercicio(item.ejercicio, perfil.ejercicio.materiales, catalogo);
@@ -84,41 +125,51 @@ export default function DetalleSesion() {
         const cambiado = ej.id !== item.ejercicio;
         const listo = Boolean(hechos[claveItem(i)]);
         return (
-          <Tarjeta key={`${item.ejercicio}-${i}`} style={listo ? { opacity: 0.75 } : undefined}>
-            <Fila style={{ justifyContent: 'space-between' }}>
-              <Etiqueta>Ejercicio {i + 1} de {sesion.items.length}</Etiqueta>
-              {listo ? <Chip texto="Hecho" tono="ok" /> : null}
-            </Fila>
-            <Subtitulo>{ej.nombre}</Subtitulo>
-            <Text style={[estilos.cantidad, { color: p.ink }]}>
-              {item.cantidad} {item.unidad === 'reps' ? 'repeticiones' : 'segundos'}
-            </Text>
-            {item.unidad === 'seg' ? <Cronometro segundos={item.cantidad} /> : null}
-            {cambiado ? <Pequeno>Adaptado a los materiales que tienes.</Pequeno> : null}
-            {ej.instrucciones.map((t) => (
-              <Texto key={t}>{`•  ${t}`}</Texto>
-            ))}
-            {ej.cuidado ? <Pequeno>{ej.cuidado}</Pequeno> : null}
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: listo }}
-              aria-checked={listo}
-              onPress={() => setHechos((h) => ({ ...h, [claveItem(i)]: !listo }))}
-              style={({ pressed }) => [estilos.marcar, { borderColor: listo ? p.ok : p.line, backgroundColor: listo ? p.okBg : 'transparent', opacity: pressed ? 0.85 : 1 }]}>
-              <Text style={[estilos.marcarTexto, { color: listo ? p.ok : p.accent }]}>{listo ? 'Hecho en esta vuelta' : 'Marcar como hecho'}</Text>
-            </Pressable>
-          </Tarjeta>
+          <View key={`${item.ejercicio}-${i}`} ref={registrar(`ejercicio-${i}`)}>
+            <Tarjeta style={listo ? { opacity: 0.8 } : undefined}>
+              <Fila style={{ justifyContent: 'space-between' }}>
+                <Etiqueta>Ejercicio {i + 1} de {sesion.items.length}</Etiqueta>
+                {listo ? <Chip texto="Hecho" tono="ok" /> : null}
+              </Fila>
+              <Subtitulo>{ej.nombre}</Subtitulo>
+              <Text style={[estilos.cantidad, { color: p.ink }]}>
+                {item.cantidad} {item.unidad === 'reps' ? 'repeticiones' : 'segundos'}
+              </Text>
+              {item.unidad === 'seg' ? <Cronometro segundos={item.cantidad} /> : null}
+              {cambiado ? <Pequeno>Adaptado a los materiales que tienes.</Pequeno> : null}
+              {ej.instrucciones.map((t) => (
+                <Texto key={t}>{`•  ${t}`}</Texto>
+              ))}
+              {ej.cuidado ? (
+                // El cuidado es la indicación de seguridad del ejercicio: va con ícono y en tinta normal, no en gris.
+                <Fila style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
+                  <Ionicons aria-hidden name="alert-circle-outline" size={20} color={p.warn} style={{ marginTop: 1 }} />
+                  <Texto style={{ flex: 1 }}>{ej.cuidado}</Texto>
+                </Fila>
+              ) : null}
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: listo }}
+                aria-checked={listo}
+                onPress={() => marcar(i, listo)}
+                style={({ pressed }) => [estilos.marcar, { borderColor: listo ? p.ok : p.line, backgroundColor: listo ? p.okBg : 'transparent', opacity: pressed ? 0.85 : 1 }]}>
+                <Text style={[estilos.marcarTexto, { color: listo ? p.ok : p.accent }]}>{listo ? 'Hecho en esta vuelta' : 'Marcar como hecho'}</Text>
+              </Pressable>
+            </Tarjeta>
+          </View>
         );
       })}
 
       {vueltas > 1 && completadosEstaVuelta === sesion.items.length && vuelta < vueltas ? (
-        <Boton titulo={`Pasar a la vuelta ${vuelta + 1}`} onPress={() => setVuelta(vuelta + 1)} />
+        <Boton titulo={`Pasar a la vuelta ${vuelta + 1}`} onPress={() => { setVuelta(vuelta + 1); irA('vueltas'); }} />
       ) : null}
 
-      <Tarjeta>
-        <Etiqueta>Vuelta a la calma</Etiqueta>
-        <Texto>{VUELTA_CALMA}</Texto>
-      </Tarjeta>
+      <View ref={registrar('calma')}>
+        <Tarjeta>
+          <Etiqueta>Vuelta a la calma</Etiqueta>
+          <Texto>{VUELTA_CALMA}</Texto>
+        </Tarjeta>
+      </View>
 
       <Aviso tipo="critico">
         <Pequeno tono="normal">{SENALES_DETENERSE}</Pequeno>
@@ -128,7 +179,7 @@ export default function DetalleSesion() {
         titulo={hecha ? 'Marcar como no hecha' : 'Terminé esta sesión'}
         variante={hecha ? 'secundario' : 'primario'}
         icono={hecha ? undefined : 'checkmark-circle'}
-        onPress={() => alternarSesion(clave)}
+        onPress={terminar}
       />
     </Pantalla>
   );

@@ -7,7 +7,7 @@ export const Colors = {
     surface: '#FFFFFF',
     surface2: '#E5EBE7',
     ink: '#16201C',
-    ink2: '#51605A',
+    ink2: '#45534D',
     line: '#CFD9D3',
     accent: '#0D5C63',
     accentInk: '#FFFFFF',
